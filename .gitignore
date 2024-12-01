@@ -1,5 +1,6 @@
 /libs/stb/
 /bin/
+/.cache/
 *.iso
 *.exe
 *.obj

@@ -1,0 +1,19 @@
+The script used to automatically send compilation result to xbox through ftp
+has been posted here (thanks to the person who wrote it) :
+http://forums.xbox-scene.com/index.php?showtopic=400349
+
+You can call it from makefile itself :
+
+replace
+
+default.exe: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LD_LIBS) $(LD_FLAGS)
+	$(CXBE) -TITLE:"$@" -DUMPINFO:"default.cxbe" -OUT:"default.xbe" $@ > /dev/null
+
+with
+
+
+default.exe: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LD_LIBS) $(LD_FLAGS)
+	$(CXBE) -TITLE:"$@" -DUMPINFO:"default.cxbe" -OUT:"default.xbe" $@ > /dev/null
+	./ftp2xbox.bat

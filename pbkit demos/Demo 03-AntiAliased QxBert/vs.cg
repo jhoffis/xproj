@@ -1,0 +1,23 @@
+//Use this file to create vs.h (tools coming from NVidia SDK 9.5)
+//cgc.exe -profile vs_1_1 -o %vs.vsh %vs.cg
+//vsa.exe /nologo /Vd /Fh %vs.h %vs.vsh
+
+//This minimal vertex shader is enough for 2D texture mapping
+
+struct myVertexInput{
+	float4 position : POSITION;
+	float4 texcoord : TEXCOORD;
+};
+struct myVertexOutput{
+	float4 pos : POSITION;
+	float4 tex : TEXCOORD;
+};
+myVertexOutput main(myVertexInput I,uniform float4 Scale,uniform float4 Bias)
+{
+	myVertexOutput result;
+	
+	result.pos = I.position * Scale + Bias;
+	result.tex = I.texcoord;
+
+	return result;
+}

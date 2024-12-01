@@ -45,14 +45,13 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
 
 int main(void)
 {
-    SDL_Window *window;
     SDL_Event e;
-    SDL_Surface *screenSurface, *imageSurface;
 
     int       last, now;
     int       fps, frames;
     now = last = GetTickCount();
     frames = fps = 0;
+    int f3key = 0;
 
     if (!XVideoSetMode(width, height, 32, 60)) {
         XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
@@ -91,11 +90,13 @@ int main(void)
         return 1;
     }
 
-    init_shader();
+    init_shader(0);
     alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, 0x3ffb000, 0, 0x404);
     memcpy(alloc_vertices, verts, sizeof(verts));
     num_vertices = sizeof(verts)/sizeof(verts[0]);
     matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);
+
+    i32 sw = 0;
 
     for (;;) {
         pb_wait_for_vbl();
@@ -105,6 +106,8 @@ int main(void)
         pb_fill(0, 0, width, height, 0);
         pb_erase_text_screen();
 
+        sw = 1;
+        init_shader(sw);
         while(pb_busy()) {
             /* Wait for completion... */
         }
@@ -115,16 +118,22 @@ int main(void)
                 if (pad == NULL) {
                     pad = new_pad;
                 }
-            }
-            else if (e.type == SDL_CONTROLLERDEVICEREMOVED) {
+            } else if (e.type == SDL_CONTROLLERDEVICEREMOVED) {
                 if (pad == SDL_GameControllerFromInstanceID(e.cdevice.which)) {
                     pad = NULL;
                 }
                 SDL_GameControllerClose(SDL_GameControllerFromInstanceID(e.cdevice.which));
-            }
-            else if (e.type == SDL_CONTROLLERBUTTONDOWN) {
+            } else if (e.type == SDL_CONTROLLERBUTTONDOWN) {
                 if (e.cbutton.button == SDL_CONTROLLER_BUTTON_START) {
                     pad = (SDL_GameControllerFromInstanceID(e.cdevice.which));
+                }
+            } else if (e.type == SDL_KEYDOWN) {
+                if (e.key.keysym.sym == SDLK_F3) {
+                    f3key = 1;
+                }
+            } else if (e.type == SDL_KEYUP) {
+                if (e.key.keysym.sym == SDLK_F3) {
+                    f3key = 0;
                 }
             }
         }
@@ -147,7 +156,8 @@ int main(void)
                     "- Back:%d Start:%d White:%d Black:%d\n"
                     "- Up:%d Down:%d Left:%d Right:%d\n"
                     "- Lstick:%d, Rstick:%d\n"
-                    "- Vendor: %04x Product: %04x\n",
+                    "- Vendor: %04x Product: %04x\n"
+                    "- F3: %d\n",
                     SDL_GameControllerGetPlayerIndex(pad),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY),
@@ -169,7 +179,9 @@ int main(void)
                     SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT),
                     SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSTICK),
                     SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSTICK),
-                    SDL_GameControllerGetVendor(pad), SDL_GameControllerGetProduct(pad)
+                    SDL_GameControllerGetVendor(pad), 
+                    SDL_GameControllerGetProduct(pad),
+                    f3key
                         );
 
             SDL_GameControllerRumble(pad, SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) * 2,
@@ -183,6 +195,9 @@ int main(void)
 
         {
             u32 *p = pb_begin();
+
+            p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_START, 0);
+           
 
             /* Set shader constants cursor at C0 */
             p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);

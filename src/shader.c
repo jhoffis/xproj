@@ -1,16 +1,42 @@
 #include "shader.h"
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h> // for ffs()
 #include <pbkit/pbkit.h>
 #define MASK(mask, val) (((val) << (ffs(mask)-1)) & (mask))
 
 
-void init_shader(void) {
+void init_shader(i32 which) {
     u32 *p;
 
-    u32 vs_program[] = {
-        #include "vs.inl"
-    };
+    u32 *vs_program = NULL;
+    size_t shader_size;
+
+    switch (which) {
+        case 0: 
+            u32 temp[] = {
+                #include "vs.inl"
+            };
+            shader_size = sizeof(temp);
+            vs_program = (u32 *)malloc(shader_size);
+            if (vs_program) {
+                memcpy(vs_program, temp, shader_size); // Copy shader data
+            }
+            break;
+        case 1: 
+            u32 temp2[] = {
+                #include "vs2.inl"
+            };
+            shader_size = sizeof(temp2);
+            vs_program = (u32 *)malloc(shader_size);
+            if (vs_program) {
+                memcpy(vs_program, temp2, shader_size); // Copy shader data
+            }
+            break;
+        default:
+            // debugPrint("Invalid shader selection!\n");
+            break;
+    }
 
     p = pb_begin();
     // Set run address of shader
@@ -25,8 +51,14 @@ void init_shader(void) {
 
     pb_end(p);
 
+    /* Set cursor and begin copying program */
+    p = pb_begin();
+    p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_LOAD, 0);
+
+    pb_end(p);
+
     /* Copy program instructions (16-bytes each) */
-    for (u32 i = 0; i < sizeof(vs_program) / 16; i++) {
+    for (u32 i = 0; i < shader_size / 16; i++) {
         p = pb_begin();
         pb_push(p++, NV097_SET_TRANSFORM_PROGRAM, 4);
         memcpy(p, &vs_program[i*4], 4*4);
@@ -36,8 +68,19 @@ void init_shader(void) {
 
     /* Setup fragment shader */
     p = pb_begin();
-    #include "ps.inl"
+    switch (which) {
+        case 0:
+#include "ps.inl"
+            break;
+        case 1:
+#include "ps2.inl"
+            break;
+    }
     pb_end(p);
+
+    if (vs_program) {
+        free(vs_program);
+    }
 }
 
 /* Set an attribute pointer */

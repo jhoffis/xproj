@@ -1,0 +1,8 @@
+/libs/stb/
+/bin/
+*.iso
+*.exe
+*.obj
+*.pdb
+*.d
+compile_commands.json

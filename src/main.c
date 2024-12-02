@@ -20,7 +20,14 @@ static const ColoredVertex verts[] = {
     {{ 0.0,  1.0,  1.0}, { 0.0,  1.0,  0.0}},
     {{ 1.0, -1.0,  1.0}, { 0.0,  0.0,  1.0}},
 };
+static const ColoredVertex verts2[] = {
+    //  X     Y     Z       R     G     B
+    {{-1.0, -0.7,  1.0}, { 0.5,  1.0,  0.0}}, /* Foreground triangle */
+    {{ 0.0,  0.5,  1.0}, { 0.0,  1.0,  0.0}},
+    {{ 1.0, -1.0,  1.0}, { 0.0,  0.0,  1.0}},
+};
 static u32 *alloc_vertices;
+static u32 *alloc_vertices2;
 static u32  num_vertices;
 static f32     m_viewport[4][4];
 
@@ -97,6 +104,8 @@ int main(void)
     // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
     alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(alloc_vertices, verts, sizeof(verts));
+    alloc_vertices2 = MmAllocateContiguousMemoryEx(sizeof(verts2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    memcpy(alloc_vertices2, verts2, sizeof(verts2));
     num_vertices = sizeof(verts)/sizeof(verts[0]);
     matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);
 
@@ -227,6 +236,41 @@ int main(void)
             /* Set vertex diffuse color attribute */
             set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
                     3, sizeof(ColoredVertex), &alloc_vertices[3]);
+
+            /* Begin drawing triangles */
+            draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
+        }
+        init_shader(0);
+        {
+            u32 *p = pb_begin();
+
+            p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_START, 0);
+           
+
+            /* Set shader constants cursor at C0 */
+            p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);
+
+            /* Send the transformation matrix */
+            pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
+            memcpy(p, m_viewport, 16*4); p+=16;
+
+            pb_end(p);
+            p = pb_begin();
+
+            /* Clear all attributes */
+            pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
+            for(u8 i = 0; i < 16; i++) {
+                *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
+            }
+            pb_end(p);
+
+            /* Set vertex position attribute */
+            set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                    3, sizeof(ColoredVertex), &alloc_vertices2[0]);
+
+            /* Set vertex diffuse color attribute */
+            set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                    3, sizeof(ColoredVertex), &alloc_vertices2[3]);
 
             /* Begin drawing triangles */
             draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);

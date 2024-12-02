@@ -1,4 +1,5 @@
 #include "shader.h"
+#include "cube.h"
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h> // for ffs()
@@ -84,7 +85,7 @@ void init_shader(i32 which) {
 }
 
 /* Set an attribute pointer */
-void set_attrib_pointer(unsigned int index, unsigned int format, unsigned int size, unsigned int stride, const void* data)
+void set_attrib_pointer(u32 index, u32 format, u32 size, u32 stride, const void* data)
 {
     uint32_t *p = pb_begin();
     p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_FORMAT + index*4,
@@ -96,7 +97,7 @@ void set_attrib_pointer(unsigned int index, unsigned int format, unsigned int si
 }
 
 /* Send draw commands for the triangles */
-void draw_arrays(unsigned int mode, int start, int count)
+void draw_arrays(u32 mode, i32 start, i32 count)
 {
     uint32_t *p = pb_begin();
     p = pb_push1(p, NV097_SET_BEGIN_END, mode);
@@ -106,4 +107,32 @@ void draw_arrays(unsigned int mode, int start, int count)
 
     p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
     pb_end(p);
+}
+
+/*
+ *  First draw the demo and then try to get a model from the disk. 
+ *  But draw a cube instead - just so it's easier to see what it's doing.
+ */
+void draw_indexed() {
+    #define MIN(a,b) ((a)<(b)?(a):(b))
+    #define MAX_BATCH 120
+
+    u32 *p;
+    u32 num_this_batch;
+
+    for (u32 i = 0; i < num_cube_indices; i += num_this_batch) {
+        num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
+
+        //What are the indices?
+        p = pb_begin();
+        p = pb_push1(p, NV097_SET_BEGIN_END, TRIANGLES);
+        pb_push(p++, 0x40000000|NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
+
+        // send indices
+        memcpy(p, &cube_indices[i], num_this_batch * sizeof(u32));
+        p += num_this_batch;
+
+        p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
+        pb_end(p);
+    }
 }

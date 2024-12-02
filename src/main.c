@@ -6,6 +6,7 @@
 // #include "libs/stb/stb_image.h"
 #include "nums.h"
 #include "shader.h"
+#include "xboxkrnl/xboxkrnl.h"
 
 
 typedef struct {
@@ -91,7 +92,10 @@ int main(void)
     }
 
     init_shader(0);
-    alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, 0x3ffb000, 0, 0x404);
+    
+    //0, 0x3ffb000 means anywhere in the memory that is less than 64 mb.
+    // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
+    alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(alloc_vertices, verts, sizeof(verts));
     num_vertices = sizeof(verts)/sizeof(verts[0]);
     matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);

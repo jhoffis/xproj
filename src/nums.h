@@ -21,5 +21,6 @@ _Static_assert(sizeof(u32) == 4, "Must be 4 bytes");
 _Static_assert(sizeof(i32) == 4, "Must be 4 bytes");
 _Static_assert(sizeof(u64) == 8, "Must be 8 bytes");
 _Static_assert(sizeof(i64) == 8, "Must be 8 bytes");
+#define MAX_MEM_64 0x3ffb000
 
 #endif // MY_NUMS

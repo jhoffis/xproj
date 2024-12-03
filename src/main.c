@@ -38,8 +38,8 @@ MATRIX m_model, m_view, m_proj, m_mvp;
 VECTOR v_obj_rot     = {  0,   0,   0,  1 };
 VECTOR v_obj_scale   = {  1,   1,   1,  1 };
 VECTOR v_obj_pos     = {  0,   0,   0,  1 };
-VECTOR v_cam_loc     = {  1.2,   1.5, 165,  1 };
-VECTOR v_cam_rot     = {  0.05,   -.05,   0,  1 };
+VECTOR v_cam_loc     = {  0,   0, 165,  1 };
+VECTOR v_cam_rot     = {  -0.05,   0.8,   0,  1 };
 
 static u32 *alloc_vertices;
 static u32 *alloc_vertices2;
@@ -162,7 +162,7 @@ int main(void)
         matrix_unit(m_model);
         matrix_rotate(m_model, m_model, v_obj_rot);
         matrix_scale(m_model, m_model, v_obj_scale);
-        // matrix_translate(m_model, m_model, v_obj_pos);
+        matrix_translate(m_model, m_model, v_obj_pos);
 
         sw = 1;
         init_shader(sw);
@@ -204,11 +204,11 @@ int main(void)
 
             i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
             if (look_x_axis > 2000 || look_x_axis < -2000) {
-                obj_rotationX += (float) (look_x_axis) / 10000.f;
+                obj_rotationX += (float) (look_x_axis) / 10.f;
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
             if (look_y_axis > 2000 || look_y_axis < -2000) {
-                obj_rotationY += (float) (look_y_axis) / 10000.f;
+                obj_rotationY += (float) (look_y_axis) / 10.f;
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A)) {
                 obj_rotationX = 0;

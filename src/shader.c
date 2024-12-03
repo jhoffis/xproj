@@ -129,8 +129,8 @@ void draw_indexed() {
     u32 *p;
     u32 num_this_batch;
     // u32 num_indices = sizeof(
-    // for (u32 i = 0; i < num_cube_indices / 2; i += num_this_batch) {
-        num_this_batch = MIN(MAX_BATCH, num_cube_indices); // - i);
+    for (u32 i = 0; i < num_cube_indices / 2; i += num_this_batch) {
+        num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
 
         //What are the indices?
         p = pb_begin();
@@ -143,5 +143,5 @@ void draw_indexed() {
 
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
         pb_end(p);
-    // }
+    }
 }

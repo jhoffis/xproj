@@ -109,6 +109,15 @@ void draw_arrays(u32 mode, i32 start, i32 count)
     pb_end(p);
 }
 
+u32 pack_u16_to_u32(u16 a, u16 b) {
+    return ((u32) a << 16) | (u32) b;
+}
+
+void pack_u16_list(u32 * out, u16 *list, u32 size) {
+    for (u32 i = 0; i < size; i += 2) {
+        out[i / 2] = pack_u16_to_u32(list[i], list[i + 1]);
+    }
+}
 /*
  *  First draw the demo and then try to get a model from the disk. 
  *  But draw a cube instead - just so it's easier to see what it's doing.
@@ -120,8 +129,8 @@ void draw_indexed() {
     u32 *p;
     u32 num_this_batch;
     // u32 num_indices = sizeof(
-    for (u32 i = 0; i < num_cube_indices / 2; i += num_this_batch) {
-        num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
+    // for (u32 i = 0; i < num_cube_indices / 2; i += num_this_batch) {
+        num_this_batch = MIN(MAX_BATCH, num_cube_indices); // - i);
 
         //What are the indices?
         p = pb_begin();
@@ -129,10 +138,10 @@ void draw_indexed() {
         pb_push(p++, 0x40000000|NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
         // send indices
-        memcpy(p, &cube_indices[i], num_this_batch * sizeof(u16));
+        memcpy(p, &cube_indices[0], num_this_batch * sizeof(u32));
         p += num_this_batch;
 
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
         pb_end(p);
-    }
+    // }
 }

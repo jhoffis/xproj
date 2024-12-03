@@ -24,10 +24,10 @@ vOut main(
 
 	pos = mul(pos, m_view);
 	pos = mul(pos, m_proj);
-	pos.xyz = pos.xyz / pos.w;
+	//pos.xyz = pos.xyz / pos.w;
 
-	result.pos  = pos;
-    result.col = I.color;
+	result.pos = pos;
+    result.col = vec4(0, 0, 1, 1);
 
 	return result;
 }

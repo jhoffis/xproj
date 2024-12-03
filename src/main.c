@@ -144,7 +144,8 @@ int main(void)
 
 
     i32 sw = 0;
-
+    f32 obj_rotationX = 0;
+    f32 obj_rotationY = 0;
     for (;;) {
         pb_wait_for_vbl();
         pb_target_back_buffer();
@@ -154,7 +155,8 @@ int main(void)
         pb_erase_text_screen();
 
         /* Tilt and rotate the object a bit */
-        v_obj_rot[0] = (float)((now-start))/1000.0f * M_PI * -0.25f;
+        v_obj_rot[0] = obj_rotationX/1000.0f * M_PI * -0.25f;
+        v_obj_rot[1] = obj_rotationY/1000.0f * M_PI * -0.25f;
 
         /* Create local->world matrix given our updated object */
         matrix_unit(m_model);
@@ -199,6 +201,16 @@ int main(void)
             pb_print("Press start on a controller to test\n");
         }
         else {
+
+            i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
+            if (look_x_axis > 2000 || look_x_axis < -2000) {
+                obj_rotationX += (float) (look_x_axis) / 10000.f;
+            }
+            i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
+            if (look_y_axis > 2000 || look_x_axis < -2000) {
+                obj_rotationY += (float) (look_y_axis) / 10000.f;
+            }
+
             pb_print(
                     "Testing Controller %d.\n"
                     "Press Start on another controller to test\n\n"
@@ -213,7 +225,8 @@ int main(void)
                     "- Up:%d Down:%d Left:%d Right:%d\n"
                     "- Lstick:%d, Rstick:%d\n"
                     "- Vendor: %04x Product: %04x\n"
-                    "- F3: %d\n",
+                    "- F3: %d\n"
+                    "- Obj rot X: %d, Y: %d\n",
                     SDL_GameControllerGetPlayerIndex(pad),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY),
@@ -237,7 +250,9 @@ int main(void)
                     SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSTICK),
                     SDL_GameControllerGetVendor(pad), 
                     SDL_GameControllerGetProduct(pad),
-                    f3key
+                    f3key,
+                    (int) obj_rotationX,
+                    (int) obj_rotationY
                         );
 
             SDL_GameControllerRumble(pad, SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) * 2,

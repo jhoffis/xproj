@@ -129,7 +129,7 @@ void draw_indexed() {
         pb_push(p++, 0x40000000|NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
         // send indices
-        memcpy(p, &cube_indices[i], num_this_batch * sizeof(u32));
+        memcpy(p, &cube_indices[i], num_this_batch * sizeof(u16));
         p += num_this_batch;
 
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);

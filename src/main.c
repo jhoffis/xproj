@@ -38,8 +38,8 @@ MATRIX m_model, m_view, m_proj, m_mvp;
 VECTOR v_obj_rot     = {  0,   0,   0,  1 };
 VECTOR v_obj_scale   = {  1,   1,   1,  1 };
 VECTOR v_obj_pos     = {  0,   0,   0,  1 };
-VECTOR v_cam_loc     = {  0,   0, 165,  1 };
-VECTOR v_cam_rot     = {  0,   0,   0,  1 };
+VECTOR v_cam_loc     = {  1.2,   1.5, 165,  1 };
+VECTOR v_cam_rot     = {  0.02,   -.05,   0,  1 };
 
 static u32 *alloc_vertices;
 static u32 *alloc_vertices2;
@@ -128,11 +128,11 @@ int main(void)
     alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, 0x404);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
     num_vertices = sizeof(verts)/sizeof(verts[0]);
-    matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);
 
     /* Create view matrix (our camera is static) */
     matrix_unit(m_view);
     create_world_view(m_view, v_cam_loc, v_cam_rot);
+    
 
     /* Create projection matrix */
     matrix_unit(m_proj);
@@ -162,7 +162,7 @@ int main(void)
         matrix_unit(m_model);
         matrix_rotate(m_model, m_model, v_obj_rot);
         matrix_scale(m_model, m_model, v_obj_scale);
-        matrix_translate(m_model, m_model, v_obj_pos);
+        // matrix_translate(m_model, m_model, v_obj_pos);
 
         sw = 1;
         init_shader(sw);
@@ -267,9 +267,6 @@ int main(void)
         // {
         //     u32 *p = pb_begin();
         //
-        //     p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_START, 0);
-        //    
-        //
         //     /* Set shader constants cursor at C0 */
         //     p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);
         //
@@ -312,9 +309,6 @@ int main(void)
         init_shader(1);
         {
             u32 *p = pb_begin();
-
-            p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_START, 0);
-           
 
             /* Set shader constants cursor at C0 */
             p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);

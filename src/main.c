@@ -39,7 +39,7 @@ VECTOR v_obj_rot     = {  0,   0,   0,  1 };
 VECTOR v_obj_scale   = {  1,   1,   1,  1 };
 VECTOR v_obj_pos     = {  0,   0,   0,  1 };
 VECTOR v_cam_loc     = {  1.2,   1.5, 165,  1 };
-VECTOR v_cam_rot     = {  0.02,   -.05,   0,  1 };
+VECTOR v_cam_rot     = {  0.05,   -.05,   0,  1 };
 
 static u32 *alloc_vertices;
 static u32 *alloc_vertices2;
@@ -207,8 +207,12 @@ int main(void)
                 obj_rotationX += (float) (look_x_axis) / 10000.f;
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
-            if (look_y_axis > 2000 || look_x_axis < -2000) {
+            if (look_y_axis > 2000 || look_y_axis < -2000) {
                 obj_rotationY += (float) (look_y_axis) / 10000.f;
+            }
+            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A)) {
+                obj_rotationX = 0;
+                obj_rotationY = 0;
             }
 
             pb_print(

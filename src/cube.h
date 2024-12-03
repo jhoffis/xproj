@@ -23,30 +23,30 @@ static struct Vertex cube_vertices[] = {
 
 static u16 cube_indices[] = {
 //Top
-        // 2, 6, 7,
-        // 2, 3, 7,
-        //
-        // //Bottom
-        // 0, 4, 5,
-        // 0, 1, 5,
-        //
-        // //Left
-        // 0, 2, 6,
-        // 0, 4, 6,
-        //
-        // //Right
-        // 1, 3, 7,
-        // 1, 5, 7,
+        2, 6, 7,
+        2, 7, 3,
+
+        //Bottom
+        0, 5, 4,
+        0, 1, 5,
+
+        //Left
+        0, 6, 2,
+        0, 4, 6,
+
+        //Right
+        1, 3, 7,
+        1, 7, 5,
 
         //Front
         0, 2, 3,
         0, 3, 1,
 
         //Back
-        // 4, 6, 7,
-        // 4, 5, 7
+        4, 7, 6,
+        4, 5, 7
 };
 
-static u32 num_cube_indices = 6;
+static u32 num_cube_indices = 36;
 
 #endif // TEMP_CUBE

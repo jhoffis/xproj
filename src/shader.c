@@ -119,8 +119,8 @@ void draw_indexed() {
 
     u32 *p;
     u32 num_this_batch;
-
-    for (u32 i = 0; i < num_cube_indices; i += num_this_batch) {
+    // u32 num_indices = sizeof(
+    for (u32 i = 0; i < num_cube_indices / 2; i += num_this_batch) {
         num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
 
         //What are the indices?

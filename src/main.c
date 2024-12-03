@@ -72,9 +72,9 @@ int main(void)
 {
     SDL_Event e;
 
-    int       last, now;
-    int       fps, frames;
-    now = last = GetTickCount();
+    i32       start, last, now;
+    i32       fps, frames;
+    start = now = last = GetTickCount();
     frames = fps = 0;
     int f3key = 0;
 
@@ -130,6 +130,19 @@ int main(void)
     num_vertices = sizeof(verts)/sizeof(verts[0]);
     matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);
 
+    /* Create view matrix (our camera is static) */
+    matrix_unit(m_view);
+    create_world_view(m_view, v_cam_loc, v_cam_rot);
+
+    /* Create projection matrix */
+    matrix_unit(m_proj);
+    create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10000.0f);
+
+    /* Create viewport matrix, combine with projection */
+    matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);
+    matrix_multiply(m_proj, m_proj, (float*)m_viewport);
+
+
     i32 sw = 0;
 
     for (;;) {
@@ -139,6 +152,15 @@ int main(void)
         pb_erase_depth_stencil_buffer(0, 0, width, height);
         pb_fill(0, 0, width, height, 0);
         pb_erase_text_screen();
+
+        /* Tilt and rotate the object a bit */
+        v_obj_rot[0] = (float)((now-start))/1000.0f * M_PI * -0.25f;
+
+        /* Create local->world matrix given our updated object */
+        matrix_unit(m_model);
+        matrix_rotate(m_model, m_model, v_obj_rot);
+        matrix_scale(m_model, m_model, v_obj_scale);
+        matrix_translate(m_model, m_model, v_obj_pos);
 
         sw = 1;
         init_shader(sw);
@@ -286,9 +308,21 @@ int main(void)
             pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
             memcpy(p, m_viewport, 16*4); p+=16;
 
-            pb_end(p);
-            p = pb_begin();
-           
+            /* Send the model matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_model, 16*4); p+=16;
+
+            /* Send the view matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_view, 16*4); p+=16;
+
+            /* Send the projection matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_proj, 16*4); p+=16;
+
+            /* Send camera position */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
+            memcpy(p, v_cam_loc, 4*4); p+=4;
 
             /* Clear all attributes */
             pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);

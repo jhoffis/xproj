@@ -1,6 +1,6 @@
 XBE_TITLE = nxdk\ sample\ -\ hello
 GEN_XISO = $(XBE_TITLE).iso
-SRCS = $(CURDIR)/src/main.c $(CURDIR)/src/shader.c
+SRCS = $(CURDIR)/src/main.c $(CURDIR)/src/shader.c $(CURDIR)/src/math3d.c
 NXDK_DIR ?= $(CURDIR)/../nxdk
 NXDK_SDL = y
 SHADER_OBJS = src/ps.inl src/vs.inl src/ps2.inl src/vs2.inl

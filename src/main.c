@@ -3,7 +3,8 @@
 #include <SDL.h>
 #include <pbkit/pbkit.h>
 #include <windows.h>
-// #include "libs/stb/stb_image.h"
+
+#include "file_util.h"
 #include "nums.h"
 #include "shader.h"
 #include "xboxkrnl/xboxkrnl.h"
@@ -108,12 +109,7 @@ int main(void)
     //     return 1;
     // }
 
-    FILE* img = fopen("D:\\testimg.jpg", "rb");
-    if (!img) {
-        debugPrint("failed at finding image!\n");
-        wait_then_cleanup();
-        return 1;
-    }
+    ImageData img = load_image("D:\\testimg.jpg");
 
     init_shader_old();
     
@@ -312,6 +308,35 @@ int main(void)
         // }
         init_shader(1);
         {
+        // /*
+        //  * Setup texture stages
+        //  */
+        //
+        // /* Enable texture stage 0 */
+        // /* FIXME: Use constants instead of the hardcoded values below */
+        // p = pb_begin();
+        // p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)texture.addr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),texture.pitch<<16); //set stage 0 texture pitch (pitch<<16)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(texture.width<<16)|texture.height); //set stage 0 texture width & height ((witdh<<16)|height)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
+        // pb_end(p);
+        //
+        // /* Disable other texture stages */
+        // p = pb_begin();
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(1),0x0003ffc0);//set stage 1 texture enable flags (bit30 disabled)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(2),0x0003ffc0);//set stage 2 texture enable flags (bit30 disabled)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(3),0x0003ffc0);//set stage 3 texture enable flags (bit30 disabled)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(1),0x00030303);//set stage 1 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(2),0x00030303);//set stage 2 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(3),0x00030303);//set stage 3 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(1),0x02022000);//set stage 1 texture filters (no AA, stage not even used)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(2),0x02022000);//set stage 2 texture filters (no AA, stage not even used)
+        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3),0x02022000);//set stage 3 texture filters (no AA, stage not even used)
+        // pb_end(p);
+        //
+
             u32 *p = pb_begin();
 
             /* Set shader constants cursor at C0 */

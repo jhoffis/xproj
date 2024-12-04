@@ -331,13 +331,21 @@ void create_view_screen(MATRIX view_screen, float aspect, float left, float righ
 
     //so we need this :
     matrix_unit(view_screen);
+    // view_screen[_11] = (2 * near) / (right - left);
+    // view_screen[_22] = (2 * near) / (top - bottom);
+    // view_screen[_31] = - (right + left) / (right - left);
+    // view_screen[_32] = - (top + bottom) / (top - bottom);
+    // view_screen[_33] = - far / (far - near);
+    // view_screen[_34] = - 1.00f;
+    // view_screen[_43] = near * far / (far - near);
+    // view_screen[_44] = 0.00f;
     view_screen[_11] = (2 * near) / (right - left);
     view_screen[_22] = (2 * near) / (top - bottom);
-    view_screen[_31] = - (right + left) / (right - left);
-    view_screen[_32] = - (top + bottom) / (top - bottom);
-    view_screen[_33] = - far / (far - near);
-    view_screen[_34] = - 1.00f;
-    view_screen[_43] = near * far / (far - near);
+    view_screen[_31] = (right + left) / (right - left);
+    view_screen[_32] = (top + bottom) / (top - bottom);
+    view_screen[_33] = (far + near) / (far - near);
+    view_screen[_34] = -1.00f;
+    view_screen[_43] = (2 * far * near) / (far - near);
     view_screen[_44] = 0.00f;
 }
 

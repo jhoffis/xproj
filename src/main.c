@@ -39,7 +39,7 @@ VECTOR v_obj_rot     = {  0,   0,   0,  1 };
 VECTOR v_obj_scale   = {  1,   1,   1,  1 };
 VECTOR v_obj_pos     = {  0,   0,   0,  1 };
 VECTOR v_cam_loc     = {  0,   0, 165,  1 };
-VECTOR v_cam_rot     = {  -0.05,   0.8,   0,  1 };
+VECTOR v_cam_rot     = {  0,   0,   0,  1 };
 
 static u32 *alloc_vertices;
 static u32 *alloc_vertices2;
@@ -115,7 +115,7 @@ int main(void)
         return 1;
     }
 
-    init_shader(0);
+    init_shader_old();
     
     //0, 0x3ffb000 means anywhere in the memory that is less than 64 mb.
     // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
@@ -130,12 +130,9 @@ int main(void)
     num_vertices = sizeof(verts)/sizeof(verts[0]);
 
     /* Create view matrix (our camera is static) */
-    matrix_unit(m_view);
     create_world_view(m_view, v_cam_loc, v_cam_rot);
-    
 
     /* Create projection matrix */
-    matrix_unit(m_proj);
     create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10000.0f);
 
     /* Create viewport matrix, combine with projection */
@@ -151,7 +148,7 @@ int main(void)
         pb_target_back_buffer();
         pb_reset();
         pb_erase_depth_stencil_buffer(0, 0, width, height);
-        pb_fill(0, 0, width, height, 0);
+        pb_fill(0, 0, width, height, 0xff202020);
         pb_erase_text_screen();
 
         /* Tilt and rotate the object a bit */
@@ -164,8 +161,7 @@ int main(void)
         matrix_scale(m_model, m_model, v_obj_scale);
         matrix_translate(m_model, m_model, v_obj_pos);
 
-        sw = 1;
-        init_shader(sw);
+        init_shader(0);
         while(pb_busy()) {
             /* Wait for completion... */
         }
@@ -278,8 +274,9 @@ int main(void)
         //     pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
         //     memcpy(p, m_viewport, 16*4); p+=16;
         //
-        //     pb_end(p);
-        //     p = pb_begin();
+        //     float constants_0[2] = {0, 1,};
+        //     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
+        //     memcpy(p, constants_0, 8); p+=8;
         //
         //     /* Clear all attributes */
         //     pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
@@ -293,22 +290,22 @@ int main(void)
         //             3, sizeof(ColoredVertex), &alloc_vertices[0]);
         //
         //     /* Set vertex diffuse color attribute */
-        //     set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-        //             3, sizeof(ColoredVertex), &alloc_vertices[3]);
+        //     // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+        //     //         3, sizeof(ColoredVertex), &alloc_vertices[3]);
         //
         //     /* Begin drawing triangles */
         //     draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
-        //
-        //     /* Set vertex position attribute */
-        //     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-        //             3, sizeof(ColoredVertex), &alloc_vertices3[0]);
-        //
-        //     /* Set vertex diffuse color attribute */
-        //     set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-        //             3, sizeof(ColoredVertex), &alloc_vertices3[3]);
-        //
-        //     /* Begin drawing triangles */
-        //     draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
+
+            /* Set vertex position attribute */
+            // set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+            //         3, sizeof(ColoredVertex), &alloc_vertices3[0]);
+            //
+            // /* Set vertex diffuse color attribute */
+            // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+            //         3, sizeof(ColoredVertex), &alloc_vertices3[3]);
+            //
+            // /* Begin drawing triangles */
+            // draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
         // }
         init_shader(1);
         {
@@ -318,8 +315,8 @@ int main(void)
             p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);
 
             /* Send the transformation matrix */
-            pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
-            memcpy(p, m_viewport, 16*4); p+=16;
+            // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
+            // memcpy(p, m_viewport, 16*4); p+=16;
 
             /* Send the model matrix */
             pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
@@ -334,8 +331,12 @@ int main(void)
             memcpy(p, m_proj, 16*4); p+=16;
 
             /* Send camera position */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
-            memcpy(p, v_cam_loc, 4*4); p+=4;
+            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
+            // memcpy(p, v_cam_loc, 4*4); p+=4;
+
+            float constants_0[2] = {0, 1,};
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
+            memcpy(p, constants_0, 8); p+=8;
 
             /* Clear all attributes */
             pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
@@ -353,8 +354,8 @@ int main(void)
                     3, sizeof(Vertex), &alloc_vertices_cube[0]);
 
             /* Set vertex diffuse color attribute */
-            set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                    3, sizeof(Vertex), &alloc_vertices_cube[3]);
+            // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+            //         3, sizeof(Vertex), &alloc_vertices_cube[3]);
 
             /* Begin drawing triangles */
             draw_indexed();

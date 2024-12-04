@@ -10,15 +10,17 @@ typedef struct Vertex {
 } Vertex;
 #pragma pack()
 
+static const f32 cube_size = 25.f;
+
 static struct Vertex cube_vertices[] = {
- {{-10.1, -10.1f,  10.1}, { 1,  0,  0}, }, // bl
- {{ 10.1, -10.1f,  10.1}, { 0,  1,  0}, }, // br
- {{-10.1,  10.1f,  10.1}, { 0,  0,  1}, }, // tl
- {{ 10.1,  10.1f,  10.1}, { 1,  0,  1}, }, // tr
- {{-10.1, -10.1f, -10.1}, { 1,  1,  0}, },
- {{ 10.1, -10.1f, -10.1}, { 0,  1,  1}, },
- {{-10.1,  10.1f, -10.1}, { 1,  1,  1}, },
- {{ 10.1,  10.1f, -10.1}, { 0.2,  0.5,  0.8}, },
+ {{-cube_size, -cube_size,  cube_size}, { 1,  0,  0}, }, // bl
+ {{ cube_size, -cube_size,  cube_size}, { 0,  1,  0}, }, // br
+ {{-cube_size,  cube_size,  cube_size}, { 0,  0,  1}, }, // tl
+ {{ cube_size,  cube_size,  cube_size}, { 1,  0,  1}, }, // tr
+ {{-cube_size, -cube_size, -cube_size}, { 1,  1,  0}, },
+ {{ cube_size, -cube_size, -cube_size}, { 0,  1,  1}, },
+ {{-cube_size,  cube_size, -cube_size}, { 1,  1,  1}, },
+ {{ cube_size,  cube_size, -cube_size}, { 0.2,  0.5,  0.8}, },
 };
 
 static u16 cube_indices[] = {

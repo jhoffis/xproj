@@ -27,7 +27,7 @@ vOut main(
 	pos.xyz = pos.xyz / pos.w;
 
 	result.pos = pos;
-    result.col = float4(0, 0, 1, 1);
+    result.col = I.color; // FIXME inconsistent!
 
 	return result;
 }

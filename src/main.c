@@ -139,6 +139,8 @@ int main(void)
     matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);
     matrix_multiply(m_proj, m_proj, (float*)m_viewport);
 
+    // default surface color anyway but...
+    pb_set_color_format(NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8, false);
 
     i32 sw = 0;
     f32 obj_rotationX = 0;
@@ -148,7 +150,7 @@ int main(void)
         pb_target_back_buffer();
         pb_reset();
         pb_erase_depth_stencil_buffer(0, 0, width, height);
-        pb_fill(0, 0, width, height, 0xff202020);
+        pb_fill(0, 0, width, height, 0xff0E060C);
         pb_erase_text_screen();
 
         /* Tilt and rotate the object a bit */
@@ -200,11 +202,12 @@ int main(void)
 
             i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
             if (look_x_axis > 2000 || look_x_axis < -2000) {
-                obj_rotationX += (float) (look_x_axis) / 10.f;
+                // x is y because rotation ok?!
+                obj_rotationY += (float) (look_x_axis) / 1000.f;
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
             if (look_y_axis > 2000 || look_y_axis < -2000) {
-                obj_rotationY += (float) (look_y_axis) / 10.f;
+                obj_rotationX += (float) (look_y_axis) / 1000.f;
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A)) {
                 obj_rotationX = 0;
@@ -334,9 +337,9 @@ int main(void)
             // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
             // memcpy(p, v_cam_loc, 4*4); p+=4;
 
-            float constants_0[2] = {0, 1,};
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
-            memcpy(p, constants_0, 8); p+=8;
+            // float constants_0[2] = {0, 1,};
+            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
+            // memcpy(p, constants_0, 8); p+=8;
 
             /* Clear all attributes */
             pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
@@ -354,8 +357,8 @@ int main(void)
                     3, sizeof(Vertex), &alloc_vertices_cube[0]);
 
             /* Set vertex diffuse color attribute */
-            // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            //         3, sizeof(Vertex), &alloc_vertices_cube[3]);
+            set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                    3, sizeof(Vertex), &alloc_vertices_cube[3]);
 
             /* Begin drawing triangles */
             draw_indexed();

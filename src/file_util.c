@@ -1329,7 +1329,7 @@ static void start_file(context *s, FILE *f)
    start_callbacks(s, &stdio_callbacks, (void *) f);
 }
 
-u8 *load_from_file(FILE *f, int *x, int *y, int *comp)
+u8 load_from_file(ImageData *img, FILE *f, int *x, int *y, int *comp)
 {
    u8 *result;
    context s;
@@ -1338,8 +1338,11 @@ u8 *load_from_file(FILE *f, int *x, int *y, int *comp)
    if (result) {
       // need to 'unget' all the characters in the IO buffer
       fseek(f, - (int) (s.img_buffer_end - s.img_buffer), SEEK_CUR);
+      img->length = s.img_out_n;
+      img->image = result;
+      return 1;
    }
-   return result;
+   return 0;
 }
 
 
@@ -1351,13 +1354,14 @@ ImageData load_image(const char *name) {
     // const char *realPath =
     //     reinterpret_cast<const char *>(currPath.append(name).c_str());
 
-    FILE* file = fopen("D:\\testimg.png", "rb");
+    FILE* file = fopen(name, "rb");
     if (!file) {
         // FIXME! debugPrint("failed at finding image!\n");
         // wait_then_cleanup();
         return img;
     }
-    img.image = load_from_file(file, &img.w, &img.h, &img.comp); // , STBI_rgb_alpha);
+    load_from_file(&img, file, &img.w, &img.h, &img.comp); // , STBI_rgb_alpha);
+    img.pitch = 4*img.w;
     if (!img.image) {
         // TODO add exception failure thing to the xbox UI
         //   throw std::runtime_error(

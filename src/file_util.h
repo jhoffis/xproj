@@ -2,10 +2,12 @@
 #include "nums.h"
 
 typedef struct {
-    i32 w;
+    i32 w; // TODO make unsigned
     i32 h;
+    u32 pitch;
     i32 comp;
     u8 *image;
+    u32 length;
 } ImageData;
 
 

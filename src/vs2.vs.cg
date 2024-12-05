@@ -1,4 +1,5 @@
 struct vIn {
+    float4 tex  : TEXCOORD;
 	float4 color : DIFFUSE;
 	float4 pos  : POSITION;
 };
@@ -6,11 +7,11 @@ struct vIn {
 struct vOut {
 	float4 pos  : POSITION;
 	float4 col  : COLOR;
+	float4 tex0 : TEXCOORD0;
 };
 
 vOut main(
 	vIn              I,
-	uniform float4x4 m_viewport,
 	uniform float4x4 m_model,
 	uniform float4x4 m_view,
 	uniform float4x4 m_proj,
@@ -27,7 +28,8 @@ vOut main(
 	pos.xyz = pos.xyz / pos.w;
 
 	result.pos = pos;
-    result.col = I.color; // FIXME inconsistent!
+	result.tex0 = I.tex;
+    result.col.rgb = I.color; // FIXME inconsistent!
 
 	return result;
 }

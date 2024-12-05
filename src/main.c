@@ -47,7 +47,7 @@ static u32 *alloc_vertices2;
 static u32 *alloc_vertices3;
 static u32 *alloc_vertices_cube;
 static u32  num_vertices;
-static f32     m_viewport[4][4];
+static f32  m_viewport[4][4];
 
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
@@ -109,7 +109,14 @@ int main(void)
     //     return 1;
     // }
 
-    ImageData img = load_image("D:\\testimg.jpg");
+    ImageData img = load_image("D:\\testimg.png");
+    u8 imggg[] = {
+                 255,   0,   0, 0xff, 
+                 255, 110,   0, 0xff,
+                 0,   255,   0, 0xff,
+                 100,     0, 255, 0xff};
+    void *textureAddr = MmAllocateContiguousMemoryEx(16, 0, MAX_MEM_64, 0, 0x404);
+    memcpy(textureAddr, img.image, 4*4); // TODO use img.length (whatever that is...)
 
     init_shader_old();
     
@@ -308,39 +315,39 @@ int main(void)
         // }
         init_shader(1);
         {
-        // /*
-        //  * Setup texture stages
-        //  */
-        //
-        // /* Enable texture stage 0 */
-        // /* FIXME: Use constants instead of the hardcoded values below */
-        // p = pb_begin();
-        // p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)texture.addr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),texture.pitch<<16); //set stage 0 texture pitch (pitch<<16)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(texture.width<<16)|texture.height); //set stage 0 texture width & height ((witdh<<16)|height)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
-        // pb_end(p);
-        //
-        // /* Disable other texture stages */
-        // p = pb_begin();
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(1),0x0003ffc0);//set stage 1 texture enable flags (bit30 disabled)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(2),0x0003ffc0);//set stage 2 texture enable flags (bit30 disabled)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(3),0x0003ffc0);//set stage 3 texture enable flags (bit30 disabled)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(1),0x00030303);//set stage 1 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(2),0x00030303);//set stage 2 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(3),0x00030303);//set stage 3 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(1),0x02022000);//set stage 1 texture filters (no AA, stage not even used)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(2),0x02022000);//set stage 2 texture filters (no AA, stage not even used)
-        // p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3),0x02022000);//set stage 3 texture filters (no AA, stage not even used)
-        // pb_end(p);
-        //
+        /*
+         * Setup texture stages
+         */
 
+        /* Enable texture stage 0 */
+        /* FIXME: Use constants instead of the hardcoded values below */
             u32 *p = pb_begin();
+        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)textureAddr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),4<<16); //set stage 0 texture pitch (pitch<<16)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(2<<16)|2); //set stage 0 texture width & height ((witdh<<16)|height)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
+        pb_end(p);
 
+        /* Disable other texture stages */
+        p = pb_begin();
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(1),0x0003ffc0);//set stage 1 texture enable flags (bit30 disabled)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(2),0x0003ffc0);//set stage 2 texture enable flags (bit30 disabled)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(3),0x0003ffc0);//set stage 3 texture enable flags (bit30 disabled)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(1),0x00030303);//set stage 1 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(2),0x00030303);//set stage 2 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(3),0x00030303);//set stage 3 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(1),0x02022000);//set stage 1 texture filters (no AA, stage not even used)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(2),0x02022000);//set stage 2 texture filters (no AA, stage not even used)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3),0x02022000);//set stage 3 texture filters (no AA, stage not even used)
+        pb_end(p);
+
+
+
+        p = pb_begin();
             /* Set shader constants cursor at C0 */
-            p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);
+            p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
 
             /* Send the transformation matrix */
             // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
@@ -384,6 +391,10 @@ int main(void)
             /* Set vertex diffuse color attribute */
             set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
                     3, sizeof(Vertex), &alloc_vertices_cube[3]);
+
+            /* Set texture coordinate attribute */
+            set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                           2, sizeof(Vertex), &alloc_vertices[6]);
 
             /* Begin drawing triangles */
             draw_indexed();

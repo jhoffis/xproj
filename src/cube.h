@@ -15,13 +15,13 @@ static const f32 cube_size = 25.f;
 
 static struct Vertex cube_vertices[] = {
  {{-cube_size, -cube_size,  cube_size}, { 1,  0,  0}, {0, 0}}, // bl
- {{ cube_size, -cube_size,  cube_size}, { 0,  1,  0}, {1, 0}}, // br
- {{-cube_size,  cube_size,  cube_size}, { 0,  0,  1}, {0, 1}}, // tl
- {{ cube_size,  cube_size,  cube_size}, { 1,  0,  1}, {1, 1}}, // tr
+ {{ cube_size, -cube_size,  cube_size}, { 0,  1,  0}, {100, 0}}, // br
+ {{-cube_size,  cube_size,  cube_size}, { 0,  0,  1}, {0, 100}}, // tl
+ {{ cube_size,  cube_size,  cube_size}, { 1,  0,  1}, {100, 100}}, // tr
  {{-cube_size, -cube_size, -cube_size}, { 1,  1,  0}, {0, 0}},
- {{ cube_size, -cube_size, -cube_size}, { 0,  1,  1}, {1, 0}},
- {{-cube_size,  cube_size, -cube_size}, { 1,  1,  1}, {0, 1}},
- {{ cube_size,  cube_size, -cube_size}, { 0.2,.5,.8}, {1, 1}},
+ {{ cube_size, -cube_size, -cube_size}, { 0,  1,  1}, {100, 0}},
+ {{-cube_size,  cube_size, -cube_size}, { 1,  1,  1}, {0, 100}},
+ {{ cube_size,  cube_size, -cube_size}, { 0.2,.5,.8}, {100, 100}},
 };
 
 static u16 cube_indices[] = {

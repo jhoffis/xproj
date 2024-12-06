@@ -10,6 +10,7 @@
 #include "xboxkrnl/xboxkrnl.h"
 #include "math3d.h"
 #include "cube.h"
+#include "texture.h"
 
 typedef struct {
     float pos[3];
@@ -35,6 +36,14 @@ static const ColoredVertex verts3[] = {
     {{ 1.0, -1.2,  1.0}, { 0.0,  0.0,  1.0}},
 };
 
+struct {
+    uint16_t width;
+    uint16_t height;
+    uint16_t pitch;
+    void     *addr;
+} texture;
+
+
 MATRIX m_model, m_view, m_proj, m_mvp;
 VECTOR v_obj_rot     = {  0,   0,   0,  1 };
 VECTOR v_obj_scale   = {  1,   1,   1,  1 };
@@ -49,6 +58,7 @@ static u32 *alloc_vertices_cube;
 static u32  num_vertices;
 static f32  m_viewport[4][4];
 
+static void init_textures(void);
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 u32 width = 1280, height = 720;
@@ -117,6 +127,7 @@ int main(void)
                  100,     0, 255, 0xff};
     void *textureAddr = MmAllocateContiguousMemoryEx(16, 0, MAX_MEM_64, 0, 0x404);
     memcpy(textureAddr, imggg, 4*4); // TODO use img.length (whatever that is...)
+    init_textures();
 
     init_shader_old();
     
@@ -322,9 +333,9 @@ int main(void)
         /* Enable texture stage 0 */
         /* FIXME: Use constants instead of the hardcoded values below */
             u32 *p = pb_begin();
-        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)textureAddr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),8<<16); //set stage 0 texture pitch (pitch<<16)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(2<<16)|2); //set stage 0 texture width & height ((witdh<<16)|height)
+        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)texture.addr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),texture.pitch<<16); //set stage 0 texture pitch (pitch<<16)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(texture.width<<16)|texture.height); //set stage 0 texture width & height ((witdh<<16)|height)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
@@ -428,5 +439,15 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
     out[3][0] = x + width/2.0f;
     out[3][1] = y + height/2.0f;
     out[3][2] = z_min;
+}
+
+/* Load the textures we will render with */
+static void init_textures(void)
+{
+    texture.width = texture_width;
+    texture.height = texture_height;
+    texture.pitch = texture.width*4;
+    texture.addr = MmAllocateContiguousMemoryEx(texture.pitch*texture.height, 0, MAX_MEM_64, 0, 0x404);
+    memcpy(texture.addr, texture_rgba, sizeof(texture_rgba));
 }
 

@@ -1,5 +1,5 @@
-XBE_TITLE = nxdk\ sample\ -\ hello
-GEN_XISO = $(XBE_TITLE).iso
+XBE_TITLE = default
+OUTPUT_DIR = out
 SRCS = $(CURDIR)/src/main.c $(CURDIR)/src/shader.c $(CURDIR)/src/math3d.c $(CURDIR)/src/file_util.c
 NXDK_DIR ?= $(CURDIR)/../nxdk
 NXDK_SDL = y
@@ -20,6 +20,7 @@ $(OUTPUT_DIR)/testimg.png: $(CURDIR)/testimg.png $(OUTPUT_DIR)
 	$(VE)cp '$<' '$@'
 
 run:
-	xemu -dvd_path "nxdk sample - hello.iso" -s
+	./tools/xdvdfs pack out/ xproj.iso
+	xemu -dvd_path "xproj.iso" -s
 
 

@@ -5,5 +5,6 @@
 *.exe
 *.obj
 *.pdb
+*.png~
 *.d
 compile_commands.json

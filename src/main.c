@@ -10,38 +10,6 @@
 #include "xboxkrnl/xboxkrnl.h"
 #include "math3d.h"
 #include "cube.h"
-#include "texture.h"
-
-typedef struct {
-    float pos[3];
-    float color[3];
-} __attribute__((packed)) ColoredVertex;
-
-static const ColoredVertex verts[] = {
-    //  X     Y     Z       R     G     B
-    {{-1.0, -0.9,  1.0}, { 0.5,  1.0,  0.0}}, /* Foreground triangle */
-    {{ 0.0,  1.0,  1.0}, { 0.0,  1.0,  0.0}},
-    {{ 1.0, -1.0,  1.0}, { 0.0,  0.0,  1.0}},
-};
-static const ColoredVertex verts2[] = {
-    //  X     Y     Z       R     G     B
-    {{-1.0, -0.7,  1.0}, { 0.5,  1.0,  0.0}}, /* Foreground triangle */
-    {{ 0.0,  0.5,  1.0}, { 0.0,  1.0,  0.0}},
-    {{ 1.0, -1.0,  1.0}, { 0.0,  0.0,  1.0}},
-};
-static const ColoredVertex verts3[] = {
-    //  X     Y     Z       R     G     B
-    {{-0.8, -0.6,  1.0}, { 1.0,  1.0,  0.0}}, /* Foreground triangle */
-    {{ 0.0,  0.5,  1.0}, { 0.0,  1.0,  0.0}},
-    {{ 1.0, -1.2,  1.0}, { 0.0,  0.0,  1.0}},
-};
-
-struct {
-    uint16_t width;
-    uint16_t height;
-    uint16_t pitch;
-    void     *addr;
-} texture;
 
 
 MATRIX m_model, m_view, m_proj, m_mvp;
@@ -51,14 +19,10 @@ VECTOR v_obj_pos     = {  0,   0,   0,  1 };
 VECTOR v_cam_loc     = {  0,   0, 165,  1 };
 VECTOR v_cam_rot     = {  0,   0,   0,  1 };
 
-static u32 *alloc_vertices;
-static u32 *alloc_vertices2;
-static u32 *alloc_vertices3;
 static u32 *alloc_vertices_cube;
 static u32  num_vertices;
 static f32  m_viewport[4][4];
 
-static void init_textures(void);
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 u32 width = 1280, height = 720;
@@ -89,7 +53,7 @@ int main(void)
     frames = fps = 0;
     int f3key = 0;
 
-    if (!XVideoSetMode(width, height, 32, 60)) {
+    if (!XVideoSetMode(width, height, 32, REFRESH_60HZ)) {
         XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
         debugPrint("720p is not enabled! Please enable it!");
         wait_then_cleanup();
@@ -112,13 +76,6 @@ int main(void)
 
     pb_show_front_screen();
 
-    // int width, height, channels;
-    // unsigned char* image_data = stbi_load("image.png", &width, &height, &channels, STBI_rgb_alpha);
-    // if (!image_data) {
-    //     printf("Failed to load image\n");
-    //     return 1;
-    // }
-
     ImageData img = load_image("D:\\testimg.png");
     // u8 imggg[] = {
     //              0, 255,   0,   0xff, 
@@ -135,21 +92,20 @@ int main(void)
     // img.pitch = img.w * 4;
     void *textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, 0x404);
     memcpy(textureAddr, img.image, img.pitch * img.h); // TODO use img.length (whatever that is...)
-    init_textures();
 
     init_shader_old();
     
     //0, 0x3ffb000 means anywhere in the memory that is less than 64 mb.
     // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
-    alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(alloc_vertices, verts, sizeof(verts));
-    alloc_vertices2 = MmAllocateContiguousMemoryEx(sizeof(verts2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(alloc_vertices2, verts2, sizeof(verts2));
-    alloc_vertices3 = MmAllocateContiguousMemoryEx(sizeof(verts3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(alloc_vertices3, verts3, sizeof(verts3));
+    // alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    // memcpy(alloc_vertices, verts, sizeof(verts));
+    // num_vertices = sizeof(verts)/sizeof(verts[0]);
+    // alloc_vertices2 = MmAllocateContiguousMemoryEx(sizeof(verts2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    // memcpy(alloc_vertices2, verts2, sizeof(verts2));
+    // alloc_vertices3 = MmAllocateContiguousMemoryEx(sizeof(verts3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    // memcpy(alloc_vertices3, verts3, sizeof(verts3));
     alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, 0x404);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
-    num_vertices = sizeof(verts)/sizeof(verts[0]);
 
     /* Create view matrix (our camera is static) */
     create_world_view(m_view, v_cam_loc, v_cam_rot);
@@ -163,6 +119,7 @@ int main(void)
 
     // default surface color anyway but...
     pb_set_color_format(NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8, false);
+    
 
     i32 sw = 0;
     f32 obj_rotationX = 0;
@@ -447,15 +404,5 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
     out[3][0] = x + width/2.0f;
     out[3][1] = y + height/2.0f;
     out[3][2] = z_min;
-}
-
-/* Load the textures we will render with */
-static void init_textures(void)
-{
-    texture.width = texture_width;
-    texture.height = texture_height;
-    texture.pitch = texture.width*4;
-    texture.addr = MmAllocateContiguousMemoryEx(texture.pitch*texture.height, 0, MAX_MEM_64, 0, 0x404);
-    memcpy(texture.addr, texture_rgba, sizeof(texture_rgba));
 }
 

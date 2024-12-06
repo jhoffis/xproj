@@ -1368,6 +1368,7 @@ ImageData load_image(const char *name) {
     }
     img.pitch = 4*img.w; // 4 bytes
     for (int i = 0; i < img.pitch * img.h; i += 4) {
+        // Small endian flip from RGBA to ARGB (but backwards so memory-wise ABGR)
         u8 r = img.image[i];
         u8 b = img.image[i + 2];
         img.image[i] = b;

@@ -76,7 +76,7 @@ int main(void)
 
     pb_show_front_screen();
 
-    ImageData img = load_image("D:\\testimg.png");
+    ImageData img = load_image("sky");
     // u8 imggg[] = {
     //              0, 255,   0,   0xff, 
     //              0, 255, 110,   0xff,

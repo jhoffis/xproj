@@ -1337,23 +1337,29 @@ u8 load_from_file(ImageData *img, FILE *f, int *x, int *y, int *comp)
    if (result) {
       // need to 'unget' all the characters in the IO buffer
       fseek(f, - (int) (s.img_buffer_end - s.img_buffer), SEEK_CUR);
-      img->length = s.img_out_n;
+      // img->length = s.img_out_n;
       img->image = result;
       return 1;
    }
    return 0;
 }
 
+char* path_name(const char *name) {
+    char *path = malloc(100);
+    strcpy(path, "D:\\");
+    strcat(path, name);
+    strcat(path, ".png");
+    return path;
+}
 
-// TODO auto add D: or smt
+/*
+ * Just write the name of the PNG file
+ */
 ImageData load_image(const char *name) {
     ImageData img = {0};
-    // std::string currPath =
-    //     std::filesystem::current_path().string().append("/res/pics/");
-    // const char *realPath =
-    //     reinterpret_cast<const char *>(currPath.append(name).c_str());
-
-    FILE* file = fopen(name, "rb");
+    const char *fixed_name = path_name(name);
+    FILE* file = fopen(fixed_name, "rb");
+    free((void*)fixed_name);
     if (!file) {
         // FIXME! debugPrint("failed at finding image!\n");
         // wait_then_cleanup();
@@ -1375,10 +1381,5 @@ ImageData load_image(const char *name) {
         img.image[i + 2] = r;
     }
 
-    //     texture.width = texture_width;
-    //     texture.height = texture_height;
-    //     texture.pitch = texture.width*4;
-    //     texture.addr = MmAllocateContiguousMemoryEx(texture.pitch*texture.height, 0, MAXRAM, 0, 0x404);
-    //     memcpy(texture.addr, texture_rgba, sizeof(texture_rgba));
     return img;
 }

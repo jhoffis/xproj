@@ -116,7 +116,7 @@ int main(void)
                  0,   255,   0, 0xff,
                  100,     0, 255, 0xff};
     void *textureAddr = MmAllocateContiguousMemoryEx(16, 0, MAX_MEM_64, 0, 0x404);
-    memcpy(textureAddr, img.image, 4*4); // TODO use img.length (whatever that is...)
+    memcpy(textureAddr, imggg, 4*4); // TODO use img.length (whatever that is...)
 
     init_shader_old();
     
@@ -323,7 +323,7 @@ int main(void)
         /* FIXME: Use constants instead of the hardcoded values below */
             u32 *p = pb_begin();
         p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)textureAddr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),4<<16); //set stage 0 texture pitch (pitch<<16)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),8<<16); //set stage 0 texture pitch (pitch<<16)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(2<<16)|2); //set stage 0 texture width & height ((witdh<<16)|height)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
@@ -389,7 +389,7 @@ int main(void)
                     3, sizeof(Vertex), &alloc_vertices_cube[0]);
 
             /* Set vertex diffuse color attribute */
-            set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+            set_attrib_pointer(2, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
                     3, sizeof(Vertex), &alloc_vertices_cube[3]);
 
             /* Set texture coordinate attribute */

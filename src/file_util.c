@@ -1361,7 +1361,7 @@ ImageData load_image(const char *name) {
         return img;
     }
     load_from_file(&img, file, &img.w, &img.h, &img.comp); // , STBI_rgb_alpha);
-    img.pitch = 4*img.w;
+    img.pitch = 4*img.w; // 4 bytes
     if (!img.image) {
         // TODO add exception failure thing to the xbox UI
         //   throw std::runtime_error(

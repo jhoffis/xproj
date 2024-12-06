@@ -394,7 +394,7 @@ int main(void)
 
             /* Set texture coordinate attribute */
             set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                           2, sizeof(Vertex), &alloc_vertices[6]);
+                           2, sizeof(Vertex), &alloc_vertices_cube[6]);
 
             /* Begin drawing triangles */
             draw_indexed();

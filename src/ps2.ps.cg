@@ -6,9 +6,7 @@ struct vOut {
 float4 main(vOut I,
 	uniform sampler2D colorMap) : COLOR
 {
-    float2 coor = float2(I.tex0.xy);
-    coor.x *= 0;
-	float4 color = tex2D(colorMap, coor);
+	float4 color = tex2D(colorMap, I.tex0.xy);
 	return color;
-//	return float4(I.col.xy, 0, 1);
+	//return float4(I.tex0.xy, 0, 1);
 }

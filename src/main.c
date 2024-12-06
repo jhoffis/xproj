@@ -120,13 +120,21 @@ int main(void)
     // }
 
     ImageData img = load_image("D:\\testimg.png");
-    u8 imggg[] = {
-                 255,   0,   0, 0xff, 
-                 255, 110,   0, 0xff,
-                 0,   255,   0, 0xff,
-                 100,     0, 255, 0xff};
-    void *textureAddr = MmAllocateContiguousMemoryEx(16, 0, MAX_MEM_64, 0, 0x404);
-    memcpy(textureAddr, imggg, 4*4); // TODO use img.length (whatever that is...)
+    // u8 imggg[] = {
+    //              0, 255,   0,   0xff, 
+    //              0, 255, 110,   0xff,
+    //              0, 0,   255,   0xff,
+    //              0, 100,     5, 0xff};
+    //              // 255,   0,   0, 0xff, 
+    //              // 255, 110,   0, 0xff,
+    //              // 0,   255,   0, 0xff,
+    //              // 100,     5, 0, 0xff};
+    // img.image = imggg;
+    // img.w = 2;
+    // img.h = 2;
+    // img.pitch = img.w * 4;
+    void *textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, 0x404);
+    memcpy(textureAddr, img.image, img.pitch * img.h); // TODO use img.length (whatever that is...)
     init_textures();
 
     init_shader_old();
@@ -333,9 +341,9 @@ int main(void)
         /* Enable texture stage 0 */
         /* FIXME: Use constants instead of the hardcoded values below */
             u32 *p = pb_begin();
-        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)texture.addr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),texture.pitch<<16); //set stage 0 texture pitch (pitch<<16)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(texture.width<<16)|texture.height); //set stage 0 texture width & height ((witdh<<16)|height)
+        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)textureAddr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)

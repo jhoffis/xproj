@@ -27,7 +27,6 @@ typedef struct
 {
    int bits_per_channel;
    int num_channels;
-   int channel_order;
 } result_info;
 
 typedef struct
@@ -1242,7 +1241,7 @@ static void *load_main(context *s, int *x, int *y, int *comp, int req_comp, resu
 {
    memset(ri, 0, sizeof(*ri)); // make sure it's initialized if we add new fields
    ri->bits_per_channel = 8; // default is 8 so most paths don't have to be changed
-   ri->channel_order = 0; // FIXME STBI_ORDER_RGB; // all current input & output are this, but this is here so we can add BGR order
+   // ri->channel_order = 1; // FIXME STBI_ORDER_RGB; // all current input & output are this, but this is here so we can add BGR order
    ri->num_channels = 0;
 
    // test the formats with a very explicit header first (at least a FOURCC
@@ -1361,13 +1360,20 @@ ImageData load_image(const char *name) {
         return img;
     }
     load_from_file(&img, file, &img.w, &img.h, &img.comp); // , STBI_rgb_alpha);
-    img.pitch = 4*img.w; // 4 bytes
+    fclose(file);
     if (!img.image) {
         // TODO add exception failure thing to the xbox UI
         //   throw std::runtime_error(
         //       std::string("Failed to load texture at ").append(realPath));
     }
-    fclose(file);
+    img.pitch = 4*img.w; // 4 bytes
+    for (int i = 0; i < img.pitch * img.h; i += 4) {
+        u8 r = img.image[i];
+        u8 b = img.image[i + 2];
+        img.image[i] = b;
+        img.image[i + 2] = r;
+    }
+
     //     texture.width = texture_width;
     //     texture.height = texture_height;
     //     texture.pitch = texture.width*4;

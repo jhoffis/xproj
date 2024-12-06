@@ -12,15 +12,16 @@ typedef struct Vertex {
 #pragma pack()
 
 static const f32 cube_size = 25.f;
+static const f32 cube_tex_w = 220, cube_tex_h = 199;
 
 static struct Vertex cube_vertices[] = {
  {{-cube_size, -cube_size,  cube_size}, { 1,  0,  0}, {0,   0}}, // bl
- {{ cube_size, -cube_size,  cube_size}, { 0,  1,  0}, {100, 0}}, // br
- {{-cube_size,  cube_size,  cube_size}, { 0,  0,  1}, {0,   100}}, // tl
- {{ cube_size,  cube_size,  cube_size}, { 1,  0,  1}, {100, 100}}, // tr
- {{-cube_size, -cube_size, -cube_size}, { 1,  1,  0}, {100, 100}},
- {{ cube_size, -cube_size, -cube_size}, { 0,  1,  1}, {0, 100}},
- {{-cube_size,  cube_size, -cube_size}, { 1,  1,  1}, {100, 0}},
+ {{ cube_size, -cube_size,  cube_size}, { 0,  1,  0}, {cube_tex_w, 0}}, // br
+ {{-cube_size,  cube_size,  cube_size}, { 0,  0,  1}, {0,   cube_tex_h}}, // tl
+ {{ cube_size,  cube_size,  cube_size}, { 1,  0,  1}, {cube_tex_w, cube_tex_h}}, // tr
+ {{-cube_size, -cube_size, -cube_size}, { 1,  1,  0}, {cube_tex_w, cube_tex_h}},
+ {{ cube_size, -cube_size, -cube_size}, { 0,  1,  1}, {0, cube_tex_h}},
+ {{-cube_size,  cube_size, -cube_size}, { 1,  1,  1}, {cube_tex_w, 0}},
  {{ cube_size,  cube_size, -cube_size}, { 0.2,.5,.8}, {0, 0}},
 };
 

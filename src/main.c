@@ -40,7 +40,7 @@ void wait_then_cleanup() {
         SDL_Quit();
     }
 }
-
+static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY);
 static void matrix_viewport(float out[4][4], float x, float y, float width, float height, float z_min, float z_max);
 
 int main(void)
@@ -76,7 +76,7 @@ int main(void)
 
     pb_show_front_screen();
 
-    ImageData img = load_image("sky");
+    ImageData img = load_image("grass");
     // u8 imggg[] = {
     //              0, 255,   0,   0xff, 
     //              0, 255, 110,   0xff,
@@ -107,8 +107,6 @@ int main(void)
     alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, 0x404);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
 
-    /* Create view matrix (our camera is static) */
-    create_world_view(m_view, v_cam_loc, v_cam_rot);
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10000.0f);
@@ -124,6 +122,11 @@ int main(void)
     i32 sw = 0;
     f32 obj_rotationX = 0;
     f32 obj_rotationY = 0;
+    f32 cam_rotationX = 0;
+    f32 cam_rotationY = 0;
+    f32 cam_posX = 0;
+    f32 cam_posY = 0;
+    f32 cam_posZ = 0;
     for (;;) {
         pb_wait_for_vbl();
         pb_target_back_buffer();
@@ -132,6 +135,13 @@ int main(void)
         pb_fill(0, 0, width, height, 0xff0E060C);
         pb_erase_text_screen();
 
+        v_cam_rot[0] = cam_rotationX;
+        v_cam_rot[1] = cam_rotationY;
+        v_cam_loc[0] = cam_posX;
+        v_cam_loc[1] = cam_posY;
+        v_cam_loc[2] = cam_posZ;
+        /* Create view matrix (our camera is static) */
+        create_world_view(m_view, v_cam_loc, v_cam_rot);
 
         init_shader(0);
         while(pb_busy()) {
@@ -173,11 +183,20 @@ int main(void)
             i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
             if (look_x_axis > 2000 || look_x_axis < -2000) {
                 // x is y because rotation ok?!
-                obj_rotationY += (float) (look_x_axis) / 1000.f;
+                cam_rotationY -= (float) (look_x_axis) / 1000000.f;
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
             if (look_y_axis > 2000 || look_y_axis < -2000) {
-                obj_rotationX += (float) (look_y_axis) / 1000.f;
+                cam_rotationX -= (float) (look_y_axis) / 1000000.f;
+            }
+            i16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+            if (walk_x_axis > 2000 || walk_x_axis < -2000) {
+                // x is y because rotation ok?!
+                cam_posX += (float) (walk_x_axis) / 10000.f;
+            }
+            i16 walk_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+            if (walk_y_axis > 2000 || walk_y_axis < -2000) {
+                cam_posZ += (float) (walk_y_axis) / 10000.f;
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A)) {
                 obj_rotationX = 0;
@@ -310,139 +329,13 @@ int main(void)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3),0x02022000);//set stage 3 texture filters (no AA, stage not even used)
         pb_end(p);
 
-
-        v_obj_pos[0] = 0;
-        /* Tilt and rotate the object a bit */
-        v_obj_rot[0] = obj_rotationX/1000.0f * M_PI * -0.25f;
-        v_obj_rot[1] = obj_rotationY/1000.0f * M_PI * -0.25f;
-
-        /* Create local->world matrix given our updated object */
-        matrix_unit(m_model);
-        matrix_rotate(m_model, m_model, v_obj_rot);
-        matrix_scale(m_model, m_model, v_obj_scale);
-        matrix_translate(m_model, m_model, v_obj_pos);
-
-        p = pb_begin();
-            /* Set shader constants cursor at C0 */
-            p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
-
-            /* Send the transformation matrix */
-            // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
-            // memcpy(p, m_viewport, 16*4); p+=16;
-
-            /* Send the model matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_model, 16*4); p+=16;
-
-            /* Send the view matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_view, 16*4); p+=16;
-
-            /* Send the projection matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_proj, 16*4); p+=16;
-
-            /* Send camera position */
-            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
-            // memcpy(p, v_cam_loc, 4*4); p+=4;
-
-            // float constants_0[2] = {0, 1,};
-            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
-            // memcpy(p, constants_0, 8); p+=8;
-
-            /* Clear all attributes */
-            pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
-            for(u8 i = 0; i < 16; i++) {
-                *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
+        f32 dist = 50;
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 10; x++) {
+                render_cube(x*dist, y*dist, obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
             }
-            pb_end(p);
+        }
 
-            /*
-             * Setup vertex attributes
-             */
-
-            /* Set vertex position attribute */
-            set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                    3, sizeof(Vertex), &alloc_vertices_cube[0]);
-
-            /* Set vertex diffuse color attribute */
-            set_attrib_pointer(2, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                    3, sizeof(Vertex), &alloc_vertices_cube[3]);
-
-            /* Set texture coordinate attribute */
-            set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                           2, sizeof(Vertex), &alloc_vertices_cube[6]);
-
-            /* Begin drawing triangles */
-            draw_indexed();
-
-
-
-        /* Tilt and rotate the object a bit */
-        v_obj_rot[0] = obj_rotationX/1000.0f * M_PI * -0.25f;
-        v_obj_rot[1] = obj_rotationY/1000.0f * M_PI * -0.25f;
-
-        v_obj_pos[0] = 100.1;
-
-        /* Create local->world matrix given our updated object */
-        matrix_unit(m_model);
-        matrix_rotate(m_model, m_model, v_obj_rot);
-        matrix_scale(m_model, m_model, v_obj_scale);
-        matrix_translate(m_model, m_model, v_obj_pos);
-
-        p = pb_begin();
-            /* Set shader constants cursor at C0 */
-            p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
-
-            /* Send the transformation matrix */
-            // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
-            // memcpy(p, m_viewport, 16*4); p+=16;
-
-            /* Send the model matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_model, 16*4); p+=16;
-
-            /* Send the view matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_view, 16*4); p+=16;
-
-            /* Send the projection matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_proj, 16*4); p+=16;
-
-            /* Send camera position */
-            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
-            // memcpy(p, v_cam_loc, 4*4); p+=4;
-
-            // float constants_0[2] = {0, 1,};
-            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
-            // memcpy(p, constants_0, 8); p+=8;
-
-            /* Clear all attributes */
-            pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
-            for(u8 i = 0; i < 16; i++) {
-                *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
-            }
-            pb_end(p);
-
-            /*
-             * Setup vertex attributes
-             */
-
-            /* Set vertex position attribute */
-            set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                    3, sizeof(Vertex), &alloc_vertices_cube[0]);
-
-            /* Set vertex diffuse color attribute */
-            set_attrib_pointer(2, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                    3, sizeof(Vertex), &alloc_vertices_cube[3]);
-
-            /* Set texture coordinate attribute */
-            set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                           2, sizeof(Vertex), &alloc_vertices_cube[6]);
-
-            /* Begin drawing triangles */
-            draw_indexed();
         }
         while (pb_busy());
         while (pb_finished());
@@ -475,3 +368,73 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
     out[3][2] = z_min;
 }
 
+
+static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
+        v_obj_pos[0] = x;
+        v_obj_pos[1] = -200;
+        v_obj_pos[2] = y;
+
+        /* Tilt and rotate the object a bit */
+        v_obj_rot[0] = rotX;
+        v_obj_rot[1] = rotY;
+
+        /* Create local->world matrix given our updated object */
+        matrix_unit(m_model);
+        matrix_rotate(m_model, m_model, v_obj_rot);
+        matrix_scale(m_model, m_model, v_obj_scale);
+        matrix_translate(m_model, m_model, v_obj_pos);
+
+        u32 *p = pb_begin();
+            /* Set shader constants cursor at C0 */
+            p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
+
+            /* Send the transformation matrix */
+            // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
+            // memcpy(p, m_viewport, 16*4); p+=16;
+
+            /* Send the model matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_model, 16*4); p+=16;
+
+            /* Send the view matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_view, 16*4); p+=16;
+
+            /* Send the projection matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_proj, 16*4); p+=16;
+
+            /* Send camera position */
+            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
+            // memcpy(p, v_cam_loc, 4*4); p+=4;
+
+            // float constants_0[2] = {0, 1,};
+            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
+            // memcpy(p, constants_0, 8); p+=8;
+
+            /* Clear all attributes */
+            pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
+            for(u8 i = 0; i < 16; i++) {
+                *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
+            }
+            pb_end(p);
+
+            /*
+             * Setup vertex attributes
+             */
+
+            /* Set vertex position attribute */
+            set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                    3, sizeof(Vertex), &alloc_vertices_cube[0]);
+
+            /* Set vertex diffuse color attribute */
+            set_attrib_pointer(2, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                    3, sizeof(Vertex), &alloc_vertices_cube[3]);
+
+            /* Set texture coordinate attribute */
+            set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                           2, sizeof(Vertex), &alloc_vertices_cube[6]);
+
+            /* Begin drawing triangles */
+            draw_indexed();
+}

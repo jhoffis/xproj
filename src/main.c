@@ -211,9 +211,11 @@ int main(void)
             } else {
                 cam_posZ = 0;
             }
-            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A)) {
-                obj_rotationX = 0;
-                obj_rotationY = 0;
+            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A) | SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
+                cam_posY += 5;
+            }
+            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
+                cam_posY -= 5;
             }
 
             pb_print(

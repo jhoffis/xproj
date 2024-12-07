@@ -119,6 +119,7 @@ int main(void)
     pb_set_color_format(NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8, false);
     
 
+    f32 move_speed = 5;
     i32 sw = 0;
     f32 obj_rotationX = 0;
     f32 obj_rotationY = 0;
@@ -137,9 +138,16 @@ int main(void)
 
         v_cam_rot[0] = cam_rotationX;
         v_cam_rot[1] = cam_rotationY;
-        v_cam_loc[0] = cam_posX;
         v_cam_loc[1] = cam_posY;
-        v_cam_loc[2] = cam_posZ;
+
+        float x = sin(cam_rotationY) * move_speed;
+        float z = cos(cam_rotationY) * move_speed;
+
+        // Forward and backwards + side to side
+        v_cam_loc[0] += (x * cam_posZ) + (z * cam_posX);
+        v_cam_loc[2] += (z * cam_posZ) - (x * cam_posX);
+
+
         /* Create view matrix (our camera is static) */
         create_world_view(m_view, v_cam_loc, v_cam_rot);
 
@@ -192,11 +200,16 @@ int main(void)
             i16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
             if (walk_x_axis > 2000 || walk_x_axis < -2000) {
                 // x is y because rotation ok?!
-                cam_posX += (float) (walk_x_axis) / 10000.f;
+                cam_posX = (float) (walk_x_axis) / 32767.f;
+            } else {
+                cam_posX = 0;
             }
+
             i16 walk_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
             if (walk_y_axis > 2000 || walk_y_axis < -2000) {
-                cam_posZ += (float) (walk_y_axis) / 10000.f;
+                cam_posZ = (float) (walk_y_axis) / 32767.f;
+            } else {
+                cam_posZ = 0;
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A)) {
                 obj_rotationX = 0;
@@ -254,7 +267,6 @@ int main(void)
         if (fps > 0) {
             pb_print("FPS: %d", fps);
         }
-        pb_draw_text_screen();
 
         // {
         //     u32 *p = pb_begin();
@@ -288,55 +300,58 @@ int main(void)
         //     /* Begin drawing triangles */
         //     draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
 
-            /* Set vertex position attribute */
-            // set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            //         3, sizeof(ColoredVertex), &alloc_vertices3[0]);
-            //
-            // /* Set vertex diffuse color attribute */
-            // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            //         3, sizeof(ColoredVertex), &alloc_vertices3[3]);
-            //
-            // /* Begin drawing triangles */
-            // draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
+        /* Set vertex position attribute */
+        // set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+        //         3, sizeof(ColoredVertex), &alloc_vertices3[0]);
+        //
+        // /* Set vertex diffuse color attribute */
+        // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+        //         3, sizeof(ColoredVertex), &alloc_vertices3[3]);
+        //
+        // /* Begin drawing triangles */
+        // draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
         // }
         init_shader(1);
         {
-        /*
-         * Setup texture stages
-         */
+            /*
+             * Setup texture stages
+             */
 
-        /* Enable texture stage 0 */
-        /* FIXME: Use constants instead of the hardcoded values below */
+            /* Enable texture stage 0 */
+            /* FIXME: Use constants instead of the hardcoded values below */
             u32 *p = pb_begin();
-        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)textureAddr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
-        pb_end(p);
+            p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)textureAddr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
+            pb_end(p);
 
-        /* Disable other texture stages */
-        p = pb_begin();
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(1),0x0003ffc0);//set stage 1 texture enable flags (bit30 disabled)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(2),0x0003ffc0);//set stage 2 texture enable flags (bit30 disabled)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(3),0x0003ffc0);//set stage 3 texture enable flags (bit30 disabled)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(1),0x00030303);//set stage 1 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(2),0x00030303);//set stage 2 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(3),0x00030303);//set stage 3 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(1),0x02022000);//set stage 1 texture filters (no AA, stage not even used)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(2),0x02022000);//set stage 2 texture filters (no AA, stage not even used)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3),0x02022000);//set stage 3 texture filters (no AA, stage not even used)
-        pb_end(p);
+            /* Disable other texture stages */
+            p = pb_begin();
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(1),0x0003ffc0);//set stage 1 texture enable flags (bit30 disabled)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(2),0x0003ffc0);//set stage 2 texture enable flags (bit30 disabled)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(3),0x0003ffc0);//set stage 3 texture enable flags (bit30 disabled)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(1),0x00030303);//set stage 1 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(2),0x00030303);//set stage 2 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(3),0x00030303);//set stage 3 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(1),0x02022000);//set stage 1 texture filters (no AA, stage not even used)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(2),0x02022000);//set stage 2 texture filters (no AA, stage not even used)
+            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3),0x02022000);//set stage 3 texture filters (no AA, stage not even used)
+            pb_end(p);
 
-        f32 dist = 50;
-        for (int y = 0; y < 10; y++) {
-            for (int x = 0; x < 10; x++) {
-                render_cube(x*dist, y*dist, obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
+            f32 dist = 50;
+            for (int y = 0; y < 10; y++) {
+                for (int x = 0; x < 10; x++) {
+                    render_cube(x*dist, y*dist, obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
+                }
             }
-        }
 
         }
+
+        // render text in front of everything
+        pb_draw_text_screen();
         while (pb_busy());
         while (pb_finished());
 

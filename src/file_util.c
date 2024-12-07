@@ -1357,8 +1357,8 @@ char* path_name(const char *name) {
  */
 ImageData load_image(const char *name) {
     ImageData img = {0};
-    const char *fixed_name = path_name(name);
-    FILE* file = fopen(fixed_name, "rb");
+    char *fixed_name = path_name(name);
+    FILE* file = fopen(fixed_name, "rb"); // requires a persistent char* appearently
     free((void*)fixed_name);
     if (!file) {
         // FIXME! debugPrint("failed at finding image!\n");

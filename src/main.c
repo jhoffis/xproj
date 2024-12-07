@@ -132,15 +132,6 @@ int main(void)
         pb_fill(0, 0, width, height, 0xff0E060C);
         pb_erase_text_screen();
 
-        /* Tilt and rotate the object a bit */
-        v_obj_rot[0] = obj_rotationX/1000.0f * M_PI * -0.25f;
-        v_obj_rot[1] = obj_rotationY/1000.0f * M_PI * -0.25f;
-
-        /* Create local->world matrix given our updated object */
-        matrix_unit(m_model);
-        matrix_rotate(m_model, m_model, v_obj_rot);
-        matrix_scale(m_model, m_model, v_obj_scale);
-        matrix_translate(m_model, m_model, v_obj_pos);
 
         init_shader(0);
         while(pb_busy()) {
@@ -320,6 +311,84 @@ int main(void)
         pb_end(p);
 
 
+        v_obj_pos[0] = 0;
+        /* Tilt and rotate the object a bit */
+        v_obj_rot[0] = obj_rotationX/1000.0f * M_PI * -0.25f;
+        v_obj_rot[1] = obj_rotationY/1000.0f * M_PI * -0.25f;
+
+        /* Create local->world matrix given our updated object */
+        matrix_unit(m_model);
+        matrix_rotate(m_model, m_model, v_obj_rot);
+        matrix_scale(m_model, m_model, v_obj_scale);
+        matrix_translate(m_model, m_model, v_obj_pos);
+
+        p = pb_begin();
+            /* Set shader constants cursor at C0 */
+            p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
+
+            /* Send the transformation matrix */
+            // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
+            // memcpy(p, m_viewport, 16*4); p+=16;
+
+            /* Send the model matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_model, 16*4); p+=16;
+
+            /* Send the view matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_view, 16*4); p+=16;
+
+            /* Send the projection matrix */
+            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+            memcpy(p, m_proj, 16*4); p+=16;
+
+            /* Send camera position */
+            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
+            // memcpy(p, v_cam_loc, 4*4); p+=4;
+
+            // float constants_0[2] = {0, 1,};
+            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
+            // memcpy(p, constants_0, 8); p+=8;
+
+            /* Clear all attributes */
+            pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
+            for(u8 i = 0; i < 16; i++) {
+                *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
+            }
+            pb_end(p);
+
+            /*
+             * Setup vertex attributes
+             */
+
+            /* Set vertex position attribute */
+            set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                    3, sizeof(Vertex), &alloc_vertices_cube[0]);
+
+            /* Set vertex diffuse color attribute */
+            set_attrib_pointer(2, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                    3, sizeof(Vertex), &alloc_vertices_cube[3]);
+
+            /* Set texture coordinate attribute */
+            set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                           2, sizeof(Vertex), &alloc_vertices_cube[6]);
+
+            /* Begin drawing triangles */
+            draw_indexed();
+
+
+
+        /* Tilt and rotate the object a bit */
+        v_obj_rot[0] = obj_rotationX/1000.0f * M_PI * -0.25f;
+        v_obj_rot[1] = obj_rotationY/1000.0f * M_PI * -0.25f;
+
+        v_obj_pos[0] = 100.1;
+
+        /* Create local->world matrix given our updated object */
+        matrix_unit(m_model);
+        matrix_rotate(m_model, m_model, v_obj_rot);
+        matrix_scale(m_model, m_model, v_obj_scale);
+        matrix_translate(m_model, m_model, v_obj_pos);
 
         p = pb_begin();
             /* Set shader constants cursor at C0 */

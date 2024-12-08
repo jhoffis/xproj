@@ -51,8 +51,6 @@ int main(void)
         wait_then_cleanup();
         return 1;
     }
-    u32 abc = lehmer64(1032487);
-    abc = abc % 200;
 
     sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER) == 0;
     if (!sdl_init) {

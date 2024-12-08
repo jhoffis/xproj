@@ -14,7 +14,7 @@
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
-    u64 abc = wyrand(1032487 + 100*x + y);
+    u64 abc = lehmer32_seeded(1032487 + 100*x + y);
     abc = abc % 200; 
 
     v_obj_pos[0] = x;
@@ -119,7 +119,7 @@ inline static void render_terrain(ImageData img) {
         pb_end(p);
 
         f32 dist = 50;
-        for (int y = 0; y < 10; y++) {
+        for (int y = 0; y < 100; y++) {
             for (int x = 0; x < 10; x++) {
                 render_cube(x*dist, y*dist, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
             }

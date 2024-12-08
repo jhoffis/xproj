@@ -1199,6 +1199,123 @@ static int parse_png_file(Png *z, int req_comp)
    }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//
+//  generic converter from built-in img_n to req_comp
+//    individual types do this automatically as much as possible (e.g. jpeg
+//    does all cases internally since it needs to colorspace convert anyway,
+//    and it never has alpha, so very few cases ). png can automatically
+//    interleave an alpha=255 channel, but falls back to this for other cases
+//
+//  assume data buffer is malloced, so malloc a new one and free that one
+//  only failure mode is malloc failing
+
+static u8 compute_y(int r, int g, int b)
+{
+   return (u8) (((r*77) + (g*150) +  (29*b)) >> 8);
+}
+
+static u8 *convert_format(u8 *data, i32 img_n, i32 req_comp, u32 x, u32 y)
+{
+   int i,j;
+   u8 *good;
+
+   if (req_comp == img_n) return data;
+   // FIXME STBI_ASSERT(req_comp >= 1 && req_comp <= 4);
+
+   good = (unsigned char *) malloc_mad3(req_comp, x, y, 0);
+   if (good == NULL) {
+      FREE(data);
+      return 0; // FIXME stbi__errpuc("outofmem", "Out of memory");
+   }
+
+   for (j=0; j < (int) y; ++j) {
+      unsigned char *src  = data + j * x * img_n   ;
+      unsigned char *dest = good + j * x * req_comp;
+
+      #define STBI__COMBO(a,b)  ((a)*8+(b))
+      #define STBI__CASE(a,b)   case STBI__COMBO(a,b): for(i=x-1; i >= 0; --i, src += a, dest += b)
+      // convert source image with img_n components to one with req_comp components;
+      // avoid switch per pixel, so use switch per scanline and massive macros
+      switch (STBI__COMBO(img_n, req_comp)) {
+         STBI__CASE(1,2) { dest[0]=src[0]; dest[1]=255;                                     } break;
+         STBI__CASE(1,3) { dest[0]=dest[1]=dest[2]=src[0];                                  } break;
+         STBI__CASE(1,4) { dest[0]=dest[1]=dest[2]=src[0]; dest[3]=255;                     } break;
+         STBI__CASE(2,1) { dest[0]=src[0];                                                  } break;
+         STBI__CASE(2,3) { dest[0]=dest[1]=dest[2]=src[0];                                  } break;
+         STBI__CASE(2,4) { dest[0]=dest[1]=dest[2]=src[0]; dest[3]=src[1];                  } break;
+         STBI__CASE(3,4) { dest[0]=src[0];dest[1]=src[1];dest[2]=src[2];dest[3]=255;        } break;
+         STBI__CASE(3,1) { dest[0]=compute_y(src[0],src[1],src[2]);                   } break;
+         STBI__CASE(3,2) { dest[0]=compute_y(src[0],src[1],src[2]); dest[1] = 255;    } break;
+         STBI__CASE(4,1) { dest[0]=compute_y(src[0],src[1],src[2]);                   } break;
+         STBI__CASE(4,2) { dest[0]=compute_y(src[0],src[1],src[2]); dest[1] = src[3]; } break;
+         STBI__CASE(4,3) { dest[0]=src[0];dest[1]=src[1];dest[2]=src[2];                    } break;
+         default: 
+         // FIXME ASSERT(0); 
+         FREE(data); 
+         FREE(good); 
+         return 0; // FIXME stbi__errpuc("unsupported", "Unsupported format conversion");
+      }
+      #undef STBI__CASE
+   }
+
+   FREE(data);
+   return good;
+}
+
+static u16 compute_y_16(int r, int g, int b)
+{
+   return (u16) (((r*77) + (g*150) +  (29*b)) >> 8);
+}
+
+static u16 *convert_format16(u16 *data, i32 img_n, i32 req_comp, u32 x, u32 y)
+{
+   int i,j;
+   u16 *good;
+
+   if (req_comp == img_n) return data;
+   // FIXME STBI_ASSERT(req_comp >= 1 && req_comp <= 4);
+
+   good = (u16 *) stbi__malloc(req_comp * x * y * 2);
+   if (good == NULL) {
+      FREE(data);
+      return 0; // FIXME (u16 *) stbi__errpuc("outofmem", "Out of memory");
+   }
+
+   for (j=0; j < (int) y; ++j) {
+      u16 *src  = data + j * x * img_n   ;
+      u16 *dest = good + j * x * req_comp;
+
+      #define STBI__COMBO(a,b)  ((a)*8+(b))
+      #define STBI__CASE(a,b)   case STBI__COMBO(a,b): for(i=x-1; i >= 0; --i, src += a, dest += b)
+      // convert source image with img_n components to one with req_comp components;
+      // avoid switch per pixel, so use switch per scanline and massive macros
+      switch (STBI__COMBO(img_n, req_comp)) {
+         STBI__CASE(1,2) { dest[0]=src[0]; dest[1]=0xffff;                                     } break;
+         STBI__CASE(1,3) { dest[0]=dest[1]=dest[2]=src[0];                                     } break;
+         STBI__CASE(1,4) { dest[0]=dest[1]=dest[2]=src[0]; dest[3]=0xffff;                     } break;
+         STBI__CASE(2,1) { dest[0]=src[0];                                                     } break;
+         STBI__CASE(2,3) { dest[0]=dest[1]=dest[2]=src[0];                                     } break;
+         STBI__CASE(2,4) { dest[0]=dest[1]=dest[2]=src[0]; dest[3]=src[1];                     } break;
+         STBI__CASE(3,4) { dest[0]=src[0];dest[1]=src[1];dest[2]=src[2];dest[3]=0xffff;        } break;
+         STBI__CASE(3,1) { dest[0]=compute_y_16(src[0],src[1],src[2]);                   } break;
+         STBI__CASE(3,2) { dest[0]=compute_y_16(src[0],src[1],src[2]); dest[1] = 0xffff; } break;
+         STBI__CASE(4,1) { dest[0]=compute_y_16(src[0],src[1],src[2]);                   } break;
+         STBI__CASE(4,2) { dest[0]=compute_y_16(src[0],src[1],src[2]); dest[1] = src[3]; } break;
+         STBI__CASE(4,3) { dest[0]=src[0];dest[1]=src[1];dest[2]=src[2];                       } break;
+         default: 
+         // FIXME STBI_ASSERT(0); 
+         FREE(data); 
+         FREE(good); 
+         return 0; // FIXME (u16*) stbi__errpuc("unsupported", "Unsupported format conversion");
+      }
+      #undef STBI__CASE
+   }
+
+   FREE(data);
+   return good;
+}
+
 static void *do_png(Png *p, int *x, int *y, int *n, int req_comp, result_info *ri)
 {
    void *result=NULL;
@@ -1212,14 +1329,14 @@ static void *do_png(Png *p, int *x, int *y, int *n, int req_comp, result_info *r
          return  0; // FIXME stbi__errpuc("bad bits_per_channel", "PNG not supported: unsupported color depth");
       result = p->out;
       p->out = NULL;
-      // TODO if (req_comp && req_comp != p->s->img_out_n) {
-      //    if (ri->bits_per_channel == 8)
-      //       result = stbi__convert_format((unsigned char *) result, p->s->img_out_n, req_comp, p->s->img_x, p->s->img_y);
-      //    else
-      //       result = stbi__convert_format16((stbi__uint16 *) result, p->s->img_out_n, req_comp, p->s->img_x, p->s->img_y);
-      //    p->s->img_out_n = req_comp;
-      //    if (result == NULL) return result;
-      // }
+      if (req_comp && req_comp != p->s->img_out_n) {
+         if (ri->bits_per_channel == 8)
+            result = convert_format((u8 *) result, p->s->img_out_n, req_comp, p->s->img_x, p->s->img_y);
+         else
+            result = convert_format16((u16 *) result, p->s->img_out_n, req_comp, p->s->img_x, p->s->img_y);
+         p->s->img_out_n = req_comp;
+         if (result == NULL) return result;
+      }
       *x = p->s->img_x;
       *y = p->s->img_y;
       if (n) *n = p->s->img_n;
@@ -1364,7 +1481,7 @@ ImageData load_image(const char *name) {
         // wait_then_cleanup();
         return img;
     }
-    load_from_file(&img, file, &img.w, &img.h, &img.comp); // , STBI_rgb_alpha);
+    load_from_file(&img, file, (int*) &img.w, (int*) &img.h, &img.comp); // , STBI_rgb_alpha);
     fclose(file);
     if (!img.image) {
         // TODO add exception failure thing to the xbox UI

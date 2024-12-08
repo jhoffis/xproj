@@ -1,6 +1,6 @@
 XBE_TITLE = default
 OUTPUT_DIR = out
-SRCS = $(CURDIR)/src/main.c $(CURDIR)/src/shader.c $(CURDIR)/src/math3d.c $(CURDIR)/src/file_util.c $(CURDIR)/src/terrain.c 
+SRCS = $(CURDIR)/src/main.c $(CURDIR)/src/shader.c $(CURDIR)/src/math3d.c $(CURDIR)/src/file_util.c $(CURDIR)/src/terrain.c $(CURDIR)/src/audio.c
 NXDK_DIR ?= $(CURDIR)/../nxdk
 NXDK_SDL = y
 SHADER_OBJS = src/ps.inl src/vs.inl src/ps2.inl src/vs2.inl

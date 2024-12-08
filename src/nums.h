@@ -9,6 +9,8 @@
 // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
 #define MAX_MEM_64 0x3ffb000
 
+#include <stdbool.h>
+
 typedef float f32;
 typedef double f64;
 typedef unsigned char u8;

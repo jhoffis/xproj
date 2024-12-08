@@ -14,8 +14,7 @@
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
-
-   u32 abc = lehmer64(1032487 + x + y);
+    u64 abc = wyrand(1032487 + 100*x + y);
     abc = abc % 200; 
 
     v_obj_pos[0] = x;

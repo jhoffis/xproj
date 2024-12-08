@@ -1,5 +1,4 @@
-#ifndef TEMP_CUBEE
-#define TEMP_CUBEE
+#pragma once
 
 #include "nums.h"
 
@@ -51,32 +50,7 @@ static u16 cube_indices[] = {
         4, 5, 7
 };
 
-static u32 packed_cube_indices[] = {
-    // Top
-    (2 << 16) | 6, (7 << 16) | 2,
-    (7 << 16) | 3,
+static u32 num_cube_indices = 18; // FIXME actually 36 but there's a mishmash of salad code between u8 u16 and u32 numbers!!
 
-    // Bottom
-    (0 << 16) | 5, (4 << 16) | 0,
-    (1 << 16) | 5,
-
-    // Left
-    (0 << 16) | 6, (2 << 16) | 0,
-    (4 << 16) | 6,
-
-    // Right
-    (1 << 16) | 3, (7 << 16) | 1,
-    (7 << 16) | 5,
-
-    // Front
-    (0 << 16) | 2, (3 << 16) | 0,
-    (3 << 16) | 1,
-
-    // Back
-    (4 << 16) | 7, (6 << 16) | 4,
-    (5 << 16) | 7,
-};
-
-static u32 num_cube_indices = 18;
-
-#endif // TEMP_CUBE
+static u32 *alloc_vertices_cube;
+static u32  num_vertices;

@@ -1,26 +1,18 @@
 #include <hal/debug.h>
 #include <hal/video.h>
 #include <SDL.h>
-#include <pbkit/pbkit.h>
 #include <windows.h>
 
 #include "file_util.h"
 #include "nums.h"
 #include "shader.h"
+#include "terrain.h"
 #include "xboxkrnl/xboxkrnl.h"
 #include "math3d.h"
 #include "cube.h"
+#include "mvp.h"
 
 
-MATRIX m_model, m_view, m_proj, m_mvp;
-VECTOR v_obj_rot     = {  0,   0,   0,  1 };
-VECTOR v_obj_scale   = {  1,   1,   1,  1 };
-VECTOR v_obj_pos     = {  0,   0,   0,  1 };
-VECTOR v_cam_loc     = {  0,   0, 165,  1 };
-VECTOR v_cam_rot     = {  0,   0,   0,  1 };
-
-static u32 *alloc_vertices_cube;
-static u32  num_vertices;
 static f32  m_viewport[4][4];
 
 SDL_GameController *pad = NULL;
@@ -40,7 +32,6 @@ void wait_then_cleanup() {
         SDL_Quit();
     }
 }
-static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY);
 static void matrix_viewport(float out[4][4], float x, float y, float width, float height, float z_min, float z_max);
 
 int main(void)
@@ -77,29 +68,7 @@ int main(void)
     pb_show_front_screen();
 
     ImageData img = load_image("grass");
-    // u8 imggg[] = {
-    //              0, 255,   0,   0xff, 
-    //              0, 255, 110,   0xff,
-    //              0, 0,   255,   0xff,
-    //              0, 100,     5, 0xff};
-    //              // 255,   0,   0, 0xff, 
-    //              // 255, 110,   0, 0xff,
-    //              // 0,   255,   0, 0xff,
-    //              // 100,     5, 0, 0xff};
-    // img.image = imggg;
-    // img.w = 2;
-    // img.h = 2;
-    // img.pitch = img.w * 4;
 
-    //0, 0x3ffb000 means anywhere in the memory that is less than 64 mb.
-    // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
-    // alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    // memcpy(alloc_vertices, verts, sizeof(verts));
-    // num_vertices = sizeof(verts)/sizeof(verts[0]);
-    // alloc_vertices2 = MmAllocateContiguousMemoryEx(sizeof(verts2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    // memcpy(alloc_vertices2, verts2, sizeof(verts2));
-    // alloc_vertices3 = MmAllocateContiguousMemoryEx(sizeof(verts3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    // memcpy(alloc_vertices3, verts3, sizeof(verts3));
     alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, 0x404);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
 
@@ -147,9 +116,7 @@ int main(void)
         /* Create view matrix (our camera is static) */
         create_world_view(m_view, v_cam_loc, v_cam_rot);
 
-        while(pb_busy()) {
-            /* Wait for completion... */
-        }
+        while (pb_busy()) {}
 
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_CONTROLLERDEVICEADDED) {
@@ -265,88 +232,7 @@ int main(void)
             pb_print("FPS: %d", fps);
         }
 
-        // {
-        //     u32 *p = pb_begin();
-        //
-        //     /* Set shader constants cursor at C0 */
-        //     p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);
-        //
-        //     /* Send the transformation matrix */
-        //     pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
-        //     memcpy(p, m_viewport, 16*4); p+=16;
-        //
-        //     float constants_0[2] = {0, 1,};
-        //     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
-        //     memcpy(p, constants_0, 8); p+=8;
-        //
-        //     /* Clear all attributes */
-        //     pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
-        //     for(u8 i = 0; i < 16; i++) {
-        //         *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
-        //     }
-        //     pb_end(p);
-        //
-        //     /* Set vertex position attribute */
-        //     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-        //             3, sizeof(ColoredVertex), &alloc_vertices[0]);
-        //
-        //     /* Set vertex diffuse color attribute */
-        //     // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-        //     //         3, sizeof(ColoredVertex), &alloc_vertices[3]);
-        //
-        //     /* Begin drawing triangles */
-        //     draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
-
-        /* Set vertex position attribute */
-        // set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-        //         3, sizeof(ColoredVertex), &alloc_vertices3[0]);
-        //
-        // /* Set vertex diffuse color attribute */
-        // set_attrib_pointer(3, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-        //         3, sizeof(ColoredVertex), &alloc_vertices3[3]);
-        //
-        // /* Begin drawing triangles */
-        // draw_arrays(NV097_SET_BEGIN_END_OP_TRIANGLES, 0, num_vertices);
-        // }
-        init_shader(1);
-        {
-            /*
-             * Setup texture stages
-             */
-
-            /* Enable texture stage 0 */
-            /* FIXME: Use constants instead of the hardcoded values below */
-            u32 *p = pb_begin();
-            // Retain the lower 26 bits of the address
-            p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img.addr26bits, 0x0001122a); //set stage 0 texture address & format
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
-            pb_end(p);
-
-            /* Disable other texture stages */
-            p = pb_begin();
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(1),0x0003ffc0);//set stage 1 texture enable flags (bit30 disabled)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(2),0x0003ffc0);//set stage 2 texture enable flags (bit30 disabled)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(3),0x0003ffc0);//set stage 3 texture enable flags (bit30 disabled)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(1),0x00030303);//set stage 1 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(2),0x00030303);//set stage 2 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(3),0x00030303);//set stage 3 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(1),0x02022000);//set stage 1 texture filters (no AA, stage not even used)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(2),0x02022000);//set stage 2 texture filters (no AA, stage not even used)
-            p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3),0x02022000);//set stage 3 texture filters (no AA, stage not even used)
-            pb_end(p);
-
-            f32 dist = 50;
-            for (int y = 0; y < 10; y++) {
-                for (int x = 0; x < 10; x++) {
-                    render_cube(x*dist, y*dist, obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
-                }
-            }
-
-        }
+        render_terrain(img);
 
         // render text in front of everything
         pb_draw_text_screen();
@@ -381,73 +267,3 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
     out[3][2] = z_min;
 }
 
-
-static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
-        v_obj_pos[0] = x;
-        v_obj_pos[1] = -200;
-        v_obj_pos[2] = y;
-
-        /* Tilt and rotate the object a bit */
-        v_obj_rot[0] = rotX;
-        v_obj_rot[1] = rotY;
-
-        /* Create local->world matrix given our updated object */
-        matrix_unit(m_model);
-        matrix_rotate(m_model, m_model, v_obj_rot);
-        matrix_scale(m_model, m_model, v_obj_scale);
-        matrix_translate(m_model, m_model, v_obj_pos);
-
-        u32 *p = pb_begin();
-            /* Set shader constants cursor at C0 */
-            p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
-
-            /* Send the transformation matrix */
-            // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
-            // memcpy(p, m_viewport, 16*4); p+=16;
-
-            /* Send the model matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_model, 16*4); p+=16;
-
-            /* Send the view matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_view, 16*4); p+=16;
-
-            /* Send the projection matrix */
-            pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-            memcpy(p, m_proj, 16*4); p+=16;
-
-            /* Send camera position */
-            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
-            // memcpy(p, v_cam_loc, 4*4); p+=4;
-
-            // float constants_0[2] = {0, 1,};
-            // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
-            // memcpy(p, constants_0, 8); p+=8;
-
-            /* Clear all attributes */
-            pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
-            for(u8 i = 0; i < 16; i++) {
-                *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
-            }
-            pb_end(p);
-
-            /*
-             * Setup vertex attributes
-             */
-
-            /* Set vertex position attribute */
-            set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                    3, sizeof(Vertex), &alloc_vertices_cube[0]);
-
-            /* Set vertex diffuse color attribute */
-            set_attrib_pointer(2, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                    3, sizeof(Vertex), &alloc_vertices_cube[3]);
-
-            /* Set texture coordinate attribute */
-            set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                           2, sizeof(Vertex), &alloc_vertices_cube[6]);
-
-            /* Begin drawing triangles */
-            draw_indexed();
-}

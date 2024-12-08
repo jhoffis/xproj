@@ -19,13 +19,16 @@ static inline u64 _wymix(u64 A, u64 B){
 /*
  * Use this one to reuse the same seed!
  */
-static inline u64 _wyrand(u64 *seed) { 
+static inline u64 wyrand(u64 *seed) { 
     *seed+=0x2d358dccaa6c78a5ull; 
     return _wymix(*seed,*seed^0x8bb84b93962eacc9ull);
 }
 
-static inline u64 wyrand(u64 seed) {
-    u64 ran_num = _wyrand(&seed);
+/*
+ * Copies the seed. Use this if you just need one or two random numbers.
+ */
+static inline u64 wyrand_copy(u64 seed) {
+    u64 ran_num = wyrand(&seed);
     return ran_num;
 }
 

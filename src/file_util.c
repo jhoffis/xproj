@@ -1,4 +1,5 @@
 #include "file_util.h"
+#include "xboxkrnl/xboxkrnl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1328,7 +1329,7 @@ static void start_file(context *s, FILE *f)
    start_callbacks(s, &stdio_callbacks, (void *) f);
 }
 
-u8 load_from_file(ImageData *img, FILE *f, int *x, int *y, int *comp)
+void load_from_file(ImageData *img, FILE *f, int *x, int *y, int *comp)
 {
    u8 *result;
    context s;
@@ -1339,9 +1340,7 @@ u8 load_from_file(ImageData *img, FILE *f, int *x, int *y, int *comp)
       fseek(f, - (int) (s.img_buffer_end - s.img_buffer), SEEK_CUR);
       // img->length = s.img_out_n;
       img->image = result;
-      return 1;
    }
-   return 0;
 }
 
 char* path_name(const char *name) {
@@ -1380,6 +1379,12 @@ ImageData load_image(const char *name) {
         img.image[i] = b;
         img.image[i + 2] = r;
     }
+
+    void *textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    memcpy(textureAddr, img.image, img.pitch * img.h);
+    img.addr26bits = (u32) textureAddr & 0x03ffffff; // Retain the lower 26 bits of the address
+    free(img.image);
+    img.image = textureAddr;
 
     return img;
 }

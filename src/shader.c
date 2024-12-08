@@ -84,48 +84,6 @@ void init_shader(i32 which) {
     }
 }
 
-void init_shader_old() {
-    u32 *p;
-
-    u32 vs_program[] = {
-            #include "vs.inl"
-        };
-
-    p = pb_begin();
-    // Set run address of shader
-    p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_START, 0);
-
-    // Set execution mode
-    p = pb_push1(p, NV097_SET_TRANSFORM_EXECUTION_MODE,
-                 MASK(NV097_SET_TRANSFORM_EXECUTION_MODE_MODE, NV097_SET_TRANSFORM_EXECUTION_MODE_MODE_PROGRAM)
-                 | MASK(NV097_SET_TRANSFORM_EXECUTION_MODE_RANGE_MODE, NV097_SET_TRANSFORM_EXECUTION_MODE_RANGE_MODE_PRIV));
-
-    p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_CXT_WRITE_EN, 0);
-
-    pb_end(p);
-
-    /* Set cursor and begin copying program */
-    p = pb_begin();
-    p = pb_push1(p, NV097_SET_TRANSFORM_PROGRAM_LOAD, 0);
-
-    pb_end(p);
-
-    /* Copy program instructions (16-bytes each) */
-    for (u32 i = 0; i < sizeof(vs_program)/16; i++) {
-        p = pb_begin();
-        pb_push(p++, NV097_SET_TRANSFORM_PROGRAM, 4);
-        memcpy(p, &vs_program[i*4], 4*4);
-        p+=4;
-        pb_end(p);
-    }
-
-    /* Setup fragment shader */
-    p = pb_begin();
-#include "ps.inl"
-    pb_end(p);
-
-}
-
 /* Set an attribute pointer */
 void set_attrib_pointer(u32 index, u32 format, u32 size, u32 stride, const void* data)
 {

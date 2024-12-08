@@ -90,11 +90,7 @@ int main(void)
     // img.w = 2;
     // img.h = 2;
     // img.pitch = img.w * 4;
-    void *textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, 0x404);
-    memcpy(textureAddr, img.image, img.pitch * img.h); // TODO use img.length (whatever that is...)
 
-    init_shader_old();
-    
     //0, 0x3ffb000 means anywhere in the memory that is less than 64 mb.
     // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
     // alloc_vertices = MmAllocateContiguousMemoryEx(sizeof(verts), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
@@ -151,7 +147,6 @@ int main(void)
         /* Create view matrix (our camera is static) */
         create_world_view(m_view, v_cam_loc, v_cam_rot);
 
-        init_shader(0);
         while(pb_busy()) {
             /* Wait for completion... */
         }
@@ -322,7 +317,8 @@ int main(void)
             /* Enable texture stage 0 */
             /* FIXME: Use constants instead of the hardcoded values below */
             u32 *p = pb_begin();
-            p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0),(DWORD)textureAddr & 0x03ffffff,0x0001122a); //set stage 0 texture address & format
+            // Retain the lower 26 bits of the address
+            p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img.addr26bits, 0x0001122a); //set stage 0 texture address & format
             p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
             p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
             p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)

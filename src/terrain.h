@@ -3,6 +3,7 @@
 #include "nums.h"
 
 #include <string.h>
+#include "random.h"
 #include "shader.h"
 #include "mvp.h"
 #include "cube.h"
@@ -12,8 +13,13 @@
 
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
+    
+
+   u32 abc = lehmer64(1032487 + x + y);
+    abc = abc % 200; 
+
     v_obj_pos[0] = x;
-    v_obj_pos[1] = -200;
+    v_obj_pos[1] = abc;
     v_obj_pos[2] = y;
 
     /* Tilt and rotate the object a bit */

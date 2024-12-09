@@ -24,9 +24,7 @@ SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 u32 width = 1280, height = 720;
 
-void wait_then_cleanup() {
-    Sleep(5000);
-
+void cleanup() {
     if (pbk_init) {
         pb_kill();
     }
@@ -37,35 +35,24 @@ void wait_then_cleanup() {
         SDL_Quit();
     }
 }
+
+void wait_then_cleanup() {
+    Sleep(5000);
+    cleanup();
+}
 static void matrix_viewport(float out[4][4], float x, float y, float width, float height, float z_min, float z_max);
 
 void testSound(i16* sound_buffer, size_t sample_count) {
-    // guess: put the sound into the buffer?
-    // memcpy(sound_buffer, nxdk_wav_h_bin, sample_count);
-    // int is_final = (voice_pos+buffer_size) >= voice_len;
-    // int chunk_size = MIN(voice_len-voice_pos, buffer_size);
-    //
-    // memcpy(buffers[current_buf], voice_data+voice_pos, chunk_size);
-    // XAudioProvideSamples(buffers[current_buf], chunk_size, is_final);
-    //
-    // if (is_final) {
-    //     voice_pos = 0;
-    // } else {
-    //     voice_pos = voice_pos+chunk_size;
-    // }
-    //
-    // current_buf = (current_buf+1) % NUM_BUFFERS;
-    // callback_count++;
-   static float phase = 0.0f;       // Keep track of the waveform phase
-    const float frequency = 440.0f; // Frequency in Hz (e.g., A4)
-    const float sample_rate = 48000.0f; // Audio sample rate in Hz
-    const float amplitude = 30000.0f;   // Amplitude (scaled to i16 range)
+    static float phase = 0.0f;     
+    const float frequency = 440.0f;
+    const float sample_rate = 48000.0f;
+    const float amplitude = 30000.0f;
 
     for (size_t i = 0; i < sample_count; i++) {
         sound_buffer[i] = (i16)(amplitude * sinf(phase));
         phase += 2.0f * M_PI * frequency / sample_rate;
         if (phase > 2.0f * M_PI) {
-            phase -= 2.0f * M_PI; // Wrap phase to avoid floating-point overflow
+            phase -= 2.0f * M_PI;
         }
     }
 }
@@ -82,12 +69,9 @@ int main(void)
 
     if (!XVideoSetMode(width, height, 32, REFRESH_60HZ)) {
         XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
-        debugPrint("720p is not enabled! Please enable it!");
-        wait_then_cleanup();
-        return 1;
     }
 
-    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER) == 0;
+    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) == 0;
     if (!sdl_init) {
         debugPrint("SDL_Init failed: %s\n", SDL_GetError());
         wait_then_cleanup();
@@ -103,7 +87,7 @@ int main(void)
 
     pb_show_front_screen();
 
-    sound_init(testSound, 16512); // nxdk_wav_h_bin_len);
+    sound_init(testSound, 2400); // nxdk_wav_h_bin_len);
 
     ImageData img = load_image("grass");
 
@@ -132,8 +116,6 @@ int main(void)
     f32 cam_posY = 0;
     f32 cam_posZ = 0;
     for (;;) {
-
-        sound_play();
 
         pb_wait_for_vbl();
         pb_target_back_buffer();
@@ -290,8 +272,7 @@ int main(void)
             last = now;
         }
     }
-
-    pb_kill();
+    cleanup();
     return 0;
 }
 

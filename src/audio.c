@@ -2,6 +2,7 @@
 
 #include "audio.h"
 #include <hal/audio.h>
+#include <SDL_mixer.h>
 #include <string.h>
 #include <windows.h>
 
@@ -13,7 +14,7 @@ static SoundCallback LSoundCallback;
 static i16* LBuffers;
 static size_t LNextBuffer;
 static size_t LSampleCount;
-static u32 LSleepCount;
+static DWORD LSleepCount;
 static DWORD LAudioThreadID;
 static u8 LLastDescriptorIndex;
 static CRITICAL_SECTION LCriticalSection;
@@ -21,7 +22,7 @@ static CRITICAL_SECTION LCriticalSection;
 #define CURRENT_PCM_OUT_INDEX AudioMMIO[0x114]
 
 static void push_audio(void) {
-    XAudioProvideSamples((u8*)(LBuffers + LNextBuffer*LSampleCount), (u16)(LSampleCount*2), false);
+    XAudioProvideSamples((unsigned char*)(LBuffers + LNextBuffer*LSampleCount), (unsigned short)(LSampleCount*2), false);
     LNextBuffer = (LNextBuffer + 1)%BUFFER_COUNT;
     LSoundCallback(LBuffers + LNextBuffer*LSampleCount, LSampleCount);
 }

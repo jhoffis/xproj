@@ -71,13 +71,6 @@ int main(void)
         XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
     }
 
-    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) == 0;
-    if (!sdl_init) {
-        debugPrint("SDL_Init failed: %s\n", SDL_GetError());
-        wait_then_cleanup();
-        return 1;
-    }
-
     pbk_init = pb_init() == 0;
     if (!pbk_init) {
         debugPrint("pbkit init failed\n");
@@ -87,7 +80,19 @@ int main(void)
 
     pb_show_front_screen();
 
-    sound_init(testSound, 2400); // nxdk_wav_h_bin_len);
+    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) == 0;
+    if (!sdl_init) {
+        debugPrint("SDL_Init failed: %s\n", SDL_GetError());
+        wait_then_cleanup();
+        return 1;
+    }
+
+    // xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
+    if (!sdl_audio_init()) {
+        debugPrint("sdl audio init failed\n");
+        wait_then_cleanup();
+        return 1;
+    }
 
     ImageData img = load_image("grass");
 

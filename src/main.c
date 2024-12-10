@@ -12,7 +12,7 @@
 #include "math3d.h"
 #include "cube.h"
 #include "mvp.h"
-
+#include <time.h> 
 
 #include "nxdk_wav.h"
 
@@ -60,11 +60,12 @@ int main(void)
 {
     SDL_Event e;
 
-    i32       start, last, now;
+    i32       start, last, now, run_ticks;
     i32       fps, frames;
     start = now = last = GetTickCount();
     frames = fps = 0;
     int f3key = 0;
+    struct timespec clock_start, clock_end;
 
     if (!XVideoSetMode(width, height, 32, REFRESH_60HZ)) {
         XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
@@ -86,9 +87,7 @@ int main(void)
         return 0;
     }
 
-	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
-        return false;
-	}
+
     xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
 
     ImageData img = load_image("grass");
@@ -142,6 +141,9 @@ int main(void)
         create_world_view(m_view, v_cam_loc, v_cam_rot);
 
         while (pb_busy()) {}
+        
+        timespec_get(&clock_start, TIME_UTC);
+        run_ticks = GetTickCount();
 
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_CONTROLLERDEVICEADDED) {
@@ -256,10 +258,15 @@ int main(void)
                     100);
         }
         if (fps > 0) {
-            pb_print("FPS: %d", fps);
+            pb_print("FPS: %d\n", fps);
         }
 
         render_terrain(img);
+
+        run_ticks = GetTickCount() - run_ticks;
+        timespec_get(&clock_end, TIME_UTC);
+        u64 delta_us = (clock_end.tv_sec - clock_start.tv_sec) * 1000000 + (clock_end.tv_nsec - clock_start.tv_nsec) / 1000;
+        pb_print("Ticks: %d, Delta: %d", run_ticks, delta_us);
 
         // render text in front of everything
         pb_draw_text_screen();

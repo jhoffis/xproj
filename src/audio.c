@@ -1,4 +1,12 @@
-/**** gsound.c (nxdk) ****/
+/**** 
+ * TODO:
+ * FOR EMULATOR
+ *     gsound.c (nxdk) 
+ * FOR XBOX
+ *     xaudio raw?
+ * FOR PC
+ *     openal?
+ ****/
 
 #include "audio.h"
 #include <hal/audio.h>
@@ -20,13 +28,13 @@ static CRITICAL_SECTION LCriticalSection;
 
 #define CURRENT_PCM_OUT_INDEX AudioMMIO[0x114]
 
-static void push_audio(void) {
-    XAudioProvideSamples((unsigned char*)(LBuffers + LNextBuffer*LSampleCount), (unsigned short)(LSampleCount*2), false);
+static void xaudio_push(void) {
+    XAudioProvideSamples((u8*)(LBuffers + LNextBuffer*LSampleCount), (u16)(LSampleCount*2), false);
     LNextBuffer = (LNextBuffer + 1)%BUFFER_COUNT;
     LSoundCallback(LBuffers + LNextBuffer*LSampleCount, LSampleCount);
 }
 
-static DWORD __stdcall audio_thread(LPVOID parameter) {
+static DWORD __stdcall xaudio_thread(LPVOID parameter) {
     (void)parameter;
     for (;;) {
         u8 Index;
@@ -35,7 +43,7 @@ static DWORD __stdcall audio_thread(LPVOID parameter) {
         if (Index != LLastDescriptorIndex) {
             LLastDescriptorIndex = Index;
             EnterCriticalSection(&LCriticalSection);
-            push_audio();
+            xaudio_push();
             LeaveCriticalSection(&LCriticalSection);
         }
     }
@@ -62,9 +70,9 @@ bool xaudio_init(SoundCallback sound_cb, size_t sample_count) {
     LNextBuffer = 0;
     XAudioInit(16, 2, NULL, NULL);
     LLastDescriptorIndex = 0xFF;
-    SetThreadPriority(CreateThread(NULL, 1024, audio_thread, NULL, 0, &LAudioThreadID), THREAD_PRIORITY_TIME_CRITICAL);
+    SetThreadPriority(CreateThread(NULL, 1024, xaudio_thread, NULL, 0, &LAudioThreadID), THREAD_PRIORITY_TIME_CRITICAL);
     for (int i = 0; i < BUFFER_COUNT; ++i) {
-        push_audio();
+        xaudio_push();
     }
     XAudioPlay();
     LInitialized = true;

@@ -2,19 +2,25 @@
 #include "nums.h"
 
 typedef struct {
-    i8 riff[4];        // "RIFF"
-    i8 wave[4];        // "WAVE"
-    i8 fmt[4];         // "fmt "
-    i8 data[4];          // "data"
-    u32 data_size;      // Size of the data chunk
-    u32 chunk_size;     // File size - 8 bytes
-    u32 subchunk1_size; // Size of the fmt chunk
-    u32 sample_rate;    // Sample rate
-    u32 byte_rate;      // Byte rate
-    u16 audio_format;   // Audio format (1 for PCM)
-    u16 num_channels;   // Number of channels
-    u16 block_align;    // Block align
-    u16 bits_per_sample; // Bits per sample
+    u8 chunk_id[4];        // "riff"
+    u32 chunk_size;        // size of the rest of the file minus 8 bytes
+    u8 format[4];         // "wave"
+    
+    // "fmt " subchunk
+    u8 subchunk1_id[4];    // "fmt "
+    u32 subchunk1_size;    // size of the fmt chunk (16 for pcm)
+    u16 audio_format;      // pcm = 1, other values indicate compression
+    u16 num_channels;      // mono = 1, stereo = 2, etc.
+    u32 sample_rate;       // 8000, 44100, etc.
+    u32 byte_rate;         // == samplerate * numchannels * bitspersample/8
+    u16 block_align;       // == numchannels * bitspersample/8
+    u16 bits_per_sample;    // 8 bits = 8, 16 bits = 16, etc.
+    
+    // "data" subchunk
+    u8 subchunk2_id[4];    // "data"
+    u32 subchunk2_size;    // == numsamples * numchannels * bitspersample/8
+    // Actual sound data starts here
 } wav_header;
 
-void *load_wav(const char *filename, wav_header *header);
+void* load_wav(const char* filename);
+

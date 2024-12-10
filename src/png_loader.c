@@ -1446,7 +1446,7 @@ static void start_file(context *s, FILE *f)
    start_callbacks(s, &stdio_callbacks, (void *) f);
 }
 
-void load_from_file(image_data *img, FILE *f, int *x, int *y, int *comp)
+static void load_from_file(image_data *img, FILE *f, int *x, int *y, int *comp)
 {
    u8 *result;
    context s;
@@ -1460,7 +1460,7 @@ void load_from_file(image_data *img, FILE *f, int *x, int *y, int *comp)
    }
 }
 
-char* path_name(const char *name) {
+static char* path_name(const char *name) {
     char *path = malloc(100);
     strcpy(path, "D:\\");
     strcat(path, name);

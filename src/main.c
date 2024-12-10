@@ -22,6 +22,8 @@ SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 u32 width = 1280, height = 720;
 
+static void *audio_buffer_data;
+
 void cleanup() {
     if (pbk_init) {
         pb_kill();
@@ -41,18 +43,21 @@ void wait_then_cleanup() {
 static void matrix_viewport(float out[4][4], float x, float y, float width, float height, float z_min, float z_max);
 
 void testSound(i16* sound_buffer, size_t sample_count) {
-    static float phase = 0.0f;     
-    const float frequency = 5.0f;
-    const float sample_rate = 2400.0f;
-    const float amplitude = 30000.0f;
+    // static float phase = 0.0f;     
+    // const float frequency = 5.0f;
+    // const float sample_rate = 2400.0f;
+    // const float amplitude = 30000.0f;
+    //
+    // for (size_t i = 0; i < sample_count; i++) {
+    //     sound_buffer[i] = (i16)(amplitude * sinf(phase));
+    //     phase += 2.0f * M_PI * frequency / sample_rate;
+    //     if (phase > 2.0f * M_PI) {
+    //         phase -= 2.0f * M_PI;
+    //     }
+    // }
 
-    for (size_t i = 0; i < sample_count; i++) {
-        sound_buffer[i] = (i16)(amplitude * sinf(phase));
-        phase += 2.0f * M_PI * frequency / sample_rate;
-        if (phase > 2.0f * M_PI) {
-            phase -= 2.0f * M_PI;
-        }
-    }
+    memcpy(sound_buffer, audio_buffer_data, sample_count);
+
     // int is_final = (voice_pos+buffer_size) >= voice_len;
     // int chunk_size = MIN(voice_len-voice_pos, buffer_size);
     //
@@ -100,7 +105,7 @@ int main(void)
         return 0;
     }
 
-
+    audio_buffer_data = load_wav("test");
     xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
 
     image_data img = load_image("grass");

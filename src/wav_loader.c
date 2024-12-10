@@ -4,43 +4,56 @@
 #include <stdlib.h>
 #include <string.h>
 
-void* load_wav(const char* filename, wav_header* header) {
-    FILE* file = fopen(filename, "rb");
+static char* path_name(const char *name) {
+    char *path = malloc(100);
+    strcpy(path, "D:\\");
+    strcat(path, name);
+    strcat(path, ".wav");
+    return path;
+}
+
+void* load_wav(const char* filename) {
+    char *fixed_name = path_name(filename);
+    FILE* file = fopen(fixed_name, "rb");
+    free((void*)fixed_name);
     if (!file) {
         perror("Error opening file");
         return NULL;
     }
-
+    
+    wav_header header = {0};
     // Read the WAV header
-    if (fread(header, sizeof(wav_header), 1, file) != 1) {
+    if (fread(&header, sizeof(wav_header), 1, file) != 1) {
         perror("Error reading header");
         fclose(file);
         return NULL;
     }
 
     // Validate the header (optional, but recommended)
-    if (strncmp(header->riff, "RIFF", 4) != 0 || strncmp(header->wave, "WAVE", 4) != 0) {
+    if (strncmp((const char*)header.chunk_id, "RIFF", 4) != 0 ||
+        strncmp((const char*)header.format, "WAVE", 4) != 0) {
         fprintf(stderr, "Invalid WAV file\n");
         fclose(file);
         return NULL;
     }
 
+
     // Allocate memory for the audio data
-    void* audioData = MmAllocateContiguousMemoryEx(sizeof(header->data_size), 0, MAX_MEM_64, 0, 0x404);
-    if (!audioData) {
+    void* audio_data = MmAllocateContiguousMemoryEx(sizeof(header.subchunk2_size), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    if (!audio_data) {
         perror("Memory allocation failed");
         fclose(file);
         return NULL;
     }
-
     // Read the audio data
-    if (fread(audioData, 1, header->data_size, file) != header->data_size) {
+    if (fread(audio_data, 1, header.subchunk2_size, file) != header.subchunk2_size) {
         perror("Error reading audio data");
-        free(audioData);
+        free(audio_data);
         fclose(file);
         return NULL;
     }
 
     fclose(file);
-    return audioData;
+    return audio_data;
 }
+

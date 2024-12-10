@@ -1,6 +1,5 @@
 #include <hal/debug.h>
 #include <hal/video.h>
-#include <SDL.h>
 #include <windows.h>
 
 #include "audio.h"
@@ -75,24 +74,22 @@ int main(void)
     if (!pbk_init) {
         debugPrint("pbkit init failed\n");
         wait_then_cleanup();
-        return 1;
+        return 0;
     }
 
     pb_show_front_screen();
 
-    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) == 0;
+    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER) == 0;
     if (!sdl_init) {
         debugPrint("SDL_Init failed: %s\n", SDL_GetError());
         wait_then_cleanup();
-        return 1;
+        return 0;
     }
 
-    // xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
-    if (!sdl_audio_init()) {
-        debugPrint("sdl audio init failed\n");
-        wait_then_cleanup();
-        return 1;
-    }
+	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+        return false;
+	}
+    xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
 
     ImageData img = load_image("grass");
 
@@ -209,8 +206,8 @@ int main(void)
             }
 
             pb_print(
-                    "Testing Controller %d.\n"
-                    "Press Start on another controller to test\n\n"
+                    "\n\n\n"
+                    "Press startt on another controller to test\n"
                     "Axis:\n"
                     "- Lstick: x=%d, y=%d\n"
                     "- Rstick: x=%d, y=%d\n"
@@ -251,6 +248,8 @@ int main(void)
                     (int) obj_rotationX,
                     (int) obj_rotationY
                         );
+
+            pb_print("SDL audio driver: %s\n", SDL_GetCurrentAudioDriver());
 
             SDL_GameControllerRumble(pad, SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) * 2,
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) * 2,

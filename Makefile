@@ -5,22 +5,12 @@ NXDK_DIR ?= $(CURDIR)/../nxdk
 NXDK_SDL = y
 SHADER_OBJS = src/ps.inl src/vs.inl src/ps2.inl src/vs2.inl
 DEBUG = y
-
-# all:
-# 	mkdir -p out
-# 	cp src/*.c out
-# 	cp src/*.h out
-# 	cp src/*.inl out
+NXDK_CFLAGS +=-O0 
 
 include $(NXDK_DIR)/Makefile
 
-TARGET += $(OUTPUT_DIR)/testimg.png
-$(GEN_XISO): $(OUTPUT_DIR)/testimg.png
-$(OUTPUT_DIR)/testimg.png: $(CURDIR)/testimg.png $(OUTPUT_DIR)
-	$(VE)cp '$<' '$@'
-
 run:
 	./tools/xdvdfs pack out/ xproj.iso
-	xemu -dvd_path "xproj.iso" -s
+	../xemu/dist/xemu -dvd_path "xproj.iso" -s
 
 

@@ -12,7 +12,6 @@
 #include "math3d.h"
 #include "cube.h"
 #include "mvp.h"
-#include <time.h> 
 
 #include "nxdk_wav.h"
 
@@ -60,12 +59,12 @@ int main(void)
 {
     SDL_Event e;
 
-    i32       start, last, now, run_ticks;
+    i32       start, last, now;
     i32       fps, frames;
     start = now = last = GetTickCount();
     frames = fps = 0;
     int f3key = 0;
-    struct timespec clock_start, clock_end;
+    LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
 
     if (!XVideoSetMode(width, height, 32, REFRESH_60HZ)) {
         XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
@@ -88,7 +87,7 @@ int main(void)
     }
 
 
-    xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
+    // xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
 
     ImageData img = load_image("grass");
 
@@ -142,8 +141,8 @@ int main(void)
 
         while (pb_busy()) {}
         
-        timespec_get(&clock_start, TIME_UTC);
-        run_ticks = GetTickCount();
+        QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
+        QueryPerformanceCounter(&win_clock_start);      // Record start time
 
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_CONTROLLERDEVICEADDED) {
@@ -251,7 +250,7 @@ int main(void)
                     (int) obj_rotationY
                         );
 
-            pb_print("SDL audio driver: %s\n", SDL_GetCurrentAudioDriver());
+            // pb_print("SDL audio driver: %s\n", SDL_GetCurrentAudioDriver());
 
             SDL_GameControllerRumble(pad, SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) * 2,
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) * 2,
@@ -263,10 +262,9 @@ int main(void)
 
         render_terrain(img);
 
-        run_ticks = GetTickCount() - run_ticks;
-        timespec_get(&clock_end, TIME_UTC);
-        u64 delta_us = (clock_end.tv_sec - clock_start.tv_sec) * 1000000 + (clock_end.tv_nsec - clock_start.tv_nsec) / 1000;
-        pb_print("Ticks: %d, Delta: %d", run_ticks, delta_us);
+        QueryPerformanceCounter(&win_clock_end); // Record end time
+        double elapsed = (double)(win_clock_end.QuadPart - win_clock_start.QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds
+        pb_print("Elapsed ns: %d", (long) elapsed);
 
         // render text in front of everything
         pb_draw_text_screen();

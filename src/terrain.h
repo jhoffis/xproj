@@ -119,7 +119,7 @@ inline static void render_terrain(ImageData img) {
         pb_end(p);
 
         f32 dist = 50;
-        for (int y = 0; y < 100; y++) {
+        for (int y = 0; y < 10; y++) {
             for (int x = 0; x < 10; x++) {
                 render_cube(x*dist, y*dist, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
             }

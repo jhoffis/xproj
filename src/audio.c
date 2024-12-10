@@ -38,11 +38,10 @@ static void xaudio_push(void) {
 static DWORD __stdcall xaudio_thread(LPVOID parameter) {
     (void)parameter;
     for (;;) {
-        u8 Index;
         Sleep(l_sleep_count);
-        Index = CURRENT_PCM_OUT_INDEX;
-        if (Index != l_last_descriptor_index) {
-            l_last_descriptor_index = Index;
+        u8 index = CURRENT_PCM_OUT_INDEX;
+        if (index != l_last_descriptor_index) {
+            l_last_descriptor_index = index;
             EnterCriticalSection(&l_critical_section);
             xaudio_push();
             LeaveCriticalSection(&l_critical_section);

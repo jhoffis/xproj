@@ -12,7 +12,7 @@
 #include "math3d.h"
 #include "cube.h"
 #include "mvp.h"
-
+#include "wav_loader.h"
 #include "nxdk_wav.h"
 
 
@@ -42,8 +42,8 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
 
 void testSound(i16* sound_buffer, size_t sample_count) {
     static float phase = 0.0f;     
-    const float frequency = 440.0f;
-    const float sample_rate = 48000.0f;
+    const float frequency = 5.0f;
+    const float sample_rate = 2400.0f;
     const float amplitude = 30000.0f;
 
     for (size_t i = 0; i < sample_count; i++) {
@@ -53,6 +53,20 @@ void testSound(i16* sound_buffer, size_t sample_count) {
             phase -= 2.0f * M_PI;
         }
     }
+    // int is_final = (voice_pos+buffer_size) >= voice_len;
+    // int chunk_size = MIN(voice_len-voice_pos, buffer_size);
+    //
+    // memcpy(buffers[current_buf], voice_data+voice_pos, chunk_size);
+    // XAudioProvideSamples(buffers[current_buf], chunk_size, is_final);
+    //
+    // if (is_final) {
+    //     voice_pos = 0;
+    // } else {
+    //     voice_pos = voice_pos+chunk_size;
+    // }
+    //
+    // current_buf = (current_buf+1) % NUM_BUFFERS;
+    // callback_count++;
 }
 
 int main(void)
@@ -87,7 +101,7 @@ int main(void)
     }
 
 
-    // xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
+    xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
 
     image_data img = load_image("grass");
 

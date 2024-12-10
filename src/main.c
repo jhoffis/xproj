@@ -89,7 +89,7 @@ int main(void)
 
     // xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
 
-    ImageData img = load_image("grass");
+    image_data img = load_image("grass");
 
     alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, 0x404);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));

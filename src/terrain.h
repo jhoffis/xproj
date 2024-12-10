@@ -86,7 +86,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     draw_indexed();
 }
 
-inline static void render_terrain(ImageData img) {
+inline static void render_terrain(image_data img) {
     init_shader(1);
     {
         /*

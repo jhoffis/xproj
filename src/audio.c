@@ -15,92 +15,86 @@
 
 #define BUFFER_COUNT 3
 
-static volatile u8* AudioMMIO = (u8*)0xFEC00000;
-static bool LInitialized, LSDL_audio_is_initialized;
-static SoundCallback LSoundCallback;
-static i16* LBuffers;
-static size_t LNextBuffer;
-static size_t LSampleCount;
-static DWORD LSleepCount;
-static DWORD LAudioThreadID;
-static u8 LLastDescriptorIndex;
-static CRITICAL_SECTION LCriticalSection;
+static volatile u8* l_audio_MMIO = (u8*)0xFEC00000;
+#define CURRENT_PCM_OUT_INDEX l_audio_MMIO[0x114]
 
-#define CURRENT_PCM_OUT_INDEX AudioMMIO[0x114]
+static bool l_xaudio_initialized;
+static sound_callback l_sound_callback;
+static i16* l_buffers;
+static size_t l_next_buffer;
+static size_t l_sample_count;
+static DWORD l_sleep_count;
+static DWORD l_audio_thread_id;
+static u8 l_last_descriptor_index;
+static CRITICAL_SECTION l_critical_section;
+
 
 static void xaudio_push(void) {
-    XAudioProvideSamples((u8*)(LBuffers + LNextBuffer*LSampleCount), (u16)(LSampleCount*2), false);
-    LNextBuffer = (LNextBuffer + 1)%BUFFER_COUNT;
-    LSoundCallback(LBuffers + LNextBuffer*LSampleCount, LSampleCount);
+    XAudioProvideSamples((u8*)(l_buffers + l_next_buffer*l_sample_count), (u16)(l_sample_count*2), false);
+    l_next_buffer = (l_next_buffer + 1)%BUFFER_COUNT;
+    l_sound_callback(l_buffers + l_next_buffer*l_sample_count, l_sample_count);
 }
 
 static DWORD __stdcall xaudio_thread(LPVOID parameter) {
     (void)parameter;
     for (;;) {
         u8 Index;
-        Sleep(LSleepCount);
+        Sleep(l_sleep_count);
         Index = CURRENT_PCM_OUT_INDEX;
-        if (Index != LLastDescriptorIndex) {
-            LLastDescriptorIndex = Index;
-            EnterCriticalSection(&LCriticalSection);
+        if (Index != l_last_descriptor_index) {
+            l_last_descriptor_index = Index;
+            EnterCriticalSection(&l_critical_section);
             xaudio_push();
-            LeaveCriticalSection(&LCriticalSection);
+            LeaveCriticalSection(&l_critical_section);
         }
     }
 }
 
-bool xaudio_init(SoundCallback sound_cb, size_t sample_count) {
-    if (LInitialized) return false; // FIXME "The sound system is already initialized"
+bool xaudio_init(sound_callback sound_cb, size_t sample_count) {
+    if (l_xaudio_initialized) return false; // FIXME "The sound system is already initialized"
     if (sound_cb == NULL) return false; // FIXME "Missing sound callback"
     if (sample_count < 1024) return false; // FIXME "Buffer size too small"
     if (sample_count >= 32767) return false; // FIXME "Buffer size too large"
-    if (!LSDL_audio_is_initialized) {
-        // This is needed for some reason...
-        if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
-            return false;
-        }
-        LSDL_audio_is_initialized = true;
-    }
-    InitializeCriticalSection(&LCriticalSection);
-    LSleepCount = sample_count/(48*3);
-    LSoundCallback = sound_cb;
-    LSampleCount = sample_count;
-    LBuffers = MmAllocateContiguousMemoryEx(BUFFER_COUNT*sample_count*2, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memset(LBuffers, 0, BUFFER_COUNT*sample_count*2);
-    LNextBuffer = 0;
+    InitializeCriticalSection(&l_critical_section);
+    l_sleep_count = sample_count/(48*3);
+    l_sound_callback = sound_cb;
+    l_sample_count = sample_count;
+    l_buffers = MmAllocateContiguousMemoryEx(BUFFER_COUNT*sample_count*2, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    memset(l_buffers, 0, BUFFER_COUNT*sample_count*2);
+    l_next_buffer = 0;
     XAudioInit(16, 2, NULL, NULL);
-    LLastDescriptorIndex = 0xFF;
-    SetThreadPriority(CreateThread(NULL, 1024, xaudio_thread, NULL, 0, &LAudioThreadID), THREAD_PRIORITY_TIME_CRITICAL);
+    l_last_descriptor_index = 0xFF;
+    SetThreadPriority(CreateThread(NULL, 1024, xaudio_thread, NULL, 0, &l_audio_thread_id), THREAD_PRIORITY_TIME_CRITICAL);
     for (int i = 0; i < BUFFER_COUNT; ++i) {
         xaudio_push();
     }
     XAudioPlay();
-    LInitialized = true;
+    l_xaudio_initialized = true;
     return true;
 }
 
 bool xaudio_is_initialized(void) {
-    return LInitialized;
+    return l_xaudio_initialized;
 }
 
 void xaudio_play(void) {
-    if (!LInitialized) return; // FIXME "The sound system is not initialized"
+    if (!l_xaudio_initialized) return; // FIXME "The sound system is not initialized"
     XAudioPlay();
 }
 
 void xaudio_pause(void) {
-    if (!LInitialized) return; // FIXME "The sound system is not initialized"
+    if (!l_xaudio_initialized) return; // FIXME "The sound system is not initialized"
     XAudioPause();
 }
 
 void xaudio_lock(void) {
-    if (!LInitialized) return; // FIXME "The sound system is not initialized"
-    EnterCriticalSection(&LCriticalSection);
+    if (!l_xaudio_initialized) return; // FIXME "The sound system is not initialized"
+    EnterCriticalSection(&l_critical_section);
 }
 
 void xaudio_unlock(void) {
-    if (!LInitialized) return; // FIXME "The sound system is not initialized"
-    LeaveCriticalSection(&LCriticalSection);
+    if (!l_xaudio_initialized) return; // FIXME "The sound system is not initialized"
+    LeaveCriticalSection(&l_critical_section);
 }
 
 
@@ -108,30 +102,31 @@ void xaudio_unlock(void) {
  *  SDL AUDIO
  */
 #define PI2 6.28318530718
-float LAudio_time = 0;
-float LAudio_freq = 440;
-SDL_AudioSpec* digi_audiospec = NULL;
+static bool l_sdl_initialized;
+static float l_audio_time = 0;
+static float l_audio_freq = 440;
+static SDL_AudioSpec* l_digi_audiospec = NULL;
 
-void _xoxo_callback(void* userdata, Uint8* stream, int len) {
+static void _xoxo_callback(void* userdata, Uint8* stream, int len) {
 	short * snd = (short*) stream;
 	len /= sizeof(*snd);
 	for(int i = 0; i < len; i++) //Fill array with frequencies, mathy-math stuff
 	{
-		snd[i] = 32000 * sin(LAudio_time);
+		snd[i] = 32000 * sin(l_audio_time);
 		
-		LAudio_time += LAudio_freq * PI2 / 48000.0;
-		if(LAudio_time >= PI2)
-			LAudio_time -= PI2;
+		l_audio_time += l_audio_freq * PI2 / 48000.0;
+		if(l_audio_time >= PI2)
+			l_audio_time -= PI2;
 	}
 }
 
 bool sdl_audio_init(void) {
 
-    if (!LSDL_audio_is_initialized) {
+    if (!l_sdl_initialized) {
         if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
             return false;
         }
-        LSDL_audio_is_initialized = true;
+        l_sdl_initialized = true;
     }
 
 	SDL_AudioFormat desired_audioformat;
@@ -164,7 +159,7 @@ bool sdl_audio_init(void) {
 		return false;
 	}
     SDL_PauseAudio(0);
-	digi_audiospec = desired;
+	l_digi_audiospec = desired;
     // SDL_AudioSpec *obtained = {0};
     // malloc(sizeof(SDL_AudioSpec));
     // memset(obtained, 0, sizeof(SDL_AudioSpec));
@@ -216,4 +211,8 @@ bool sdl_audio_init(void) {
 	  } */
 	// }
     return true;
+}
+
+bool sdl_is_initialized(void) {
+    return l_sdl_initialized;
 }

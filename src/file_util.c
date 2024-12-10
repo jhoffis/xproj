@@ -1446,7 +1446,7 @@ static void start_file(context *s, FILE *f)
    start_callbacks(s, &stdio_callbacks, (void *) f);
 }
 
-void load_from_file(ImageData *img, FILE *f, int *x, int *y, int *comp)
+void load_from_file(image_data *img, FILE *f, int *x, int *y, int *comp)
 {
    u8 *result;
    context s;
@@ -1471,8 +1471,8 @@ char* path_name(const char *name) {
 /*
  * Just write the name of the PNG file
  */
-ImageData load_image(const char *name) {
-    ImageData img = {0};
+image_data load_image(const char *name) {
+    image_data img = {0};
     char *fixed_name = path_name(name);
     FILE* file = fopen(fixed_name, "rb"); // requires a persistent char* appearently
     free((void*)fixed_name);

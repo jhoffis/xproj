@@ -12,6 +12,6 @@ typedef struct {
     // u16 pitch;
     // void *data;
     u32 addr26bits;
-} ImageData;
+} image_data;
 
-ImageData load_image(const char *name);
+image_data load_image(const char *name);

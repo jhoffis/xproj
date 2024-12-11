@@ -22,5 +22,11 @@ typedef struct {
     // Actual sound data starts here
 } wav_header;
 
-void* load_wav(const char* filename);
+typedef struct {
+    wav_header header;
+    void *data;
+    int *testCursor;
+} wav_file;
+
+wav_file load_wav(const char* filename);
 

@@ -22,7 +22,8 @@ SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 u32 width = 1280, height = 720;
 
-static void *audio_buffer_data;
+static wav_file audio_buffer_data;
+static u16 *audio_cursor;
 
 void cleanup() {
     if (pbk_init) {
@@ -44,8 +45,8 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
 
 void testSound(i16* sound_buffer, size_t sample_count) {
     // static float phase = 0.0f;     
-    // const float frequency = 5.0f;
-    // const float sample_rate = 2400.0f;
+    // const float frequency = 440.0f;
+    // const float sample_rate = 44100.0f;
     // const float amplitude = 30000.0f;
     //
     // for (size_t i = 0; i < sample_count; i++) {
@@ -56,7 +57,29 @@ void testSound(i16* sound_buffer, size_t sample_count) {
     //     }
     // }
 
-    memcpy(sound_buffer, audio_buffer_data, sample_count);
+    bool loop = true, overflows = false;
+
+    // Calculate remaining mono samples
+    size_t remaining_samples = audio_buffer_data.header.subchunk2_size - *audio_cursor;
+
+    // Adjust sample_count for stereo playback
+    if (sample_count  > remaining_samples) {
+        overflows = true;
+    }
+
+    // Convert mono to stereo
+    i16* data = &audio_buffer_data.data[*audio_cursor];
+
+    // Update audio_cursor
+    if (overflows) {
+        memcpy(sound_buffer, data, remaining_samples);
+        memcpy(&sound_buffer[remaining_samples], audio_buffer_data.data, sample_count - remaining_samples);
+        *audio_cursor = sample_count - remaining_samples; // Wrap around to the start
+    } else {
+        // Move forward by the number of mono samples processed
+        memcpy(sound_buffer, data, sample_count);
+        *audio_cursor += sample_count; // Update by byte count of mono samples
+    }
 
     // int is_final = (voice_pos+buffer_size) >= voice_len;
     // int chunk_size = MIN(voice_len-voice_pos, buffer_size);
@@ -76,6 +99,8 @@ void testSound(i16* sound_buffer, size_t sample_count) {
 
 int main(void)
 {
+    audio_cursor = malloc(sizeof(u16));
+    *audio_cursor = 0;
     SDL_Event e;
 
     i32       start, last, now;
@@ -106,7 +131,7 @@ int main(void)
     }
 
     audio_buffer_data = load_wav("test");
-    xaudio_init(testSound, 2400); // nxdk_wav_h_bin_len);
+    xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
 
     image_data img = load_image("grass");
 

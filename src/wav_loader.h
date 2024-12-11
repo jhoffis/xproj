@@ -48,3 +48,4 @@ typedef struct {
 // wav_file load_wav(const char* filename);
 wav_entity *create_wav_entity(const char *filename);
 bool load_next_wav_buffer(wav_entity *entity);
+void free_wav_entity(wav_entity *entity);

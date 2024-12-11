@@ -58,14 +58,18 @@ void testSound(i16* sound_buffer, size_t sample_count) {
     //     *audio_cursor += 1;
     // }
 
-    bool loop = true, overflows = false;
+    memset(sound_buffer, 0, sample_count * sizeof(i16));
+
     u32 cursor = *audio_buffer_data->cursor;
-    bool swap = false;
 
     for (int i = 0; i < sample_count; i++) {
         if (cursor >= audio_buffer_data->current_data_size / 2) {
             cursor = 0;
-            load_next_wav_buffer(audio_buffer_data); // FIXME do this after pushing.
+            if (!load_next_wav_buffer(audio_buffer_data)) { // FIXME do this after pushing.
+                free_wav_entity(audio_buffer_data);
+                audio_buffer_data = NULL;
+                audio_buffer_data = create_wav_entity("testtt");
+            }
         }
         sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor];
         cursor++;

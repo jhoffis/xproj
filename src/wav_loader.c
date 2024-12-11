@@ -7,7 +7,9 @@
 static const u32 ALLOC_SIZE = 64 * 1024;
 
 static char* path_name(const char *name) {
-    char *path = malloc(100);
+    size_t name_len = strlen(name);
+    char *path = malloc(name_len + 7); // "D:\\" + ".wav" + null terminator
+    if (!path) return NULL; // check for allocation failure
     strcpy(path, "D:\\");
     strcat(path, name);
     strcat(path, ".wav");
@@ -102,6 +104,7 @@ wav_entity *create_wav_entity(const char *filename) {
         memcpy(entity->current_data, wav->loaded_data, entity->current_data_size); 
         entity->loaded_cursor = 0;
         entity->next_data_size = 0;
+        free(wav);
         return entity;
     }
     entity->current_data_size = ALLOC_SIZE;
@@ -113,6 +116,7 @@ wav_entity *create_wav_entity(const char *filename) {
         entity->next_data = malloc(entity->next_data_size);
         memcpy(entity->next_data, &wav->loaded_data[ALLOC_SIZE], entity->next_data_size); 
         entity->loaded_cursor = 0;
+        free(wav);
         return entity;
     }
     entity->next_data_size = ALLOC_SIZE;
@@ -121,6 +125,7 @@ wav_entity *create_wav_entity(const char *filename) {
     entity->loaded_cursor = 2*ALLOC_SIZE;
     
     // TODO delete wav file.
+    free(wav);
     return entity;
 }
 
@@ -144,6 +149,7 @@ bool load_next_wav_buffer(wav_entity *entity) {
     if (wav == NULL) {
         entity->next_data_size = 0;
         entity->next_data = NULL;
+        free(wav);
         return true;
     }
 
@@ -155,12 +161,22 @@ bool load_next_wav_buffer(wav_entity *entity) {
         entity->next_data_size = ALLOC_SIZE;
     }
     entity->next_data = malloc(entity->next_data_size);
+    if (entity->next_data == NULL) {
+        free(wav);
+        return false; // Handle allocation failure
+    }
     memcpy(entity->next_data, wav->loaded_data, entity->next_data_size); 
 
+    free(wav);
     return true;
 }
 
-
+void free_wav_entity(wav_entity *entity) {
+    free(entity->cursor);
+    free(entity->current_data);
+    free(entity->next_data);
+    free(entity);
+}
 
 
 

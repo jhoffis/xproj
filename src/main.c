@@ -46,55 +46,27 @@ static void matrix_viewport(float out[4][4], float x, float y, float width, floa
 void testSound(i16* sound_buffer, size_t sample_count) {
     // static float phase = 0.0f;     
     // const float frequency = 440.0f;
-    // const float sample_rate = 44100.0f;
+    // const float sample_rate = 48000.0f;
     // const float amplitude = 30000.0f;
     //
     // for (size_t i = 0; i < sample_count; i++) {
     //     sound_buffer[i] = (i16)(amplitude * sinf(phase));
-    //     phase += 2.0f * M_PI * frequency / sample_rate;
+    //     phase += (2.0f + (float) i / 100000) * M_PI * frequency / sample_rate;
     //     if (phase > 2.0f * M_PI) {
     //         phase -= 2.0f * M_PI;
     //     }
     // }
 
     bool loop = true, overflows = false;
-
-    // Calculate remaining mono samples
-    size_t remaining_samples = audio_buffer_data.header.subchunk2_size - *audio_cursor;
-
-    // Adjust sample_count for stereo playback
-    if (sample_count  > remaining_samples) {
-        overflows = true;
+    int cursor = *audio_cursor;
+    for (int i = 0; i < sample_count; i++) {
+        if (cursor >= audio_buffer_data.header.subchunk2_size / 2) {
+            cursor = 0;
+        }
+        sound_buffer[i] = ((i16*)audio_buffer_data.data)[cursor];
+        cursor++;
     }
-
-    // Convert mono to stereo
-    i16* data = &audio_buffer_data.data[*audio_cursor];
-
-    // Update audio_cursor
-    if (overflows) {
-        memcpy(sound_buffer, data, remaining_samples);
-        memcpy(&sound_buffer[remaining_samples], audio_buffer_data.data, sample_count - remaining_samples);
-        *audio_cursor = sample_count - remaining_samples; // Wrap around to the start
-    } else {
-        // Move forward by the number of mono samples processed
-        memcpy(sound_buffer, data, sample_count);
-        *audio_cursor += sample_count; // Update by byte count of mono samples
-    }
-
-    // int is_final = (voice_pos+buffer_size) >= voice_len;
-    // int chunk_size = MIN(voice_len-voice_pos, buffer_size);
-    //
-    // memcpy(buffers[current_buf], voice_data+voice_pos, chunk_size);
-    // XAudioProvideSamples(buffers[current_buf], chunk_size, is_final);
-    //
-    // if (is_final) {
-    //     voice_pos = 0;
-    // } else {
-    //     voice_pos = voice_pos+chunk_size;
-    // }
-    //
-    // current_buf = (current_buf+1) % NUM_BUFFERS;
-    // callback_count++;
+    *audio_cursor = cursor;
 }
 
 int main(void)

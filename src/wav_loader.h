@@ -18,14 +18,13 @@ typedef struct {
     
     // "data" subchunk
     u8 subchunk2_id[4];    // "data"
-    u32 subchunk2_size;    // == numsamples * numchannels * bitspersample/8
+    u32 subchunk2_size;    // 32 bit. == numsamples * numchannels * bitspersample/8
     // Actual sound data starts here
 } wav_header;
 
 typedef struct {
     wav_header header;
     void *data;
-    int *testCursor;
 } wav_file;
 
 wav_file load_wav(const char* filename);

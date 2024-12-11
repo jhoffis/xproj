@@ -49,6 +49,9 @@ static DWORD __stdcall xaudio_thread(LPVOID parameter) {
     }
 }
 
+/*
+ * Expects 48000hz 16 bit, 2 channels (stereo)
+ */
 bool xaudio_init(sound_callback sound_cb, size_t sample_count) {
     if (l_xaudio_initialized) return false; // FIXME "The sound system is already initialized"
     if (sound_cb == NULL) return false; // FIXME "Missing sound callback"

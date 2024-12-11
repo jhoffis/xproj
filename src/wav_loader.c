@@ -41,7 +41,7 @@ wav_file load_wav(const char* filename) {
 
 
     // Allocate memory for the audio data
-    void* audio_data = MmAllocateContiguousMemoryEx(sizeof(header.subchunk2_size), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    void* audio_data = MmAllocateContiguousMemoryEx(header.subchunk2_size, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     if (!audio_data) {
         perror("Memory allocation failed");
         fclose(file);
@@ -50,7 +50,7 @@ wav_file load_wav(const char* filename) {
     // Read the audio data
     if (fread(audio_data, 1, header.subchunk2_size, file) != header.subchunk2_size) {
         perror("Error reading audio data");
-        free(audio_data);
+        MmFreeContiguousMemory(audio_data);  // Use correct free method 
         fclose(file);
         return invalid_wav_file;
     }
@@ -58,8 +58,6 @@ wav_file load_wav(const char* filename) {
     fclose(file);
     wav.header = header;
     wav.data = audio_data;
-    wav.testCursor = malloc(sizeof(int));
-    *wav.testCursor = 0;
     return wav;
 }
 

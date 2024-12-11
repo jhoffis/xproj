@@ -22,8 +22,7 @@ SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 u32 width = 1280, height = 720;
 
-static wav_file audio_buffer_data;
-static u16 *audio_cursor;
+static wav_entity *audio_buffer_data;
 
 void cleanup() {
     if (pbk_init) {
@@ -48,31 +47,34 @@ void testSound(i16* sound_buffer, size_t sample_count) {
     // const float frequency = 440.0f;
     // const float sample_rate = 48000.0f;
     // const float amplitude = 30000.0f;
-    //
+    // // Uncomment this test and it will prove that the sound_buffer is smooth and ever new/next.
     // for (size_t i = 0; i < sample_count; i++) {
     //     sound_buffer[i] = (i16)(amplitude * sinf(phase));
-    //     phase += (2.0f + (float) i / 100000) * M_PI * frequency / sample_rate;
+    //     float num = (float) *audio_cursor;
+    //     phase += (1.0f + num / 1000000) * M_PI * frequency / sample_rate;
     //     if (phase > 2.0f * M_PI) {
     //         phase -= 2.0f * M_PI;
     //     }
+    //     *audio_cursor += 1;
     // }
 
     bool loop = true, overflows = false;
-    int cursor = *audio_cursor;
+    u32 cursor = *audio_buffer_data->cursor;
+    bool swap = false;
+
     for (int i = 0; i < sample_count; i++) {
-        if (cursor >= audio_buffer_data.header.subchunk2_size / 2) {
+        if (cursor >= audio_buffer_data->current_data_size / 2) {
             cursor = 0;
+            load_next_wav_buffer(audio_buffer_data); // FIXME do this after pushing.
         }
-        sound_buffer[i] = ((i16*)audio_buffer_data.data)[cursor];
+        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor];
         cursor++;
     }
-    *audio_cursor = cursor;
+    *audio_buffer_data->cursor = cursor;
 }
 
 int main(void)
 {
-    audio_cursor = malloc(sizeof(u16));
-    *audio_cursor = 0;
     SDL_Event e;
 
     i32       start, last, now;
@@ -102,7 +104,7 @@ int main(void)
         return 0;
     }
 
-    audio_buffer_data = load_wav("test");
+    audio_buffer_data = create_wav_entity("test");
     xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
 
     image_data img = load_image("grass");

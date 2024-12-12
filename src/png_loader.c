@@ -1,4 +1,5 @@
 #include "png_loader.h"
+#include "file_util.h"
 #include "xboxkrnl/xboxkrnl.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -1460,22 +1461,14 @@ static void load_from_file(image_data *img, FILE *f, int *x, int *y, int *comp)
    }
 }
 
-static char* path_name(const char *name) {
-    char *path = malloc(100);
-    strcpy(path, "D:\\");
-    strcat(path, name);
-    strcat(path, ".png");
-    return path;
-}
-
 /*
  * Just write the name of the PNG file
  */
 image_data load_image(const char *name) {
     image_data img = {0};
-    char *fixed_name = path_name(name);
+    char *fixed_name = path_name(name, ".png");
     FILE* file = fopen(fixed_name, "rb"); // requires a persistent char* appearently
-    free((void*)fixed_name);
+    free(fixed_name);
     if (!file) {
         // FIXME! debugPrint("failed at finding image!\n");
         // wait_then_cleanup();

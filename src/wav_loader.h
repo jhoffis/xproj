@@ -29,14 +29,7 @@ typedef struct {
 
 typedef struct {
     wav_header header;
-    const char *filename;
-    void *loaded_data;
-    u32 loaded_data_size; 
-} wav_file;
-
-typedef struct {
-    wav_header header;
-    const char *filename;
+    char *filename;
     void* current_data;
     void* next_data;
     u32 current_data_size;

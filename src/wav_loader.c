@@ -1,23 +1,23 @@
 #include "wav_loader.h"
-#include "xboxkrnl/xboxkrnl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "xboxkrnl/xboxkrnl.h"
+#include "file_util.h"
+
+typedef struct {
+    wav_header header;
+    const char *filename;
+    void *loaded_data;
+    u32 loaded_data_size; 
+} wav_file;
 
 static const u32 ALLOC_SIZE = 64 * 1024;
-
-static char* path_name(const char *name) {
-    size_t name_len = strlen(name);
-    char *path = malloc(name_len + 7); // "D:\\" + ".wav" + null terminator
-    if (!path) return NULL; // check for allocation failure
-    strcpy(path, "D:\\");
-    strcat(path, name);
-    strcat(path, ".wav");
-    return path;
-}
+static void free_wav_file(wav_file *file);
 
 static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_size) {
-    char *fixed_name = path_name(filename);
+    char *fixed_name = path_name(filename, ".wav");
+    if (fixed_name == NULL) return NULL;
     FILE* file = fopen(fixed_name, "rb");
     if (!file) {
         perror("Error opening file");
@@ -79,6 +79,7 @@ static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_s
     wav_file* wav = malloc(sizeof(wav_file));
     if (!wav) {
         perror("Memory allocation for wav_file failed");
+        MmFreeContiguousMemory(audio_data);
         free(fixed_name);
         return NULL;
     }
@@ -104,7 +105,7 @@ wav_entity *create_wav_entity(const char *filename) {
         memcpy(entity->current_data, wav->loaded_data, entity->current_data_size); 
         entity->loaded_cursor = 0;
         entity->next_data_size = 0;
-        free(wav);
+        free_wav_file(wav);
         return entity;
     }
     entity->current_data_size = ALLOC_SIZE;
@@ -116,7 +117,7 @@ wav_entity *create_wav_entity(const char *filename) {
         entity->next_data = malloc(entity->next_data_size);
         memcpy(entity->next_data, &wav->loaded_data[ALLOC_SIZE], entity->next_data_size); 
         entity->loaded_cursor = 0;
-        free(wav);
+        free_wav_file(wav);
         return entity;
     }
     entity->next_data_size = ALLOC_SIZE;
@@ -124,8 +125,7 @@ wav_entity *create_wav_entity(const char *filename) {
     memcpy(entity->next_data, &wav->loaded_data[ALLOC_SIZE], entity->next_data_size); 
     entity->loaded_cursor = 2*ALLOC_SIZE;
     
-    // TODO delete wav file.
-    free(wav);
+    free_wav_file(wav);
     return entity;
 }
 
@@ -149,7 +149,6 @@ bool load_next_wav_buffer(wav_entity *entity) {
     if (wav == NULL) {
         entity->next_data_size = 0;
         entity->next_data = NULL;
-        free(wav);
         return true;
     }
 
@@ -162,17 +161,23 @@ bool load_next_wav_buffer(wav_entity *entity) {
     }
     entity->next_data = malloc(entity->next_data_size);
     if (entity->next_data == NULL) {
-        free(wav);
+        free_wav_file(wav);
         return false; // Handle allocation failure
     }
     memcpy(entity->next_data, wav->loaded_data, entity->next_data_size); 
 
-    free(wav);
+    free_wav_file(wav);
     return true;
+}
+
+static void free_wav_file(wav_file *file) {
+    MmFreeContiguousMemory(file->loaded_data);
+    free(file);
 }
 
 void free_wav_entity(wav_entity *entity) {
     free(entity->cursor);
+    free(entity->filename);
     free(entity->current_data);
     free(entity->next_data);
     free(entity);

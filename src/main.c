@@ -15,13 +15,21 @@
 #include "wav_loader.h"
 #include "nxdk_wav.h"
 
-
 static f32  m_viewport[4][4];
 
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 u32 width = 1280, height = 720;
 
+#define MUSIC_AMOUNT 5
+static u8 *music_current;
+static const char *music_strs[MUSIC_AMOUNT] = {
+    "THE WORLD WE LIVE IN",
+    "Crocodile Skins",
+    "Never Let Go (Of Me)",
+    "ONEGAI KOREA Wzxrdo",
+    "Moon over the Dunes",
+};
 static wav_entity *audio_buffer_data;
 
 void cleanup() {
@@ -68,7 +76,8 @@ void testSound(i16* sound_buffer, size_t sample_count) {
             if (!load_next_wav_buffer(audio_buffer_data)) { // FIXME do this after pushing.
                 free_wav_entity(audio_buffer_data);
                 audio_buffer_data = NULL;
-                audio_buffer_data = create_wav_entity("testtt");
+                *music_current = (*music_current + 1) % MUSIC_AMOUNT;
+                audio_buffer_data = create_wav_entity(music_strs[*music_current]);
             }
         }
         sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor];
@@ -107,13 +116,14 @@ int main(void)
         wait_then_cleanup();
         return 0;
     }
-
-    audio_buffer_data = create_wav_entity("test");
+    music_current = malloc(sizeof(music_current));
+    *music_current = 0;
+    audio_buffer_data = create_wav_entity(music_strs[*music_current]);
     xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
 
     image_data img = load_image("grass");
 
-    alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, 0x404);
+    alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
 
 

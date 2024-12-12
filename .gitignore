@@ -7,4 +7,5 @@
 *.pdb
 *.png~
 *.d
+*.wav
 compile_commands.json

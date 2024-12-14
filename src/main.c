@@ -80,7 +80,7 @@ void testSound(i16* sound_buffer, size_t sample_count) {
                 audio_buffer_data = create_wav_entity(music_strs[*music_current]);
             }
         }
-        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor];
+        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor] / 100.;
         cursor++;
     }
     *audio_buffer_data->cursor = cursor;
@@ -98,7 +98,9 @@ int main(void)
     LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
 
     if (!XVideoSetMode(width, height, 32, REFRESH_60HZ)) {
-        XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
+        width = 640;
+        height = 480;
+        XVideoSetMode(width, height, 32, REFRESH_DEFAULT);
     }
 
     pbk_init = pb_init() == 0;

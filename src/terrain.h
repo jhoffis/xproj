@@ -93,16 +93,28 @@ inline static void render_terrain(image_data img) {
          * Setup texture stages
          */
 
+        int channels = 2;
+        DWORD format = ((channels & NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA) |
+               (NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE_COLOR * NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE)) |
+               (((2 << 4) & NV097_SET_TEXTURE_FORMAT_DIMENSIONALITY)) |
+               ((NV097_SET_TEXTURE_FORMAT_COLOR_LU_IMAGE_A8R8G8B8 << 8) & NV097_SET_TEXTURE_FORMAT_COLOR) |
+               ((1 << 16) & NV097_SET_TEXTURE_FORMAT_MIPMAP_LEVELS); 
+        DWORD filter = ((4 << 24) & NV097_SET_TEXTURE_FILTER_MAG) | 
+                       ((7 << 16) & NV097_SET_TEXTURE_FILTER_MIN) | 
+				       ((4 << 12) & NV097_SET_SURFACE_FORMAT_ANTI_ALIASING); // 0x04074000
+		DWORD control_enable = NV097_SET_TEXTURE_CONTROL0_ENABLE | NV097_SET_TEXTURE_CONTROL0_MAX_LOD_CLAMP;
+
         /* Enable texture stage 0 */
         /* FIXME: Use constants instead of the hardcoded values below */
         u32 *p = pb_begin();
         // Retain the lower 26 bits of the address
-        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img.addr26bits, 0x0001122a); //set stage 0 texture address & format
+        u32 a = NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA;
+        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img.addr26bits, format); //set stage 0 texture address & format
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),0x00030303);//set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0),0x4003ffc0); //set stage 0 texture enable flags
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0),0x04074000); //set stage 0 texture filters (AA!)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),  0x00030303); //set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0), control_enable); //set stage 0 texture enable flags
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0), filter); //set stage 0 texture filters (AA!)
         pb_end(p);
 
         /* Disable other texture stages */

@@ -129,11 +129,10 @@ void draw_indexed(u32 num_cube_indices, u16 *cube_indices) {
     u32 *p;
     u32 num_this_batch;
     num_cube_indices /= 2;
-    u32 n = 0;
-    // u32 num_indices = sizeof(
+
     for (u32 i = 0; i < num_cube_indices; i += num_this_batch) {
         num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
-        num_this_batch -= num_this_batch %18;
+        // num_this_batch -= num_this_batch %18;
 
         //What are the indices?
         p = pb_begin();
@@ -141,9 +140,8 @@ void draw_indexed(u32 num_cube_indices, u16 *cube_indices) {
         pb_push(p++, 0x40000000|NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
         // send indices
-        memcpy(p, &cube_indices[36 * n], num_this_batch * sizeof(u32));
+        memcpy(p, &cube_indices[2*i], num_this_batch * sizeof(u32));
         p += num_this_batch;
-        n += num_this_batch / 18;
 
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
         pb_end(p);

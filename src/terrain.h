@@ -240,7 +240,7 @@ inline static void render_terrain(image_data img) {
         f32 dist = 50;
         // for (int y = 0; y < 50; y++) {
         //     for (int x = 0; x < 10; x++) {
-                render_cube(0, 50, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
+                render_cube(0, 0, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
         //     }
         // }
     }

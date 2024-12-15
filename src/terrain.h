@@ -185,23 +185,23 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     fill_array_cube_indices(cube_indices, num);
 
     float cube_vertices[8 * num][5];
-    int fo = 0;
+    int actual_num = 0;
     for (int X = 0; X < 16; X++) {
         for (int Z = 0; Z < 16; Z++) {
             for (int Y = 15; Y >= 0; Y--) {
                 if (test_chunk.cubes[X][Y][Z].type == GRASSTYPE) {
-                    fill_array_singular_cube_vertices(fo, cube_vertices, X, Y, Z);
-                    fo++;
+                    fill_array_singular_cube_vertices(actual_num, cube_vertices, X, Y, Z);
+                    actual_num++;
                     break;
                 }
             }
         }
     }
-    u32 *abctest = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(abctest, cube_vertices, sizeof(cube_vertices));
+    u32 *allocated_verts = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    memcpy(allocated_verts, cube_vertices, sizeof(cube_vertices));
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(float) * 5, &abctest[0]);
+            3, sizeof(float) * 5, &allocated_verts[0]);
 
     /* Set vertex diffuse color attribute */
     set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
@@ -209,11 +209,11 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            2, sizeof(float) * 5, &abctest[3]);
+            2, sizeof(float) * 5, &allocated_verts[3]);
 
     /* Begin drawing triangles */
-    draw_indexed(num*36, cube_indices);
-    MmFreeContiguousMemory(abctest);
+    draw_indexed(actual_num*36, cube_indices);
+    MmFreeContiguousMemory(allocated_verts);
 }
 
 inline static void render_terrain(image_data img) {

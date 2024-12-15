@@ -128,21 +128,7 @@ int main(void)
     alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
 
-    for (int X = 0; X < 16; X++) {
-        for (int Z = 0; Z < 16; Z++) {
-            u64 y_ran = lehmer32_seeded(1032487 + 100*X*Z);
-            y_ran = y_ran % 2; 
-            y_ran += 1;
-            for (int Y = 0; Y < 16; Y++) {
-                if (Y < y_ran) {
-                    test_chunk.cubes[X][Y][Z].type = GRASSTYPE;
-                } else {
-                    test_chunk.cubes[X][Y][Z].type = AIRTYPE;
-                }
-            }
-        }
-    }
-
+    generate_chunk(0, 0);
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10000.0f);

@@ -10,4 +10,13 @@ typedef struct {
     cube_entity cubes[16][16][16]; // XYZ
 } chunk_data;
 
-static chunk_data test_chunk = {0};
+
+typedef struct {
+    f32 v[4][3];
+    u16 tex_coor[4][2];
+    u16 indices[6];
+} face;
+
+extern chunk_data test_chunk;
+
+void generate_chunk(i32 x, i32 y);

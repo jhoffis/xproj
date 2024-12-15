@@ -70,52 +70,65 @@ static void fill_array_cube_indices(u16 *indices, u16 num_cubes) {
     }
 }
 
-static void fill_array_singular_cube_vertices(u32 offset, float cubes[][3], float x, float y, float z) {
+static void fill_array_singular_cube_vertices(u32 offset, float cubes[][5], float x, float y, float z) {
     offset *= 8;
-    x *= 2*cube_size + 10;
+    x *= 2*cube_size;
     y *= 2*cube_size;
     z *= 2*cube_size;
     cubes[offset][0] = x + -cube_size;
     cubes[offset][1] = y + -cube_size;
     cubes[offset][2] = z +  cube_size;
+    cubes[offset][3] = 0; // Texture
+    cubes[offset][4] = 0;
     
     cubes[offset + 1][0] = x +  cube_size;
     cubes[offset + 1][1] = y + -cube_size;
     cubes[offset + 1][2] = z +  cube_size;
+    cubes[offset + 1][3] = cube_tex_w;
+    cubes[offset + 1][4] = 0;
     
     cubes[offset + 2][0] = x + -cube_size;
     cubes[offset + 2][1] = y +  cube_size;
     cubes[offset + 2][2] = z +  cube_size;
+    cubes[offset + 2][3] = 0;
+    cubes[offset + 2][4] = cube_tex_h;
     
     cubes[offset + 3][0] = x +  cube_size;
     cubes[offset + 3][1] = y +  cube_size;
     cubes[offset + 3][2] = z +  cube_size;
+    cubes[offset + 3][3] = cube_tex_w;
+    cubes[offset + 3][4] = cube_tex_h;
 
     cubes[offset + 4][0] = x + -cube_size;
     cubes[offset + 4][1] = y + -cube_size;
     cubes[offset + 4][2] = z + -cube_size;
+    cubes[offset + 4][3] = cube_tex_w;
+    cubes[offset + 4][4] = cube_tex_h;
 
     cubes[offset + 5][0] = x +  cube_size;
     cubes[offset + 5][1] = y + -cube_size;
     cubes[offset + 5][2] = z + -cube_size;
+    cubes[offset + 5][3] = 0;
+    cubes[offset + 5][4] = cube_tex_h;
 
     cubes[offset + 6][0] = x + -cube_size;
     cubes[offset + 6][1] = y +  cube_size;
     cubes[offset + 6][2] = z + -cube_size;
+    cubes[offset + 6][3] = cube_tex_w;
+    cubes[offset + 6][4] = 0;
 
     cubes[offset + 7][0] = x +  cube_size;
     cubes[offset + 7][1] = y +  cube_size;
     cubes[offset + 7][2] = z + -cube_size;
+    cubes[offset + 7][3] = 0;
+    cubes[offset + 7][4] = 0;
 }
 
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
-    u64 abc = lehmer32_seeded(1032487 + 100*x + y);
-    abc = abc % 200; 
-
     v_obj_pos[0] = x;
-    v_obj_pos[1] = abc;
+    v_obj_pos[1] = 0;
     v_obj_pos[2] = y;
 
     /* Tilt and rotate the object a bit */
@@ -166,19 +179,21 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     /*
      * Setup vertex attributes
      */
-    int num = 100;
+    int num = 128;
     u16 cube_indices[36 * num];
     fill_array_cube_indices(cube_indices, num);
 
-    float cube_vertices[8 * num][3];
-    for (int x = 0; x < num; x++) {
-        fill_array_singular_cube_vertices(x, cube_vertices, x, 0, y);
+    float cube_vertices[8 * num][5];
+    for (int xz = 0; xz < num; xz++) {
+        u64 y_ran = lehmer32_seeded(1032487 + 100*xz + y);
+        y_ran = y_ran % 3; 
+        fill_array_singular_cube_vertices(xz, cube_vertices, xz % 10, y_ran, (int) ((float) xz / 10.f));
     }
     u32 *abctest = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(abctest, cube_vertices, sizeof(cube_vertices));
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(float) * 3, &abctest[0]);
+            3, sizeof(float) * 5, &abctest[0]);
 
     /* Set vertex diffuse color attribute */
     set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
@@ -186,7 +201,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            2, sizeof(Vertex), &alloc_vertices_cube[6]);
+            2, sizeof(float) * 5, &abctest[3]);
 
     /* Begin drawing triangles */
     draw_indexed(num*36, cube_indices);
@@ -238,7 +253,7 @@ inline static void render_terrain(image_data img) {
         pb_end(p);
 
         f32 dist = 50;
-        // for (int y = 0; y < 50; y++) {
+        // for (int y = 0; y < 20; y++) {
         //     for (int x = 0; x < 10; x++) {
                 render_cube(0, 0, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
         //     }

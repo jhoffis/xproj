@@ -241,47 +241,45 @@ int main(void)
             }
 
             pb_print(
-                    "\n\n\n"
-                    "Press startt on another controller to test\n"
-                    "Axis:\n"
                     "- Lstick: x=%d, y=%d\n"
                     "- Rstick: x=%d, y=%d\n"
                     "- Ltrig: %d\n"
                     "- Rtrig: %d\n"
-                    "Buttons:\n"
-                    "- A:%d B:%d X:%d Y:%d\n"
-                    "- Back:%d Start:%d White:%d Black:%d\n"
-                    "- Up:%d Down:%d Left:%d Right:%d\n"
-                    "- Lstick:%d, Rstick:%d\n"
-                    "- Vendor: %04x Product: %04x\n"
-                    "- F3: %d\n"
-                    "- Obj rot X: %d, Y: %d\n",
+                    // "Buttons:\n"
+                    // "- A:%d B:%d X:%d Y:%d\n"
+                    // "- Back:%d Start:%d White:%d Black:%d\n"
+                    // "- Up:%d Down:%d Left:%d Right:%d\n"
+                    // "- Lstick:%d, Rstick:%d\n"
+                    // "- Vendor: %04x Product: %04x\n"
+                    // "- F3: %d\n"
+                    // "- Obj rot X: %d, Y: %d\n"
+                    ,
                     SDL_GameControllerGetPlayerIndex(pad),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT),
-                    SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_START),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSTICK),
-                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSTICK),
-                    SDL_GameControllerGetVendor(pad), 
-                    SDL_GameControllerGetProduct(pad),
-                    f3key,
-                    (int) obj_rotationX,
-                    (int) obj_rotationY
+                    SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_START),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSTICK),
+                    // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSTICK),
+                    // SDL_GameControllerGetVendor(pad), 
+                    // SDL_GameControllerGetProduct(pad),
+                    // f3key,
+                    // (int) obj_rotationX,
+                    // (int) obj_rotationY
                         );
 
             // pb_print("SDL audio driver: %s\n", SDL_GetCurrentAudioDriver());

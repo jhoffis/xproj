@@ -7,6 +7,7 @@
 #include "shader.h"
 #include "mvp.h"
 #include "cube.h"
+#include "world.h"
 
 /*
  * TODO combine two cubes into one buffer, and one index array.
@@ -179,15 +180,22 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     /*
      * Setup vertex attributes
      */
-    int num = 128;
+    int num = 16*16;
     u16 cube_indices[36 * num];
     fill_array_cube_indices(cube_indices, num);
 
     float cube_vertices[8 * num][5];
-    for (int xz = 0; xz < num; xz++) {
-        u64 y_ran = lehmer32_seeded(1032487 + 100*xz + y);
-        y_ran = y_ran % 3; 
-        fill_array_singular_cube_vertices(xz, cube_vertices, xz % 10, y_ran, (int) ((float) xz / 10.f));
+    int fo = 0;
+    for (int X = 0; X < 16; X++) {
+        for (int Z = 0; Z < 16; Z++) {
+            for (int Y = 15; Y >= 0; Y--) {
+                if (test_chunk.cubes[X][Y][Z].type == GRASSTYPE) {
+                    fill_array_singular_cube_vertices(fo, cube_vertices, X, Y, Z);
+                    fo++;
+                    break;
+                }
+            }
+        }
     }
     u32 *abctest = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(abctest, cube_vertices, sizeof(cube_vertices));

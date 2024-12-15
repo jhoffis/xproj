@@ -2,6 +2,14 @@
 
 #include "nums.h"
 
+#define AIRTYPE 0
+#define GRASSTYPE 1
+
+typedef struct {
+    u32 type; // 12 first bits represent the block type? 20 bits rest are for more information. Like for instance, flowing or smt..
+} cube_entity;
+
+
 #pragma pack(1)
 typedef struct Vertex {
     float pos[3];

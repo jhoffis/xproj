@@ -14,13 +14,11 @@ vOut main(
 	vIn              I,
 	uniform float4x4 m_model,
 	uniform float4x4 m_view,
-	uniform float4x4 m_proj,
-	uniform float4   camera_pos
+	uniform float4x4 m_proj
     )
 {
 	vOut   result;
 	float4 pos;
-
 	pos = mul(float4(I.pos.xyz, 1.0), m_model);
 
 	pos = mul(pos, m_view);

@@ -8,6 +8,10 @@
 #include "mvp.h"
 #include "cube.h"
 
+/*
+ * TODO combine two cubes into one buffer, and one index array.
+ */
+
 // static ImageData img;
 // static void *textureAddr;
 
@@ -70,12 +74,81 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
      * Setup vertex attributes
      */
 
+    u16 cube_indices[] = {
+        //Top
+        2, 6, 7,
+        2, 7, 3,
+
+        //Bottom
+        0, 5, 4,
+        0, 1, 5,
+
+        //Left
+        0, 6, 2,
+        0, 4, 6,
+
+        //Right
+        1, 3, 7,
+        1, 7, 5,
+
+        //Front
+        0, 2, 3,
+        3, 1, 0,
+
+        //Back
+        4, 7, 6,
+        4, 5, 7,
+        // Top
+        10, 14, 15,
+        10, 15, 11,
+
+        // Bottom
+        8, 13, 12,
+        8, 9, 13,
+
+        // Left
+        8, 14, 10,
+        8, 12, 14,
+
+        // Right
+        9, 11, 15,
+        9, 15, 13,
+
+        // Front
+        8, 10, 11,
+        11, 9, 8,
+
+        // Back
+        12, 15, 14,
+        12, 13, 15
+    };
+    float cube_vertices[][4] = {
+     {-cube_size, -cube_size,  cube_size, 10},
+     { cube_size, -cube_size,  cube_size, 10},
+     {-cube_size,  cube_size,  cube_size, 10},
+     { cube_size,  cube_size,  cube_size, 10},
+     {-cube_size, -cube_size, -cube_size, 10},
+     { cube_size, -cube_size, -cube_size, 10},
+     {-cube_size,  cube_size, -cube_size, 10},
+     { cube_size,  cube_size, -cube_size, 10},
+
+     {100 + -cube_size, -cube_size,  cube_size, 10},
+     {100 +  cube_size, -cube_size,  cube_size, 10},
+     {100 + -cube_size,  cube_size,  cube_size, 10},
+     {100 +  cube_size,  cube_size,  cube_size, 10},
+     {100 + -cube_size, -cube_size, -cube_size, 10},
+     {100 +  cube_size, -cube_size, -cube_size, 10},
+     {100 + -cube_size,  cube_size, -cube_size, 10},
+     {100 +  cube_size,  cube_size, -cube_size, 10},    
+    };
+    u32 *abctest = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    memcpy(abctest, cube_vertices, sizeof(cube_vertices));
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(Vertex), &alloc_vertices_cube[0]);
+            4, sizeof(float) * 4, &abctest[0]);
 
     /* Set vertex diffuse color attribute */
-    set_attrib_pointer(2, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+    set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
             3, sizeof(Vertex), &alloc_vertices_cube[3]);
 
     /* Set texture coordinate attribute */
@@ -83,7 +156,9 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
             2, sizeof(Vertex), &alloc_vertices_cube[6]);
 
     /* Begin drawing triangles */
-    draw_indexed();
+    draw_indexed(2*num_cube_indices, cube_indices);
+    
+    MmFreeContiguousMemory(abctest);
 }
 
 inline static void render_terrain(image_data img) {
@@ -131,11 +206,11 @@ inline static void render_terrain(image_data img) {
         pb_end(p);
 
         f32 dist = 50;
-        for (int y = 0; y < 10; y++) {
-            for (int x = 0; x < 10; x++) {
-                render_cube(x*dist, y*dist, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
-            }
-        }
+        // for (int y = 0; y < 10; y++) {
+        //     for (int x = 0; x < 10; x++) {
+                render_cube(0, 0, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
+        //     }
+        // }
     }
 }
 

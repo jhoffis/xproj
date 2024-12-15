@@ -80,7 +80,7 @@ void testSound(i16* sound_buffer, size_t sample_count) {
                 audio_buffer_data = create_wav_entity(music_strs[*music_current]);
             }
         }
-        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor] / 100.;
+        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor] * 0.;
         cursor++;
     }
     *audio_buffer_data->cursor = cursor;

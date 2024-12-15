@@ -122,7 +122,7 @@ void pack_u16_list(u32 * out, u16 *list, u32 size) {
  *  First draw the demo and then try to get a model from the disk. 
  *  But draw a cube instead - just so it's easier to see what it's doing.
  */
-void draw_indexed() {
+void draw_indexed(u32 num_cube_indices, u16 *cube_indices) {
     #define MIN(a,b) ((a)<(b)?(a):(b))
     #define MAX_BATCH 120
 

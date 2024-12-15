@@ -8,14 +8,12 @@
 //semantic main.m_model
 //semantic main.m_view
 //semantic main.m_proj
-//semantic main.camera_pos
 //var float4 I.tex : $vin.TEXCOORD : TEXCOORD0 : 0 : 1
 //var float4 I.color : $vin.DIFFUSE : ATTR3 : 0 : 1
 //var float4 I.pos : $vin.POSITION : ATTR0 : 0 : 1
 //var float4x4 m_model :  : c[0], 4 : 1 : 1
 //var float4x4 m_view :  : c[4], 4 : 2 : 1
 //var float4x4 m_proj :  : c[8], 4 : 3 : 1
-//var float4 camera_pos :  :  : 4 : 0
 //var float4 main.pos : $vout.POSITION : HPOS : -1 : 1
 //var float4 main.col : $vout.COLOR : COL0 : -1 : 1
 //var float4 main.tex0 : $vout.TEXCOORD0 : TEX0 : -1 : 1

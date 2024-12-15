@@ -15,6 +15,99 @@
 // static ImageData img;
 // static void *textureAddr;
 
+static void fill_array_cube_indices(u16 *indices, u16 num_cubes) {
+    for (int i = 0; i < num_cubes; i++) {
+        int n = 36*i;
+        int cubeN = 8*i;
+
+        // Top
+        indices[n]     = cubeN + 2;
+        indices[n + 1] = cubeN + 6;
+        indices[n + 2] = cubeN + 7;
+        indices[n + 3] = cubeN + 2;
+        indices[n + 4] = cubeN + 7;
+        indices[n + 5] = cubeN + 3;
+
+        // Bottom
+        indices[n + 6]  = cubeN + 0;
+        indices[n + 7]  = cubeN + 5;
+        indices[n + 8]  = cubeN + 4;
+        indices[n + 9]  = cubeN + 0;
+        indices[n + 10] = cubeN + 1;
+        indices[n + 11] = cubeN + 5;
+
+        // Left
+        indices[n + 12] = cubeN + 0;
+        indices[n + 13] = cubeN + 6;
+        indices[n + 14] = cubeN + 2;
+        indices[n + 15] = cubeN + 0;
+        indices[n + 16] = cubeN + 4;
+        indices[n + 17] = cubeN + 6;
+
+        // Right
+        indices[n + 18] = cubeN + 1;
+        indices[n + 19] = cubeN + 3;
+        indices[n + 20] = cubeN + 7;
+        indices[n + 21] = cubeN + 1;
+        indices[n + 22] = cubeN + 7;
+        indices[n + 23] = cubeN + 5;
+
+        // Front
+        indices[n + 24] = cubeN + 0;
+        indices[n + 25] = cubeN + 2;
+        indices[n + 26] = cubeN + 3;
+        indices[n + 27] = cubeN + 3;
+        indices[n + 28] = cubeN + 1;
+        indices[n + 29] = cubeN + 0;
+
+        // Back
+        indices[n + 30] = cubeN + 4;
+        indices[n + 31] = cubeN + 7;
+        indices[n + 32] = cubeN + 6;
+        indices[n + 33] = cubeN + 4;
+        indices[n + 34] = cubeN + 5;
+        indices[n + 35] = cubeN + 7;
+    }
+}
+
+static void fill_array_singular_cube_vertices(u32 offset, float cubes[][3], float x, float y, float z) {
+    offset *= 8;
+    x *= 2*cube_size + 10;
+    y *= 2*cube_size;
+    z *= 2*cube_size;
+    cubes[offset][0] = x + -cube_size;
+    cubes[offset][1] = y + -cube_size;
+    cubes[offset][2] = z +  cube_size;
+    
+    cubes[offset + 1][0] = x +  cube_size;
+    cubes[offset + 1][1] = y + -cube_size;
+    cubes[offset + 1][2] = z +  cube_size;
+    
+    cubes[offset + 2][0] = x + -cube_size;
+    cubes[offset + 2][1] = y +  cube_size;
+    cubes[offset + 2][2] = z +  cube_size;
+    
+    cubes[offset + 3][0] = x +  cube_size;
+    cubes[offset + 3][1] = y +  cube_size;
+    cubes[offset + 3][2] = z +  cube_size;
+
+    cubes[offset + 4][0] = x + -cube_size;
+    cubes[offset + 4][1] = y + -cube_size;
+    cubes[offset + 4][2] = z + -cube_size;
+
+    cubes[offset + 5][0] = x +  cube_size;
+    cubes[offset + 5][1] = y + -cube_size;
+    cubes[offset + 5][2] = z + -cube_size;
+
+    cubes[offset + 6][0] = x + -cube_size;
+    cubes[offset + 6][1] = y +  cube_size;
+    cubes[offset + 6][2] = z + -cube_size;
+
+    cubes[offset + 7][0] = x +  cube_size;
+    cubes[offset + 7][1] = y +  cube_size;
+    cubes[offset + 7][2] = z + -cube_size;
+}
+
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
@@ -73,79 +166,19 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     /*
      * Setup vertex attributes
      */
+    int num = 100;
+    u16 cube_indices[36 * num];
+    fill_array_cube_indices(cube_indices, num);
 
-    u16 cube_indices[] = {
-        //Top
-        2, 6, 7,
-        2, 7, 3,
-
-        //Bottom
-        0, 5, 4,
-        0, 1, 5,
-
-        //Left
-        0, 6, 2,
-        0, 4, 6,
-
-        //Right
-        1, 3, 7,
-        1, 7, 5,
-
-        //Front
-        0, 2, 3,
-        3, 1, 0,
-
-        //Back
-        4, 7, 6,
-        4, 5, 7,
-        // Top
-        10, 14, 15,
-        10, 15, 11,
-
-        // Bottom
-        8, 13, 12,
-        8, 9, 13,
-
-        // Left
-        8, 14, 10,
-        8, 12, 14,
-
-        // Right
-        9, 11, 15,
-        9, 15, 13,
-
-        // Front
-        8, 10, 11,
-        11, 9, 8,
-
-        // Back
-        12, 15, 14,
-        12, 13, 15
-    };
-    float cube_vertices[][4] = {
-     {-cube_size, -cube_size,  cube_size, 10},
-     { cube_size, -cube_size,  cube_size, 10},
-     {-cube_size,  cube_size,  cube_size, 10},
-     { cube_size,  cube_size,  cube_size, 10},
-     {-cube_size, -cube_size, -cube_size, 10},
-     { cube_size, -cube_size, -cube_size, 10},
-     {-cube_size,  cube_size, -cube_size, 10},
-     { cube_size,  cube_size, -cube_size, 10},
-
-     {100 + -cube_size, -cube_size,  cube_size, 10},
-     {100 +  cube_size, -cube_size,  cube_size, 10},
-     {100 + -cube_size,  cube_size,  cube_size, 10},
-     {100 +  cube_size,  cube_size,  cube_size, 10},
-     {100 + -cube_size, -cube_size, -cube_size, 10},
-     {100 +  cube_size, -cube_size, -cube_size, 10},
-     {100 + -cube_size,  cube_size, -cube_size, 10},
-     {100 +  cube_size,  cube_size, -cube_size, 10},    
-    };
+    float cube_vertices[8 * num][3];
+    for (int x = 0; x < num; x++) {
+        fill_array_singular_cube_vertices(x, cube_vertices, x, 0, y);
+    }
     u32 *abctest = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(abctest, cube_vertices, sizeof(cube_vertices));
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            4, sizeof(float) * 4, &abctest[0]);
+            3, sizeof(float) * 3, &abctest[0]);
 
     /* Set vertex diffuse color attribute */
     set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
@@ -156,8 +189,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
             2, sizeof(Vertex), &alloc_vertices_cube[6]);
 
     /* Begin drawing triangles */
-    draw_indexed(2*num_cube_indices, cube_indices);
-    
+    draw_indexed(num*36, cube_indices);
     MmFreeContiguousMemory(abctest);
 }
 
@@ -206,9 +238,9 @@ inline static void render_terrain(image_data img) {
         pb_end(p);
 
         f32 dist = 50;
-        // for (int y = 0; y < 10; y++) {
+        // for (int y = 0; y < 50; y++) {
         //     for (int x = 0; x < 10; x++) {
-                render_cube(0, 0, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
+                render_cube(0, 50, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
         //     }
         // }
     }

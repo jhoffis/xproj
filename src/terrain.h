@@ -126,6 +126,59 @@ static void fill_array_singular_cube_vertices(u32 offset, float cubes[][5], floa
     cubes[offset + 7][4] = 0;
 }
 
+
+/*
+ * TODO replace this because in the future we want to reuse vertices 
+ * and here we expect 4 new verticies for each face.
+ */
+static void fill_array_face_indices(u16 *indices, u16 num_faces) {
+    for (int i = 0; i < num_faces; i++) {
+        int n = 6*i;
+        int faceN = 4*i; // 4 vertices per face
+
+        // Top (FIXME add all directions... Probably by sending a face struct array and providing the info etc.)
+        indices[n + 0] = faceN + 0;
+        indices[n + 1] = faceN + 2;
+        indices[n + 2] = faceN + 3;
+        indices[n + 3] = faceN + 0;
+        indices[n + 4] = faceN + 3;
+        indices[n + 5] = faceN + 1;
+    }
+}
+
+static void fill_array_singular_face_vertices(u32 offset, float cubes[][5], float x, float y, float z) {
+    offset *= 4;
+    x *= 2*cube_size;
+    y *= 2*cube_size;
+    z *= 2*cube_size;
+
+    cubes[offset + 0][0] = x + -cube_size;
+    cubes[offset + 0][1] = y +  cube_size;
+    cubes[offset + 0][2] = z +  cube_size;
+    cubes[offset + 0][3] = 0;
+    cubes[offset + 0][4] = cube_tex_h;
+    
+    cubes[offset + 1][0] = x +  cube_size;
+    cubes[offset + 1][1] = y +  cube_size;
+    cubes[offset + 1][2] = z +  cube_size;
+    cubes[offset + 1][3] = cube_tex_w;
+    cubes[offset + 1][4] = cube_tex_h;
+
+    cubes[offset + 2][0] = x + -cube_size;
+    cubes[offset + 2][1] = y +  cube_size;
+    cubes[offset + 2][2] = z + -cube_size;
+    cubes[offset + 2][3] = cube_tex_w;
+    cubes[offset + 2][4] = 0;
+
+    cubes[offset + 3][0] = x +  cube_size;
+    cubes[offset + 3][1] = y +  cube_size;
+    cubes[offset + 3][2] = z + -cube_size;
+    cubes[offset + 3][3] = 0;
+    cubes[offset + 3][4] = 0;
+}
+    
+
+
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
@@ -153,15 +206,18 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     /* Send the model matrix */
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_model, 16*4); p+=16;
+    memcpy(p, m_model, 16*4); 
+    p += 16;
 
     /* Send the view matrix */
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_view, 16*4); p+=16;
+    memcpy(p, m_view, 16*4); 
+    p += 16;
 
     /* Send the projection matrix */
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_proj, 16*4); p+=16;
+    memcpy(p, m_proj, 16*4); 
+    p += 16;
 
     /* Send camera position */
     // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
@@ -182,16 +238,16 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
      * Setup vertex attributes
      */
     int num = 16*16;
-    u16 cube_indices[36 * num];
-    fill_array_cube_indices(cube_indices, num);
+    u16 cube_indices[6 * num];
+    fill_array_face_indices(cube_indices, num);
 
-    float cube_vertices[8 * num][5];
+    float cube_vertices[4 * num][5];
     int actual_num = 0;
     for (int X = 0; X < 16; X++) {
         for (int Z = 0; Z < 16; Z++) {
             for (int Y = 15; Y >= 0; Y--) {
-                if (test_chunk.cubes[X][Y][Z].type == GRASSTYPE) {
-                    fill_array_singular_cube_vertices(actual_num, cube_vertices, X, Y, Z);
+                if (test_chunk.cubes[X][Y][Z].type == BLOCK_TYPE_GRASS) {
+                    fill_array_singular_face_vertices(actual_num, cube_vertices, X, Y, Z);
                     actual_num++;
                     break;
                 }
@@ -213,7 +269,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
             2, sizeof(float) * 5, &allocated_verts[3]);
 
     /* Begin drawing triangles */
-    draw_indexed(actual_num*36, cube_indices);
+    draw_indexed(actual_num*6, cube_indices);
     MmFreeContiguousMemory(allocated_verts);
 }
 
@@ -230,7 +286,7 @@ inline static void render_terrain(image_data img) {
                        (((2 << 4) & NV097_SET_TEXTURE_FORMAT_DIMENSIONALITY)) | // 0x000000F0
                        ((NV097_SET_TEXTURE_FORMAT_COLOR_SZ_A8R8G8B8 << 8) & NV097_SET_TEXTURE_FORMAT_COLOR) | // 0x0000FF00
                        ((1 << 16) & NV097_SET_TEXTURE_FORMAT_MIPMAP_LEVELS) | // 0x000F0000
-                       ((9 << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2
+                       ((9 << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2 (so up to 16^2)
                        ((9 << 24) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V);
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U               0x00F00000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V               0x0F000000

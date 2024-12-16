@@ -19,9 +19,9 @@ void generate_chunk(i32 x, i32 y) {
             y_ran += 1;
             for (int Y = 0; Y < 16; Y++) {
                 if (Y < y_ran) {
-                    test_chunk.cubes[X][Y][Z].type = GRASSTYPE;
+                    test_chunk.cubes[X][Y][Z].type = BLOCK_TYPE_GRASS;
                 } else {
-                    test_chunk.cubes[X][Y][Z].type = AIRTYPE;
+                    test_chunk.cubes[X][Y][Z].type = BLOCK_TYPE_AIR;
                 }
             }
         }

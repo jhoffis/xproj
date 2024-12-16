@@ -1,6 +1,11 @@
 #pragma once
 #include "cube.h"
 
+#define FACE_TYPE_COBBLESTONE 0;
+#define FACE_TYPE_GRASS_TOP 1;
+#define FACE_TYPE_GRASS_SIDE 2;
+#define FACE_TYPE_DIRT 3;
+
 /*
  * Keep only the closest ones of these active, whereas the ones further way
  * just load in the mesh to render and move it back to the disk so that you
@@ -10,10 +15,13 @@ typedef struct {
     cube_entity cubes[16][16][16]; // XYZ
 } chunk_data;
 
-
+/*
+ * Render all the faces that you can see AND go through PER type so that you minimize texture loading.
+ * And combine all those of the same type into one draw call.
+ */
 typedef struct {
-    f32 vertices[4][3];
-    u8 direction;
+    f32 vertices[4][3]; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
+    u16 info; // first 10 bits are face_type, next 2 bits are direction and last idk
 } face;
 
 extern chunk_data test_chunk;

@@ -1461,6 +1461,154 @@ static void load_from_file(image_data *img, FILE *f, int *x, int *y, int *comp)
    }
 }
 
+/********************
+ * TEMP
+ * ******************/
+
+/* This should be pretty straightforward.
+ * It creates a bit pattern like ..zyxzyxzyx from ..xxx, ..yyy and ..zzz
+ * If there are no bits left from any component it will pack the other masks
+ * more tighly (Example: zzxzxzyx = Fewer x than z and even fewer y)
+ */
+static void generate_swizzle_masks(unsigned int width,
+                                   unsigned int height,
+                                   unsigned int depth,
+                                   uint32_t* mask_x,
+                                   uint32_t* mask_y,
+                                   uint32_t* mask_z)
+{
+    uint32_t x = 0, y = 0, z = 0;
+    uint32_t bit = 1;
+    uint32_t mask_bit = 1;
+    bool done;
+    do {
+        done = true;
+        if (bit < width) { x |= mask_bit; mask_bit <<= 1; done = false; }
+        if (bit < height) { y |= mask_bit; mask_bit <<= 1; done = false; }
+        if (bit < depth) { z |= mask_bit; mask_bit <<= 1; done = false; }
+        bit <<= 1;
+    } while(!done);
+    if (!(x ^ y ^ z == (mask_bit - 1))) {
+        // FIXME was assert!
+        return;
+    }
+
+    *mask_x = x;
+    *mask_y = y;
+    *mask_z = z;
+}
+
+/* This fills a pattern with a value if your value has bits abcd and your
+ * pattern is 11010100100 this will return: 0a0b0c00d00
+ */
+static uint32_t fill_pattern(uint32_t pattern, uint32_t value)
+{
+    uint32_t result = 0;
+    uint32_t bit = 1;
+    while(value) {
+        if (pattern & bit) {
+            /* Copy bit to result */
+            result |= value & 1 ? bit : 0;
+            value >>= 1;
+        }
+        bit <<= 1;
+    }
+    return result;
+}
+
+static unsigned int get_swizzled_offset(
+    unsigned int x, unsigned int y, unsigned int z,
+    uint32_t mask_x, uint32_t mask_y, uint32_t mask_z,
+    unsigned int bytes_per_pixel)
+{
+    return bytes_per_pixel * (fill_pattern(mask_x, x)
+                           | fill_pattern(mask_y, y)
+                           | fill_pattern(mask_z, z));
+}
+
+void swizzle_box(
+    const uint8_t *src_buf,
+    unsigned int width,
+    unsigned int height,
+    unsigned int depth,
+    uint8_t *dst_buf,
+    unsigned int row_pitch,
+    unsigned int slice_pitch,
+    unsigned int bytes_per_pixel)
+{
+    uint32_t mask_x, mask_y, mask_z;
+    generate_swizzle_masks(width, height, depth, &mask_x, &mask_y, &mask_z);
+
+    int x, y, z;
+    for (z = 0; z < depth; z++) {
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                const uint8_t *src = src_buf
+                                         + y * row_pitch + x * bytes_per_pixel;
+                uint8_t *dst = dst_buf + get_swizzled_offset(x, y, 0,
+                                                             mask_x, mask_y, 0,
+                                                             bytes_per_pixel);
+                memcpy(dst, src, bytes_per_pixel);
+            }
+        }
+        src_buf += slice_pitch;
+    }
+}
+
+void unswizzle_box(
+    const uint8_t *src_buf,
+    unsigned int width,
+    unsigned int height,
+    unsigned int depth,
+    uint8_t *dst_buf,
+    unsigned int row_pitch,
+    unsigned int slice_pitch,
+    unsigned int bytes_per_pixel)
+{
+    uint32_t mask_x, mask_y, mask_z;
+    generate_swizzle_masks(width, height, depth, &mask_x, &mask_y, &mask_z);
+
+    int x, y, z;
+    for (z = 0; z < depth; z++) {
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                const uint8_t *src = src_buf
+                    + get_swizzled_offset(x, y, z, mask_x, mask_y, mask_z,
+                                          bytes_per_pixel);
+                uint8_t *dst = dst_buf + y * row_pitch + x * bytes_per_pixel;
+                memcpy(dst, src, bytes_per_pixel);
+            }
+        }
+        dst_buf += slice_pitch;
+    }
+}
+
+void unswizzle_rect(
+    const uint8_t *src_buf,
+    unsigned int width,
+    unsigned int height,
+    uint8_t *dst_buf,
+    unsigned int pitch,
+    unsigned int bytes_per_pixel)
+{
+    unswizzle_box(src_buf, width, height, 1, dst_buf, pitch, 0, bytes_per_pixel);
+}
+
+void swizzle_rect(
+    const uint8_t *src_buf,
+    unsigned int width,
+    unsigned int height,
+    uint8_t *dst_buf,
+    unsigned int pitch,
+    unsigned int bytes_per_pixel)
+{
+    swizzle_box(src_buf, width, height, 1, dst_buf, pitch, 0, bytes_per_pixel);
+}
+/******************************
+ * TEMP
+ * *****************************/
+
+
 /*
  * Just write the name of the PNG file
  */
@@ -1490,8 +1638,11 @@ image_data load_image(const char *name) {
         img.image[i + 2] = r;
     }
 
+    u8 *dst = malloc(img.pitch * img.h);
+    swizzle_rect(img.image, img.w, img.h, dst, img.pitch, 4);
+
     void *textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(textureAddr, img.image, img.pitch * img.h);
+    memcpy(textureAddr, dst, img.pitch * img.h);
     img.addr26bits = (u32) textureAddr & 0x03ffffff; // Retain the lower 26 bits of the address
     free(img.image);
     img.image = textureAddr;

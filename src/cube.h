@@ -19,7 +19,7 @@ typedef struct Vertex {
 #pragma pack()
 
 static const f32 cube_size = 25.f;
-static const f32 cube_tex_w = 220, cube_tex_h = 199;
+static const f32 cube_tex_w = 3, cube_tex_h = 3;
 
 static struct Vertex cube_vertices[] = {
  {{-cube_size, -cube_size,  cube_size}, { 1,  0,  0}, {0,   0}}, // bl

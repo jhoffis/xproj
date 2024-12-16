@@ -12,9 +12,8 @@ typedef struct {
 
 
 typedef struct {
-    f32 v[4][3];
-    u16 tex_coor[4][2];
-    u16 indices[6];
+    f32 vertices[4][3];
+    u8 direction;
 } face;
 
 extern chunk_data test_chunk;

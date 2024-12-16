@@ -1638,11 +1638,9 @@ image_data load_image(const char *name) {
         img.image[i + 2] = r;
     }
 
-    u8 *dst = malloc(img.pitch * img.h);
-    swizzle_rect(img.image, img.w, img.h, dst, img.pitch, 4);
-
     void *textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(textureAddr, dst, img.pitch * img.h);
+    swizzle_rect(img.image, img.w, img.h, textureAddr, img.pitch, 4);
+
     img.addr26bits = (u32) textureAddr & 0x03ffffff; // Retain the lower 26 bits of the address
     free(img.image);
     img.image = textureAddr;

@@ -20,7 +20,7 @@ typedef struct {
  * And combine all those of the same type into one draw call.
  */
 typedef struct {
-    f32 vertices[4][3]; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
+    f32 vertices[4][5]; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
     u16 info; // first 10 bits are face_type, next 2 bits are direction and last idk
 } face;
 

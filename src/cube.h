@@ -2,11 +2,11 @@
 
 #include "nums.h"
 
-#define BLOCK_TYPE_AIR 0
+#define BLOCK_TYPE_AIR 0 // TODO don't have this
 #define BLOCK_TYPE_GRASS 1
 
 typedef struct {
-    u32 type; // 10 first bits represent the block type? 22 bits rest are for more information. Like for instance, flowing or smt..
+    u32 type; // 12 first bits represent the block type? 20 bits rest are for more information. Like for instance, flowing or smt..
 } cube_entity;
 
 

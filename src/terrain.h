@@ -415,6 +415,119 @@ static face find_full_face(int start_x, int start_y, int start_z, u8 face_direct
     return res;
 }
 
+static void fill_face_indices(u16 indices[], u32 offset, face_stored face) {
+    switch (face.info & FACE_MASK_INFO_DIRECTION) { 
+        case FACE_DIRECTION_DOWN:
+            indices[offset + 0] = 1;
+            indices[offset + 1] = 2;
+            indices[offset + 2] = 3;
+            indices[offset + 3] = 0;
+            indices[offset + 4] = 1;
+            indices[offset + 5] = 3;
+            break;
+        case FACE_DIRECTION_UP:
+            indices[offset + 0] = 1;
+            indices[offset + 1] = 3;
+            indices[offset + 2] = 2;
+            indices[offset + 3] = 0;
+            indices[offset + 4] = 3;
+            indices[offset + 5] = 1;
+            break;
+        case FACE_DIRECTION_NORTH:
+            indices[offset + 0] = 0;
+            indices[offset + 1] = 2;
+            indices[offset + 2] = 3;
+            indices[offset + 3] = 0;
+            indices[offset + 4] = 1;
+            indices[offset + 5] = 2;
+            break;
+        case FACE_DIRECTION_SOUTH:
+            indices[offset + 0] = 0;
+            indices[offset + 1] = 3;
+            indices[offset + 2] = 2;
+            indices[offset + 3] = 0;
+            indices[offset + 4] = 2;
+            indices[offset + 5] = 1;
+            break;
+        case FACE_DIRECTION_WEST:
+            indices[offset + 0] = 0;
+            indices[offset + 1] = 3;
+            indices[offset + 2] = 2;
+            indices[offset + 3] = 0;
+            indices[offset + 4] = 2;
+            indices[offset + 5] = 1;
+            break;
+        case FACE_DIRECTION_EAST:
+            indices[offset + 0] = 0;
+            indices[offset + 1] = 2;
+            indices[offset + 2] = 3;
+            indices[offset + 3] = 0;
+            indices[offset + 4] = 1;
+            indices[offset + 5] = 2;
+            break;
+    }
+}
+
+static void fill_face_vertices(f32 vertices[][5], u32 offset, face_stored face) {
+    if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_UP) {
+        int x0 = face.corners[0][0] * 2*cube_size;
+        int x1 = face.corners[1][0] * 2*cube_size;
+        int y = face.dim * 2*cube_size;
+        int z0 = face.corners[0][1] * 2*cube_size;
+        int z1 = face.corners[1][1] * 2*cube_size;
+
+        int tex_x = face.corners[1][0] - face.corners[0][0];
+        int tex_z = face.corners[1][1] - face.corners[0][1];
+
+        vertices[offset + 0][0] = x0;
+        vertices[offset + 0][1] = face.dim;
+        vertices[offset + 0][2] = z1;
+        vertices[offset + 0][3] = 0;
+        vertices[offset + 0][4] = tex_z;
+                          
+        vertices[offset + 1][0] = x1;
+        vertices[offset + 1][1] = y;
+        vertices[offset + 1][2] = z1;
+        vertices[offset + 1][3] = tex_x;
+        vertices[offset + 1][4] = tex_z;
+                          
+        vertices[offset + 2][0] = x1;
+        vertices[offset + 2][1] = y;
+        vertices[offset + 2][2] = z0;
+        vertices[offset + 2][3] = tex_x;
+        vertices[offset + 2][4] = 0;
+                          
+        vertices[offset + 3][0] = x0; // TODO flytt denne til nullte vertex
+        vertices[offset + 3][1] = y;
+        vertices[offset + 3][2] = z0;
+        vertices[offset + 3][3] = 0;
+        vertices[offset + 3][4] = 0;
+    } else {
+        // vertices[offset + 0][0] = x;
+        // vertices[offset + 0][1] = y0;
+        // vertices[offset + 0][2] = z1;
+        // vertices[offset + 0][3] = 0;
+        // vertices[offset + 0][4] = (max_z - start_z);
+        //
+        // vertices[offset + 1][0] = x;
+        // vertices[offset + 1][1] = y1;
+        // vertices[offset + 1][2] = z1;
+        // vertices[offset + 1][3] = (max_y - start_y);
+        // vertices[offset + 1][4] = (max_z - start_z);
+        //
+        // vertices[offset + 2][0] = x;
+        // vertices[offset + 2][1] = y1;
+        // vertices[offset + 2][2] = z0;
+        // vertices[offset + 2][3] = (max_y - start_y);
+        // vertices[offset + 2][4] = 0;
+        //
+        // vertices[offset + 3][0] = x;
+        // vertices[offset + 3][1] = y0;
+        // vertices[offset + 3][2] = z0;
+        // vertices[offset + 3][3] = 0;
+        // vertices[offset + 3][4] = 0;
+    }
+}
 
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
@@ -474,53 +587,43 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     /*
      * Setup vertex attributes
      */
-    int num = 6;
+    int num = num_faces_pooled;
     u16 cube_indices[6 * num];
 
-    float cube_vertices[4*num][5];
-    int actual_num = 0;
-    face test_face[num];
-    for (int X = 0; X < 16; X++) {
-        for (int Z = 0; Z < 16; Z++) {
-            for (int Y = 15; Y >= 0; Y--) {
-                /* First go as far as you can in one direction,
-                 * then move as far as you can in the sideways direction.
-                 * Later optimize the algorithm using strip rendering or smt
-                 */
-                if (test_chunk.cubes[X][Y][Z].type == BLOCK_TYPE_GRASS) {
-                    test_face[0] = find_full_face(X, Y, Z, FACE_DIRECTION_UP);    
-                    test_face[1] = find_full_face(X, Y, Z, FACE_DIRECTION_DOWN);    
-                    test_face[2] = find_full_face(X, Y, Z, FACE_DIRECTION_WEST);    
-                    test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_NORTH);    
-                    test_face[4] = find_full_face(X+15, Y, Z, FACE_DIRECTION_EAST);    
-                    test_face[5] = find_full_face(X, Y, Z+15, FACE_DIRECTION_SOUTH);    
-                    // test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_EAST);    
-                    memcpy(cube_vertices, test_face[0].vertices, sizeof(float) * 4 * 5);
-                    memcpy(&cube_vertices[4], test_face[1].vertices, sizeof(float) * 4 * 5);
-                    memcpy(&cube_vertices[8], test_face[2].vertices, sizeof(float) * 4 * 5);
-                    memcpy(&cube_vertices[12], test_face[3].vertices, sizeof(float) * 4 * 5);
-                    memcpy(&cube_vertices[16], test_face[4].vertices, sizeof(float) * 4 * 5);
-                    memcpy(&cube_vertices[20], test_face[5].vertices, sizeof(float) * 4 * 5);
-                    memcpy(cube_indices, test_face[0].indices, sizeof(float) * 6);
-                    for (int i = 0; i < 6; i++)
-                        cube_indices[i + 6] = 4 + test_face[1].indices[i];
-                    for (int i = 0; i < 6; i++)
-                        cube_indices[i + 12] = 8 + test_face[2].indices[i];
-                    for (int i = 0; i < 6; i++)
-                        cube_indices[i + 18] = 12 + test_face[3].indices[i];
-                    for (int i = 0; i < 6; i++)
-                        cube_indices[i + 24] = 16 + test_face[4].indices[i];
-                    for (int i = 0; i < 6; i++)
-                        cube_indices[i + 30] = 20 + test_face[5].indices[i];
-                    // fill_array_singular_face_vertices(actual_num, cube_vertices, X, Y, Z);
+    f32 cube_vertices[4*num][5];
+    face render_faces[num];
+    for (int i = 0; i < num; i++) {
+        face_stored fs = faces_pool[i];
+        fill_face_indices(cube_indices, i*6, fs);
+        fill_face_vertices(cube_vertices, i*4, fs);
 
-                    actual_num += num;
-                    goto TestJump;
-                }
-            }
-        }
+                // if (test_chunk.cubes[i][Y][Z].type == BLOCK_TYPE_GRASS) {
+                //     test_face[0] = find_full_face(X, Y, Z, FACE_DIRECTION_UP);    
+                //     test_face[1] = find_full_face(X, Y, Z, FACE_DIRECTION_DOWN);    
+                //     test_face[2] = find_full_face(X, Y, Z, FACE_DIRECTION_WEST);    
+                //     test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_NORTH);    
+                //     test_face[4] = find_full_face(X+15, Y, Z, FACE_DIRECTION_EAST);    
+                //     test_face[5] = find_full_face(X, Y, Z+15, FACE_DIRECTION_SOUTH);    
+                //     // test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_EAST);    
+                //     memcpy(cube_vertices, test_face[0].vertices, sizeof(float) * 4 * 5);
+                //     memcpy(&cube_vertices[4], test_face[1].vertices, sizeof(float) * 4 * 5);
+                //     memcpy(&cube_vertices[8], test_face[2].vertices, sizeof(float) * 4 * 5);
+                //     memcpy(&cube_vertices[12], test_face[3].vertices, sizeof(float) * 4 * 5);
+                //     memcpy(&cube_vertices[16], test_face[4].vertices, sizeof(float) * 4 * 5);
+                //     memcpy(&cube_vertices[20], test_face[5].vertices, sizeof(float) * 4 * 5);
+                //     memcpy(cube_indices, test_face[0].indices, sizeof(float) * 6);
+                //     for (int i = 0; i < 6; i++)
+                //         cube_indices[i + 6] = 4 + test_face[1].indices[i];
+                //     for (int i = 0; i < 6; i++)
+                //         cube_indices[i + 12] = 8 + test_face[2].indices[i];
+                //     for (int i = 0; i < 6; i++)
+                //         cube_indices[i + 18] = 12 + test_face[3].indices[i];
+                //     for (int i = 0; i < 6; i++)
+                //         cube_indices[i + 24] = 16 + test_face[4].indices[i];
+                //     for (int i = 0; i < 6; i++)
+                //         cube_indices[i + 30] = 20 + test_face[5].indices[i];
+                //     // fill_array_singular_face_vertices(actual_num, cube_vertices, X, Y, Z);
     }
-    TestJump:
     u32 *allocated_verts = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(allocated_verts, cube_vertices, sizeof(cube_vertices));
     /* Set vertex position attribute */
@@ -536,7 +639,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
             2, sizeof(float) * 5, &allocated_verts[3]);
 
     /* Begin drawing triangles */
-    draw_indexed(actual_num*6, cube_indices);
+    draw_indexed(num*6, cube_indices);
     MmFreeContiguousMemory(allocated_verts);
 }
 

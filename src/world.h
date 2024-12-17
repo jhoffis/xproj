@@ -1,17 +1,22 @@
 #pragma once
 #include "cube.h"
 
+#define CHUNK_SIZE 16
+
 #define FACE_TYPE_COBBLESTONE 0
 #define FACE_TYPE_GRASS_TOP 1
 #define FACE_TYPE_GRASS_SIDE 2
 #define FACE_TYPE_DIRT 3
 
-#define FACE_DIRECTION_DOWN 0
-#define FACE_DIRECTION_UP 1
-#define FACE_DIRECTION_SOUTH 2
-#define FACE_DIRECTION_NORTH 3
-#define FACE_DIRECTION_WEST 4
-#define FACE_DIRECTION_EAST 5
+
+#define FACE_DIRECTION_DOWN 0  // -y
+#define FACE_DIRECTION_UP 1    // +y
+#define FACE_DIRECTION_SOUTH 2 // -z
+#define FACE_DIRECTION_NORTH 3 // +z
+#define FACE_DIRECTION_WEST 4  // -x
+#define FACE_DIRECTION_EAST 5  // +x
+#define FACE_DIRECTION_TOTAL 6
+#define FACE_MASK_INFO_DIRECTION 0x07 // lower 3 bits
 
 /*
  * Keep only the closest ones of these active, whereas the ones further way
@@ -19,7 +24,7 @@
  * don't use unnecessary amounts of ram on this.
  */
 typedef struct {
-    cube_entity cubes[16][16][16]; // XYZ
+    cube_entity cubes[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE]; // XYZ
 } chunk_data;
 
 /*
@@ -31,11 +36,19 @@ typedef struct {
     u16 indices[6];
 } face;
 
+/*
+ * We only need two corners with two dimensions, and we know the direction so that we can assume whether it's x and y or x and z etc.
+ * List the same face_type grouped together instead of storing it with each face.
+ */
 typedef struct {
-    i16 corners[2][3]; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
-    u16 info; // first 10 bits are face_type, next 2 bits are direction and last idk
+    u8 corners[2][2]; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
+    u8 dim;
+    u8 info; // first 3 bits are direction
 } face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
 
 extern chunk_data test_chunk;
+extern face_stored *faces_pool;
+extern u32 num_faces_pooled;
 
+void init_world(void);
 void generate_chunk(i32 x, i32 y);

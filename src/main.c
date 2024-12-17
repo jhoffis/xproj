@@ -128,6 +128,7 @@ int main(void)
     alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
 
+    init_world();
     generate_chunk(0, 0);
 
     /* Create projection matrix */

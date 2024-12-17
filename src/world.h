@@ -8,8 +8,10 @@
 
 #define FACE_DIRECTION_DOWN 0
 #define FACE_DIRECTION_UP 1
-#define FACE_DIRECTION_LEFT 2
-#define FACE_DIRECTION_RIGHT 3
+#define FACE_DIRECTION_SOUTH 2
+#define FACE_DIRECTION_NORTH 3
+#define FACE_DIRECTION_WEST 4
+#define FACE_DIRECTION_EAST 5
 
 /*
  * Keep only the closest ones of these active, whereas the ones further way
@@ -30,7 +32,7 @@ typedef struct {
 } face;
 
 typedef struct {
-    f32 vertices[2][3]; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
+    i16 corners[2][3]; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
     u16 info; // first 10 bits are face_type, next 2 bits are direction and last idk
 } face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
 

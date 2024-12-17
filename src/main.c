@@ -210,34 +210,34 @@ int main(void)
             pb_print("Press start on a controller to test\n");
         }
         else {
-
+            float movement_spd = 3;
             i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
-            if (look_x_axis > 2000 || look_x_axis < -2000) {
+            if (look_x_axis > 4000 || look_x_axis < -4000) {
                 // x is y because rotation ok?!
                 cam_rotationY -= (float) (look_x_axis) / 1000000.f;
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
-            if (look_y_axis > 2000 || look_y_axis < -2000) {
+            if (look_y_axis > 4000 || look_y_axis < -4000) {
                 cam_rotationX -= (float) (look_y_axis) / 1000000.f;
             }
             i16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
-            if (walk_x_axis > 2000 || walk_x_axis < -2000) {
+            if (walk_x_axis > 4000 || walk_x_axis < -4000) {
                 // x is y because rotation ok?!
-                cam_posX = (float) (walk_x_axis) / 32767.f;
+                cam_posX = movement_spd * (float) (walk_x_axis) / 32767.f;
             } else {
                 cam_posX = 0;
             }
 
             i16 walk_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
-            if (walk_y_axis > 2000 || walk_y_axis < -2000) {
-                cam_posZ = (float) (walk_y_axis) / 32767.f;
+            if (walk_y_axis > 4000 || walk_y_axis < -4000) {
+                cam_posZ = movement_spd * (float) (walk_y_axis) / 32767.f;
             } else {
                 cam_posZ = 0;
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A) | SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
                 cam_posY += 5;
             }
-            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
+            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B) | SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
                 cam_posY -= 5;
             }
 

@@ -236,31 +236,181 @@ static face find_full_face(int start_x, int start_y, int start_z, u8 face_direct
         int z0 = start_z * 2*cube_size;
         int z1 = max_z * 2*cube_size;
 
-        res.vertices[0][0] = x0 + -cube_size;
-        res.vertices[0][1] = y +  cube_size;
-        res.vertices[0][2] = z1 +  cube_size;
+        res.vertices[0][0] = x0;
+        res.vertices[0][1] = y;
+        res.vertices[0][2] = z1;
         res.vertices[0][3] = 0;
         res.vertices[0][4] = (max_z - start_z);
 
-        res.vertices[1][0] = x1 +  cube_size;
-        res.vertices[1][1] = y +  cube_size;
-        res.vertices[1][2] = z1 +  cube_size;
+        res.vertices[1][0] = x1;
+        res.vertices[1][1] = y;
+        res.vertices[1][2] = z1;
         res.vertices[1][3] = (max_x - start_x);
         res.vertices[1][4] = (max_z - start_z);
 
-        res.vertices[2][0] = x1 + -cube_size;
-        res.vertices[2][1] = y +  cube_size;
-        res.vertices[2][2] = z0 + -cube_size;
+        res.vertices[2][0] = x1;
+        res.vertices[2][1] = y;
+        res.vertices[2][2] = z0;
         res.vertices[2][3] = (max_x - start_x);
         res.vertices[2][4] = 0;
 
-        res.vertices[3][0] = x0 +  cube_size;
-        res.vertices[3][1] = y +  cube_size;
-        res.vertices[3][2] = z0 + -cube_size;
+        res.vertices[3][0] = x0; // TODO flytt denne til nullte vertex
+        res.vertices[3][1] = y;
+        res.vertices[3][2] = z0;
         res.vertices[3][3] = 0;
         res.vertices[3][4] = 0;
+    } else if (face_direction <= FACE_DIRECTION_NORTH) {        // Sides
+        int max_x = start_x + 1; // the other size of the x tile
+        for (int x = start_x + 1; x < max_len; x++) {
+            // TODO perhaps check if covered or smt.
+            if (test_chunk.cubes[x][start_y][start_z].type != BLOCK_TYPE_GRASS) {
+                max_x = x;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            max_x = max_len;
+        }
+        found = false;
+        int max_y = start_y + 1; // andre siden av x tile
+        for (int y = start_y + 1; y < max_len; y++) {
+            // TODO check if from this x it crashes anywhere towards the max z.
+            if (test_chunk.cubes[start_x][y][start_z].type != BLOCK_TYPE_GRASS) {
+                max_y = y;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            max_y = max_len;
+        }
+
+        switch (face_direction) {
+            case FACE_DIRECTION_NORTH:
+                res.indices[0] = 0;
+                res.indices[1] = 2;
+                res.indices[2] = 3;
+                res.indices[3] = 0;
+                res.indices[4] = 1;
+                res.indices[5] = 2;
+                break;
+            case FACE_DIRECTION_SOUTH:
+                start_z += 1;
+                res.indices[0] = 0;
+                res.indices[1] = 3;
+                res.indices[2] = 2;
+                res.indices[3] = 0;
+                res.indices[4] = 2;
+                res.indices[5] = 1;
+                break;
+        }
+        int x0 = start_x * 2*cube_size;
+        int x1 = max_x * 2*cube_size;
+        int y0 = (start_y - 1) * 2*cube_size;
+        int y1 = (max_y - 1) * 2*cube_size;
+        int z = start_z * 2*cube_size;
+
+        res.vertices[0][0] = x1;
+        res.vertices[0][1] = y0;
+        res.vertices[0][2] = z;
+        res.vertices[0][3] = 0;
+        res.vertices[0][4] = (max_x - start_x);
+
+        res.vertices[1][0] = x1;
+        res.vertices[1][1] = y1;
+        res.vertices[1][2] = z;
+        res.vertices[1][3] = (max_y - start_y);
+        res.vertices[1][4] = (max_x - start_x);
+
+        res.vertices[2][0] = x0;
+        res.vertices[2][1] = y1;
+        res.vertices[2][2] = z;
+        res.vertices[2][3] = (max_y - start_y);
+        res.vertices[2][4] = 0;
+
+        res.vertices[3][0] = x0;
+        res.vertices[3][1] = y0;
+        res.vertices[3][2] = z;
+        res.vertices[3][3] = 0;
+        res.vertices[3][4] = 0;
+
     } else {
         // Sides
+        int max_z = start_z + 1; // the other size of the x tile
+        for (int z = start_z + 1; z < max_len; z++) {
+            // TODO perhaps check if covered or smt.
+            if (test_chunk.cubes[start_x][start_y][z].type != BLOCK_TYPE_GRASS) {
+                max_z = z;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            max_z = max_len;
+        }
+        found = false;
+        int max_y = start_y + 1; // andre siden av x tile
+        for (int y = start_y + 1; y < max_len; y++) {
+            // TODO check if from this x it crashes anywhere towards the max z.
+            if (test_chunk.cubes[start_x][y][start_z].type != BLOCK_TYPE_GRASS) {
+                max_y = y;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            max_y = max_len;
+        }
+
+        switch (face_direction) {
+            case FACE_DIRECTION_WEST:
+                res.indices[0] = 0;
+                res.indices[1] = 3;
+                res.indices[2] = 2;
+                res.indices[3] = 0;
+                res.indices[4] = 2;
+                res.indices[5] = 1;
+                break;
+            case FACE_DIRECTION_EAST:
+                start_x += 1;
+                res.indices[0] = 0;
+                res.indices[1] = 2;
+                res.indices[2] = 3;
+                res.indices[3] = 0;
+                res.indices[4] = 1;
+                res.indices[5] = 2;
+                break;
+        }
+        int x = start_x * 2*cube_size;
+        int y0 = (start_y - 1) * 2*cube_size;
+        int y1 = (max_y - 1) * 2*cube_size;
+        int z0 = start_z * 2*cube_size;
+        int z1 = max_z * 2*cube_size;
+
+        res.vertices[0][0] = x;
+        res.vertices[0][1] = y0;
+        res.vertices[0][2] = z1;
+        res.vertices[0][3] = 0;
+        res.vertices[0][4] = (max_z - start_z);
+
+        res.vertices[1][0] = x;
+        res.vertices[1][1] = y1;
+        res.vertices[1][2] = z1;
+        res.vertices[1][3] = (max_y - start_y);
+        res.vertices[1][4] = (max_z - start_z);
+
+        res.vertices[2][0] = x;
+        res.vertices[2][1] = y1;
+        res.vertices[2][2] = z0;
+        res.vertices[2][3] = (max_y - start_y);
+        res.vertices[2][4] = 0;
+
+        res.vertices[3][0] = x;
+        res.vertices[3][1] = y0;
+        res.vertices[3][2] = z0;
+        res.vertices[3][3] = 0;
+        res.vertices[3][4] = 0;
     }
     return res;
 }
@@ -324,12 +474,12 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     /*
      * Setup vertex attributes
      */
-    int num = 2;
+    int num = 6;
     u16 cube_indices[6 * num];
 
-    float cube_vertices[8][5];
+    float cube_vertices[4*num][5];
     int actual_num = 0;
-    face test_face[2];
+    face test_face[num];
     for (int X = 0; X < 16; X++) {
         for (int Z = 0; Z < 16; Z++) {
             for (int Y = 15; Y >= 0; Y--) {
@@ -340,14 +490,31 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
                 if (test_chunk.cubes[X][Y][Z].type == BLOCK_TYPE_GRASS) {
                     test_face[0] = find_full_face(X, Y, Z, FACE_DIRECTION_UP);    
                     test_face[1] = find_full_face(X, Y, Z, FACE_DIRECTION_DOWN);    
+                    test_face[2] = find_full_face(X, Y, Z, FACE_DIRECTION_WEST);    
+                    test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_NORTH);    
+                    test_face[4] = find_full_face(X+15, Y, Z, FACE_DIRECTION_EAST);    
+                    test_face[5] = find_full_face(X, Y, Z+15, FACE_DIRECTION_SOUTH);    
+                    // test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_EAST);    
                     memcpy(cube_vertices, test_face[0].vertices, sizeof(float) * 4 * 5);
                     memcpy(&cube_vertices[4], test_face[1].vertices, sizeof(float) * 4 * 5);
+                    memcpy(&cube_vertices[8], test_face[2].vertices, sizeof(float) * 4 * 5);
+                    memcpy(&cube_vertices[12], test_face[3].vertices, sizeof(float) * 4 * 5);
+                    memcpy(&cube_vertices[16], test_face[4].vertices, sizeof(float) * 4 * 5);
+                    memcpy(&cube_vertices[20], test_face[5].vertices, sizeof(float) * 4 * 5);
                     memcpy(cube_indices, test_face[0].indices, sizeof(float) * 6);
                     for (int i = 0; i < 6; i++)
                         cube_indices[i + 6] = 4 + test_face[1].indices[i];
+                    for (int i = 0; i < 6; i++)
+                        cube_indices[i + 12] = 8 + test_face[2].indices[i];
+                    for (int i = 0; i < 6; i++)
+                        cube_indices[i + 18] = 12 + test_face[3].indices[i];
+                    for (int i = 0; i < 6; i++)
+                        cube_indices[i + 24] = 16 + test_face[4].indices[i];
+                    for (int i = 0; i < 6; i++)
+                        cube_indices[i + 30] = 20 + test_face[5].indices[i];
                     // fill_array_singular_face_vertices(actual_num, cube_vertices, X, Y, Z);
 
-                    actual_num += 2;
+                    actual_num += num;
                     goto TestJump;
                 }
             }

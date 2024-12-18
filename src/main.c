@@ -242,6 +242,10 @@ int main(void)
                 cam_posY -= 5;
             }
 
+            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)) {
+                g_render_method = g_render_method == TRIANGLES ? LINES : TRIANGLES;    
+            }
+
             pb_print(
                     "- Lstick: x=%d, y=%d\n"
                     "- Rstick: x=%d, y=%d\n"

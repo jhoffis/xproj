@@ -1,11 +1,10 @@
 #include "shader.h"
-#include "cube.h"
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h> // for ffs()
-#include <pbkit/pbkit.h>
 #define MASK(mask, val) (((val) << (ffs(mask)-1)) & (mask))
 
+u8 g_render_method = TRIANGLES;
 
 void init_shader(i32 which) {
     u32 *p;
@@ -136,7 +135,7 @@ void draw_indexed(u32 num_cube_indices, u16 *cube_indices) {
 
         //What are the indices?
         p = pb_begin();
-        p = pb_push1(p, NV097_SET_BEGIN_END, TRIANGLES);
+        p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
         pb_push(p++, 0x40000000|NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
         // send indices

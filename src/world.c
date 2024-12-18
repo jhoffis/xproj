@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FACE_POOL_SIZE 256
-
+// it can render up to 1024 faces per draw call
+#define FACE_POOL_SIZE 512
 /*
  * Single zeroed pool of chunks.
  * Greedy meshing.
@@ -27,49 +27,100 @@ static face_stored find_single_face(
     face_stored res = {0};
     bool found = false;
 
-    int max_z = start_z + 1; // the other size of the x tile
-    for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
-        // TODO perhaps check if covered or smt.
-        if (test_chunk.cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
-                || covered[start_x][start_y][z][face_direction]) {
-            max_z = z;
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
-        max_z = CHUNK_SIZE;
-    }
-
-    found = false;
-    int max_x = start_x + 1; // andre siden av x tile
-    for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
-        // check if from this x it crashes anywhere towards the max z.
-        for (int z = start_z; z < max_z; z++) {
-            if (test_chunk.cubes[x][start_y][z].type == BLOCK_TYPE_AIR
-                    || covered[x][start_y][z][face_direction]) {
-                max_x = x;
+    if (face_direction <= FACE_DIRECTION_UP) {
+        int max_z = start_z + 1; // the other size of the x tile
+        for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
+            // check if covered or see through.
+            if (test_chunk.cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
+                    || covered[start_x][start_y][z][face_direction]) {
+                max_z = z;
                 found = true;
-                goto ExitLoop; 
+                break;
             }
         }
-    }
-ExitLoop:
-    if (!found) {
-        max_x = CHUNK_SIZE;
-    }
-    res.info = face_direction;
-    res.corners.a0 = start_x;
-    res.corners.b0 = start_z;
-    res.corners.a1 = max_x;
-    res.corners.b1 = max_z;
-    res.corners.c = start_y;
-
-    // make sure that these are now covered as they are used in this face.
-    for (int x = start_x; x < max_x; x++) {
-        for (int z = start_z; z < max_z; z++) {
-            covered[x][start_y][z][face_direction] = true;
+        if (!found) {
+            max_z = CHUNK_SIZE;
         }
+
+        found = false;
+        int max_x = start_x + 1; // andre siden av x tile
+        for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
+            // check if from this x it crashes anywhere towards the max z.
+            for (int z = start_z; z < max_z; z++) {
+                if (test_chunk.cubes[x][start_y][z].type == BLOCK_TYPE_AIR
+                        || covered[x][start_y][z][face_direction]) {
+                    max_x = x;
+                    found = true;
+                    goto ExitLoopUp; 
+                }
+            }
+        }
+ExitLoopUp:
+        if (!found) {
+            max_x = CHUNK_SIZE;
+        }
+        res.info = face_direction;
+        res.corners.a0 = start_x;
+        res.corners.b0 = start_z;
+        res.corners.a1 = max_x;
+        res.corners.b1 = max_z;
+        res.corners.c = face_direction == FACE_DIRECTION_DOWN ? start_y - 1 : start_y;
+
+        // make sure that these are now covered as they are used in this face.
+        for (int x = start_x; x < max_x; x++) {
+            for (int z = start_z; z < max_z; z++) {
+                covered[x][start_y][z][face_direction] = true;
+            }
+        } 
+        return res;
+    } 
+
+    if (face_direction <= FACE_DIRECTION_NORTH) {
+        int max_x = start_x + 1; // the other size of the x tile
+        for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
+            // check if covered or see through.
+            if (test_chunk.cubes[x][start_y][start_z].type == BLOCK_TYPE_AIR
+                    || covered[x][start_y][start_z][face_direction]) {
+                max_x = x;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            max_x = CHUNK_SIZE;
+        }
+
+        found = false;
+        int max_y = start_y + 1; // andre siden av x tile
+        for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
+            // check if from this x it crashes anywhere towards the max z.
+            for (int x = start_x; x < max_x; x++) {
+                if (test_chunk.cubes[x][y][start_z].type == BLOCK_TYPE_AIR
+                        || covered[x][y][start_z][face_direction]) {
+                    max_y = y;
+                    found = true;
+                    goto ExitLoopNorth; 
+                }
+            }
+        }
+ExitLoopNorth:
+        if (!found) {
+            max_y = CHUNK_SIZE;
+        }
+        res.info = face_direction;
+        res.corners.a0 = start_x;
+        res.corners.b0 = start_y - 1;
+        res.corners.a1 = max_x;
+        res.corners.b1 = max_y - 1;
+        res.corners.c = face_direction == FACE_DIRECTION_SOUTH ? start_z : start_z + 1;
+
+        // make sure that these are now covered as they are used in this face.
+        for (int x = start_x; x < max_x; x++) {
+            for (int y = start_z; y < max_y; y++) {
+                covered[x][y][start_z][face_direction] = true;
+            }
+        } 
+        return res;
     }
     return res;
 }
@@ -79,34 +130,36 @@ static face_stored *find_faces_of_chunk(
         u32 *out_faces_found,
         u8 covered[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE][FACE_DIRECTION_TOTAL]) {
     // First find all possible upwards facing faces.
-    face_stored *faces = malloc(sizeof(face_stored) * max_faces);
-    if (faces == NULL) return NULL;
+    face_stored faces[max_faces]; // array for reading memory more easy...
     u32 num_faces_found = 0;
-    u8 direction = FACE_DIRECTION_UP;
     int start_x, start_y, start_z;
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
-                if (covered[x][y][z][direction] == false) {
-                    // we got one!
-                    face_stored found_one = find_single_face(x, y, z, direction, covered);
-                    faces[num_faces_found] = found_one;
-                    num_faces_found++;
-                    if (num_faces_found == max_faces) {
-                        *out_faces_found = num_faces_found;
-                        return faces;
+                for (int direction = 0; direction < FACE_DIRECTION_TOTAL; direction++) {
+                    if (direction > FACE_DIRECTION_SOUTH + 1) break;
+                    if (covered[x][y][z][direction] == false) {
+                        // we got one!
+                        face_stored found_one = find_single_face(x, y, z, direction, covered);
+                        faces[num_faces_found] = found_one;
+                        num_faces_found++;
+                        if (num_faces_found == max_faces) {
+                            *out_faces_found = num_faces_found;
+                            face_stored *out_res = malloc(sizeof(face_stored) * max_faces);
+                            memcpy(out_res, faces, sizeof(face_stored) * max_faces);
+                            if (out_res == NULL) return NULL;
+                            return out_res;
+                        }
                     }
                 }
             }
         }
     }
-    if (num_faces_found < max_faces) {
-        faces = realloc(faces, num_faces_found *sizeof(face_stored));
-        if (faces == NULL) return NULL;
-    }
-
     *out_faces_found = num_faces_found;
-    return faces;
+    face_stored *out_res = malloc(sizeof(face_stored) * num_faces_found);
+    memcpy(out_res, faces, sizeof(face_stored) * num_faces_found);
+    if (out_res == NULL) return NULL;
+    return out_res;
 }
 
 void init_world(void) {
@@ -124,7 +177,7 @@ void init_world(void) {
  * Actually, you don't need to know if it's covered in any way as long as the faces
  * are made!
  */
-#define CHUNK_TEST 0
+#define CHUNK_TEST 1
 void generate_chunk(i32 chunk_x, i32 chunk_y) {
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {

@@ -37,15 +37,15 @@ typedef struct {
 } face;
 
 typedef struct {
-    u8 a0, a1, b0, b1, c;
-} corners_u8;
+    i8 a0, a1, b0, b1, c;
+} corners_i8;
 
 /*
  * We only need two corners with two dimensions, and we know the direction so that we can assume whether it's x and y or x and z etc.
  * List the same face_type grouped together instead of storing it with each face.
  */
 typedef struct {
-    corners_u8 corners; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
+    corners_i8 corners; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
     u8 info; // first 3 bits are direction
 } face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
 

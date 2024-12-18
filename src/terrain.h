@@ -435,19 +435,19 @@ static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset
             break;
         case FACE_DIRECTION_NORTH:
             indices[index_offset + 0] = vertex_offset + 0;
-            indices[index_offset + 1] = vertex_offset + 2;
-            indices[index_offset + 2] = vertex_offset + 3;
-            indices[index_offset + 3] = vertex_offset + 0;
-            indices[index_offset + 4] = vertex_offset + 1;
-            indices[index_offset + 5] = vertex_offset + 2;
-            break;
-        case FACE_DIRECTION_SOUTH:
-            indices[index_offset + 0] = vertex_offset + 0;
             indices[index_offset + 1] = vertex_offset + 3;
             indices[index_offset + 2] = vertex_offset + 2;
             indices[index_offset + 3] = vertex_offset + 0;
             indices[index_offset + 4] = vertex_offset + 2;
             indices[index_offset + 5] = vertex_offset + 1;
+            break;
+        case FACE_DIRECTION_SOUTH:
+            indices[index_offset + 0] = vertex_offset + 0;
+            indices[index_offset + 1] = vertex_offset + 2;
+            indices[index_offset + 2] = vertex_offset + 3;
+            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 4] = vertex_offset + 1;
+            indices[index_offset + 5] = vertex_offset + 2;
             break;
         case FACE_DIRECTION_WEST:
             indices[index_offset + 0] = vertex_offset + 0;
@@ -469,64 +469,100 @@ static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset
 }
 
 static void fill_face_vertices(f32 vertices[][5], u32 offset, face_stored face) {
+    int a0 = face.corners.a0 * 2*cube_size;
+    int a1 = face.corners.a1 * 2*cube_size;
+    int b0 = face.corners.b0 * 2*cube_size;
+    int b1 = face.corners.b1 * 2*cube_size;
+    int c = face.corners.c * 2*cube_size;
+
+    int tex_a = face.corners.a1 - face.corners.a0;
+    int tex_b = face.corners.b1 - face.corners.b0;
+
     if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_UP) {
-        int x0 = face.corners.a0 * 2*cube_size;
-        int x1 = face.corners.a1 * 2*cube_size;
-        int y = face.corners.c * 2*cube_size;
-        int z0 = face.corners.b0 * 2*cube_size;
-        int z1 = face.corners.b1 * 2*cube_size;
 
-        int tex_x = face.corners.a1 - face.corners.a0;
-        int tex_z = face.corners.b1 - face.corners.b0;
-
-        vertices[offset + 0][0] = x0;
-        vertices[offset + 0][1] = y;
-        vertices[offset + 0][2] = z1;
+        vertices[offset + 0][0] = a0;
+        vertices[offset + 0][1] = c;
+        vertices[offset + 0][2] = b1;
         vertices[offset + 0][3] = 0;
-        vertices[offset + 0][4] = tex_z;
+        vertices[offset + 0][4] = tex_b;
                           
-        vertices[offset + 1][0] = x1;
-        vertices[offset + 1][1] = y;
-        vertices[offset + 1][2] = z1;
-        vertices[offset + 1][3] = tex_x;
-        vertices[offset + 1][4] = tex_z;
+        vertices[offset + 1][0] = a1;
+        vertices[offset + 1][1] = c;
+        vertices[offset + 1][2] = b1;
+        vertices[offset + 1][3] = tex_a;
+        vertices[offset + 1][4] = tex_b;
                           
-        vertices[offset + 2][0] = x1;
-        vertices[offset + 2][1] = y;
-        vertices[offset + 2][2] = z0;
-        vertices[offset + 2][3] = tex_x;
+        vertices[offset + 2][0] = a1;
+        vertices[offset + 2][1] = c;
+        vertices[offset + 2][2] = b0;
+        vertices[offset + 2][3] = tex_a;
         vertices[offset + 2][4] = 0;
                           
-        vertices[offset + 3][0] = x0; // TODO flytt denne til nullte vertex
-        vertices[offset + 3][1] = y;
-        vertices[offset + 3][2] = z0;
+        vertices[offset + 3][0] = a0; // TODO flytt denne til nullte vertex
+        vertices[offset + 3][1] = c;
+        vertices[offset + 3][2] = b0;
         vertices[offset + 3][3] = 0;
         vertices[offset + 3][4] = 0;
-    } else {
-        // vertices[offset + 0][0] = x;
-        // vertices[offset + 0][1] = y0;
-        // vertices[offset + 0][2] = z1;
-        // vertices[offset + 0][3] = 0;
-        // vertices[offset + 0][4] = (max_z - start_z);
-        //
-        // vertices[offset + 1][0] = x;
-        // vertices[offset + 1][1] = y1;
-        // vertices[offset + 1][2] = z1;
-        // vertices[offset + 1][3] = (max_y - start_y);
-        // vertices[offset + 1][4] = (max_z - start_z);
-        //
-        // vertices[offset + 2][0] = x;
-        // vertices[offset + 2][1] = y1;
-        // vertices[offset + 2][2] = z0;
-        // vertices[offset + 2][3] = (max_y - start_y);
-        // vertices[offset + 2][4] = 0;
-        //
-        // vertices[offset + 3][0] = x;
-        // vertices[offset + 3][1] = y0;
-        // vertices[offset + 3][2] = z0;
-        // vertices[offset + 3][3] = 0;
-        // vertices[offset + 3][4] = 0;
-    }
+        return;
+    } 
+
+    if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_NORTH) {
+
+        vertices[offset + 0][0] = a1;
+        vertices[offset + 0][1] = b0;
+        vertices[offset + 0][2] = c;
+        vertices[offset + 0][3] = 0;
+        vertices[offset + 0][4] = tex_a;
+                          
+        vertices[offset + 1][0] = a1;
+        vertices[offset + 1][1] = b1;
+        vertices[offset + 1][2] = c;
+        vertices[offset + 1][3] = tex_b;
+        vertices[offset + 1][4] = tex_a;
+                          
+        vertices[offset + 2][0] = a0;
+        vertices[offset + 2][1] = b1;
+        vertices[offset + 2][2] = c;
+        vertices[offset + 2][3] = tex_b;
+        vertices[offset + 2][4] = 0;
+                          
+        vertices[offset + 3][0] = a0;
+        vertices[offset + 3][1] = b0;
+        vertices[offset + 3][2] = c;
+        vertices[offset + 3][3] = 0;
+        vertices[offset + 3][4] = 0;
+        return;
+    } 
+
+    // int x = start_x * 2*cube_size;
+    // int y0 = (start_y - 1) * 2*cube_size;
+    // int y1 = (max_y - 1) * 2*cube_size;
+    // int z0 = start_z * 2*cube_size;
+    // int z1 = max_z * 2*cube_size;
+
+    vertices[offset + 0][0] = c;
+    vertices[offset + 0][1] = a0;
+    vertices[offset + 0][2] = b1;
+    vertices[offset + 0][3] = 0;
+    vertices[offset + 0][4] = tex_b;
+                      
+    vertices[offset + 1][0] = c;
+    vertices[offset + 1][1] = a1;
+    vertices[offset + 1][2] = a1;
+    vertices[offset + 1][3] = tex_a;
+    vertices[offset + 1][4] = tex_b;
+                      
+    vertices[offset + 2][0] = c;
+    vertices[offset + 2][1] = a1;
+    vertices[offset + 2][2] = b0;
+    vertices[offset + 2][3] = tex_a;
+    vertices[offset + 2][4] = 0;
+                      
+    vertices[offset + 3][0] = c;
+    vertices[offset + 3][1] = a0;
+    vertices[offset + 3][2] = b0;
+    vertices[offset + 3][3] = 0;
+    vertices[offset + 3][4] = 0;
 }
 
 // FIXME does not work when running non-statically or directly in main.c

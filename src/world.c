@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FACE_POOL_SIZE 256
+
 /*
  * Single zeroed pool of chunks.
  * Greedy meshing.
@@ -99,7 +101,7 @@ static face_stored *find_faces_of_chunk(
         }
     }
     if (num_faces_found < max_faces) {
-        faces = realloc(faces, num_faces_found);
+        faces = realloc(faces, num_faces_found *sizeof(face_stored));
         if (faces == NULL) return NULL;
     }
 
@@ -108,7 +110,7 @@ static face_stored *find_faces_of_chunk(
 }
 
 void init_world(void) {
-    faces_pool = malloc(24 * sizeof(face_stored));
+    faces_pool = malloc(FACE_POOL_SIZE * sizeof(face_stored));
     // FIXME if faces_pool == null
 }
 
@@ -122,13 +124,14 @@ void init_world(void) {
  * Actually, you don't need to know if it's covered in any way as long as the faces
  * are made!
  */
+#define CHUNK_TEST 0
 void generate_chunk(i32 chunk_x, i32 chunk_y) {
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
+#if CHUNK_TEST == 0
             u64 y_ran = lehmer32_seeded(1032487 + 100*x*z);
             y_ran = y_ran % 3; 
             y_ran += 1;
-            y_ran = 1;
             if (x > 1) y_ran += 1;
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 if (y < y_ran) {
@@ -137,6 +140,15 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
                     test_chunk.cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
             }
+#elif CHUNK_TEST == 1
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                if ((y < 2 && x % 2 != 0 && z % 2 != 0) || (y < 1)) {
+                    test_chunk.cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                } else {
+                    test_chunk.cubes[x][y][z].type = BLOCK_TYPE_AIR;
+                }
+            }
+#endif
         }
     }
     u8 covered[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE][FACE_DIRECTION_TOTAL];
@@ -211,7 +223,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
     }
 
     u32 num_found;
-    face_stored *faces = find_faces_of_chunk(24, &num_found, covered);
+    face_stored *faces = find_faces_of_chunk(FACE_POOL_SIZE, &num_found, covered);
     memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_found);
     num_faces_pooled += num_found;
 

@@ -548,7 +548,7 @@ static void fill_face_vertices(f32 vertices[][5], u32 offset, face_stored face) 
                       
     vertices[offset + 1][0] = c;
     vertices[offset + 1][1] = a1;
-    vertices[offset + 1][2] = a1;
+    vertices[offset + 1][2] = b1;
     vertices[offset + 1][3] = tex_a;
     vertices[offset + 1][4] = tex_b;
                       

@@ -56,15 +56,15 @@ static face_stored find_single_face(
         max_x = CHUNK_SIZE;
     }
     res.info = face_direction;
-    res.corners[0][0] = start_x;
-    res.corners[0][1] = start_z;
-    res.corners[1][0] = max_x;
-    res.corners[1][1] = max_z;
-    res.dim = start_y;
+    res.corners.a0 = start_x;
+    res.corners.b0 = start_z;
+    res.corners.a1 = max_x;
+    res.corners.b1 = max_z;
+    res.corners.c = start_y;
 
     // make sure that these are now covered as they are used in this face.
     for (int x = start_x; x < max_x; x++) {
-        for (int z = start_x; z < max_x; z++) {
+        for (int z = start_z; z < max_z; z++) {
             covered[x][start_y][z][face_direction] = true;
         }
     }
@@ -125,8 +125,9 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             u64 y_ran = lehmer32_seeded(1032487 + 100*x*z);
-            y_ran = 0; // y_ran % 1; 
+            y_ran = y_ran % 3; 
             y_ran += 1;
+            if (x > 1) y_ran += 1;
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 if (y < y_ran) {
                     test_chunk.cubes[x][y][z].type = BLOCK_TYPE_GRASS;

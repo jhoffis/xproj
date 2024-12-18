@@ -415,72 +415,72 @@ static face find_full_face(int start_x, int start_y, int start_z, u8 face_direct
     return res;
 }
 
-static void fill_face_indices(u16 indices[], u32 offset, face_stored face) {
+static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset, face_stored face) {
     switch (face.info & FACE_MASK_INFO_DIRECTION) { 
         case FACE_DIRECTION_DOWN:
-            indices[offset + 0] = 1;
-            indices[offset + 1] = 2;
-            indices[offset + 2] = 3;
-            indices[offset + 3] = 0;
-            indices[offset + 4] = 1;
-            indices[offset + 5] = 3;
+            indices[index_offset + 0] = vertex_offset + 1;
+            indices[index_offset + 1] = vertex_offset + 2;
+            indices[index_offset + 2] = vertex_offset + 3;
+            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 4] = vertex_offset + 1;
+            indices[index_offset + 5] = vertex_offset + 3;
             break;
         case FACE_DIRECTION_UP:
-            indices[offset + 0] = 1;
-            indices[offset + 1] = 3;
-            indices[offset + 2] = 2;
-            indices[offset + 3] = 0;
-            indices[offset + 4] = 3;
-            indices[offset + 5] = 1;
+            indices[index_offset + 0] = vertex_offset + 1;
+            indices[index_offset + 1] = vertex_offset + 3;
+            indices[index_offset + 2] = vertex_offset + 2;
+            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 4] = vertex_offset + 3;
+            indices[index_offset + 5] = vertex_offset + 1;
             break;
         case FACE_DIRECTION_NORTH:
-            indices[offset + 0] = 0;
-            indices[offset + 1] = 2;
-            indices[offset + 2] = 3;
-            indices[offset + 3] = 0;
-            indices[offset + 4] = 1;
-            indices[offset + 5] = 2;
+            indices[index_offset + 0] = vertex_offset + 0;
+            indices[index_offset + 1] = vertex_offset + 2;
+            indices[index_offset + 2] = vertex_offset + 3;
+            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 4] = vertex_offset + 1;
+            indices[index_offset + 5] = vertex_offset + 2;
             break;
         case FACE_DIRECTION_SOUTH:
-            indices[offset + 0] = 0;
-            indices[offset + 1] = 3;
-            indices[offset + 2] = 2;
-            indices[offset + 3] = 0;
-            indices[offset + 4] = 2;
-            indices[offset + 5] = 1;
+            indices[index_offset + 0] = vertex_offset + 0;
+            indices[index_offset + 1] = vertex_offset + 3;
+            indices[index_offset + 2] = vertex_offset + 2;
+            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 4] = vertex_offset + 2;
+            indices[index_offset + 5] = vertex_offset + 1;
             break;
         case FACE_DIRECTION_WEST:
-            indices[offset + 0] = 0;
-            indices[offset + 1] = 3;
-            indices[offset + 2] = 2;
-            indices[offset + 3] = 0;
-            indices[offset + 4] = 2;
-            indices[offset + 5] = 1;
+            indices[index_offset + 0] = vertex_offset + 0;
+            indices[index_offset + 1] = vertex_offset + 3;
+            indices[index_offset + 2] = vertex_offset + 2;
+            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 4] = vertex_offset + 2;
+            indices[index_offset + 5] = vertex_offset + 1;
             break;
         case FACE_DIRECTION_EAST:
-            indices[offset + 0] = 0;
-            indices[offset + 1] = 2;
-            indices[offset + 2] = 3;
-            indices[offset + 3] = 0;
-            indices[offset + 4] = 1;
-            indices[offset + 5] = 2;
+            indices[index_offset + 0] = vertex_offset + 0;
+            indices[index_offset + 1] = vertex_offset + 2;
+            indices[index_offset + 2] = vertex_offset + 3;
+            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 4] = vertex_offset + 1;
+            indices[index_offset + 5] = vertex_offset + 2;
             break;
     }
 }
 
 static void fill_face_vertices(f32 vertices[][5], u32 offset, face_stored face) {
     if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_UP) {
-        int x0 = face.corners[0][0] * 2*cube_size;
-        int x1 = face.corners[1][0] * 2*cube_size;
-        int y = face.dim * 2*cube_size;
-        int z0 = face.corners[0][1] * 2*cube_size;
-        int z1 = face.corners[1][1] * 2*cube_size;
+        int x0 = face.corners.a0 * 2*cube_size;
+        int x1 = face.corners.a1 * 2*cube_size;
+        int y = face.corners.c * 2*cube_size;
+        int z0 = face.corners.b0 * 2*cube_size;
+        int z1 = face.corners.b1 * 2*cube_size;
 
-        int tex_x = face.corners[1][0] - face.corners[0][0];
-        int tex_z = face.corners[1][1] - face.corners[0][1];
+        int tex_x = face.corners.a1 - face.corners.a0;
+        int tex_z = face.corners.b1 - face.corners.b0;
 
         vertices[offset + 0][0] = x0;
-        vertices[offset + 0][1] = face.dim;
+        vertices[offset + 0][1] = y;
         vertices[offset + 0][2] = z1;
         vertices[offset + 0][3] = 0;
         vertices[offset + 0][4] = tex_z;
@@ -594,7 +594,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     face render_faces[num];
     for (int i = 0; i < num; i++) {
         face_stored fs = faces_pool[i];
-        fill_face_indices(cube_indices, i*6, fs);
+        fill_face_indices(cube_indices, i*6, i*4, fs);
         fill_face_vertices(cube_vertices, i*4, fs);
 
                 // if (test_chunk.cubes[i][Y][Z].type == BLOCK_TYPE_GRASS) {

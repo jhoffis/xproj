@@ -1,7 +1,7 @@
 #pragma once
 #include "cube.h"
 
-#define CHUNK_SIZE 4
+#define CHUNK_SIZE 16
 
 #define FACE_TYPE_COBBLESTONE 0
 #define FACE_TYPE_GRASS_TOP 1

@@ -48,10 +48,11 @@ static face_stored find_single_face(
                     || covered[x][start_y][z][face_direction]) {
                 max_x = x;
                 found = true;
-                break;
+                goto ExitLoop; 
             }
         }
     }
+ExitLoop:
     if (!found) {
         max_x = CHUNK_SIZE;
     }
@@ -127,6 +128,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
             u64 y_ran = lehmer32_seeded(1032487 + 100*x*z);
             y_ran = y_ran % 3; 
             y_ran += 1;
+            y_ran = 1;
             if (x > 1) y_ran += 1;
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 if (y < y_ran) {

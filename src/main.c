@@ -5,7 +5,6 @@
 #include "audio.h"
 #include "png_loader.h"
 #include "nums.h"
-#include "random.h"
 #include "shader.h"
 #include "terrain.h"
 #include "xboxkrnl/xboxkrnl.h"
@@ -15,7 +14,6 @@
 #include "wav_loader.h"
 #include "nxdk_wav.h"
 
-static f32  m_viewport[4][4];
 
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;

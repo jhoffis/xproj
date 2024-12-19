@@ -625,6 +625,8 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
      * Setup vertex attributes
      */
     int num = num_faces_pooled;
+    face_stored temp_faces[num];
+    memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
     u16 cube_indices[6 * num];
 
     f32 cube_vertices[4*num][5];
@@ -641,7 +643,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         removeDirection = FACE_DIRECTION_WEST;
     }
     for (int i = 0; i < num; i++) {
-        face_stored fs = faces_pool[i];
+        face_stored fs = temp_faces[i];
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
         if (direction == removeDirection) continue;
         fill_face_indices(cube_indices, n*6, n*4, fs);

@@ -119,7 +119,7 @@ int main(void)
         return 0;
     }
     music_current = malloc(sizeof(music_current));
-    *music_current = 0;
+    *music_current = 1;
     audio_buffer_data = create_wav_entity(music_strs[*music_current]);
     xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
 
@@ -159,6 +159,8 @@ int main(void)
         pb_erase_depth_stencil_buffer(0, 0, width, height);
         pb_fill(0, 0, width, height, 0xff0E060C);
         pb_erase_text_screen();
+
+
 
         v_cam_rot[0] = cam_rotationX;
         v_cam_rot[1] = cam_rotationY;
@@ -216,6 +218,11 @@ int main(void)
             if (look_x_axis > 4000 || look_x_axis < -4000) {
                 // x is y because rotation ok?!
                 cam_rotationY -= (float) (look_x_axis) / 1000000.f;
+                if (cam_rotationY < 0) {
+                    cam_rotationY = 2*M_PI + cam_rotationY;
+                } else if (cam_rotationY > 2*M_PI) {
+                    cam_rotationY = fmod(cam_rotationY, 2*M_PI);
+                }
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
             if (look_y_axis > 4000 || look_y_axis < -4000) {
@@ -251,6 +258,8 @@ int main(void)
                     "- Rstick: x=%d, y=%d\n"
                     "- Ltrig: %d\n"
                     "- Rtrig: %d\n"
+                    "- rot: x=%d, y=%d\n"
+                    "- pos: x=%d, y=%d, z=%d\n"
                     // "Buttons:\n"
                     // "- A:%d B:%d X:%d Y:%d\n"
                     // "- Back:%d Start:%d White:%d Black:%d\n"
@@ -260,13 +269,18 @@ int main(void)
                     // "- F3: %d\n"
                     // "- Obj rot X: %d, Y: %d\n"
                     ,
-                    SDL_GameControllerGetPlayerIndex(pad),
+                    // SDL_GameControllerGetPlayerIndex(pad),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT),
-                    SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+                    SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT),
+                    (i16)(100*cam_rotationX), 
+                    (i16)(100*cam_rotationY),
+                    (i16)v_cam_loc[0], 
+                    (i16)v_cam_loc[1], 
+                    (i16)v_cam_loc[2]
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A),
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B),
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X),

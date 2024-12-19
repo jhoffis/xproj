@@ -3,6 +3,7 @@
 #include "nums.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include "random.h"
 #include "shader.h"
@@ -628,11 +629,25 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     f32 cube_vertices[4*num][5];
     face render_faces[num];
+    int n = 0;
+    u8 removeDirection = -1;
+    if (v_cam_rot[1] < .6 || v_cam_rot[1] > 5.6) {
+        removeDirection = FACE_DIRECTION_SOUTH;
+    } else if (v_cam_rot[1] < 3.35 && v_cam_rot[1] > 2.15) {
+        removeDirection = FACE_DIRECTION_NORTH;
+    } else if (v_cam_rot[1] < 5.31 && v_cam_rot[1] > 4.11) {
+        removeDirection = FACE_DIRECTION_EAST;
+    } else if (v_cam_rot[1] < 2.57 && v_cam_rot[1] > 0.97) {
+        removeDirection = FACE_DIRECTION_WEST;
+    }
     for (int i = 0; i < num; i++) {
         face_stored fs = faces_pool[i];
-        fill_face_indices(cube_indices, i*6, i*4, fs);
-        fill_face_vertices(cube_vertices, i*4, fs);
-
+        u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
+        if (direction == removeDirection) continue;
+        fill_face_indices(cube_indices, n*6, n*4, fs);
+        fill_face_vertices(cube_vertices, n*4, fs);
+        n++;
+        
                 // if (test_chunk.cubes[i][Y][Z].type == BLOCK_TYPE_GRASS) {
                 //     test_face[0] = find_full_face(X, Y, Z, FACE_DIRECTION_UP);    
                 //     test_face[1] = find_full_face(X, Y, Z, FACE_DIRECTION_DOWN);    
@@ -660,8 +675,9 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
                 //         cube_indices[i + 30] = 20 + test_face[5].indices[i];
                 //     // fill_array_singular_face_vertices(actual_num, cube_vertices, X, Y, Z);
     }
-    u32 *allocated_verts = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(allocated_verts, cube_vertices, sizeof(cube_vertices));
+    u32 real_size_of_verts = sizeof(f32) * 4 * n * 5;
+    u32 *allocated_verts = MmAllocateContiguousMemoryEx(real_size_of_verts, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    memcpy(allocated_verts, cube_vertices, real_size_of_verts);
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
             3, sizeof(float) * 5, &allocated_verts[0]);
@@ -675,7 +691,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
             2, sizeof(float) * 5, &allocated_verts[3]);
 
     /* Begin drawing triangles */
-    draw_indexed(num*6, cube_indices);
+    draw_indexed(n*6, cube_indices);
     MmFreeContiguousMemory(allocated_verts);
 }
 

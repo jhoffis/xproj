@@ -25,40 +25,30 @@ static face_stored find_single_face(
         u8 covered[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE][FACE_DIRECTION_TOTAL]) {
 
     face_stored res = {0};
-    bool found = false;
 
     if (face_direction <= FACE_DIRECTION_UP) {
-        int max_z = start_z + 1; // the other size of the x tile
+        int max_z = CHUNK_SIZE; // the other size of the x tile
         for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
             // check if covered or see through.
             if (test_chunk.cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
                     || covered[start_x][start_y][z][face_direction]) {
                 max_z = z;
-                found = true;
                 break;
             }
         }
-        if (!found) {
-            max_z = CHUNK_SIZE;
-        }
 
-        found = false;
-        int max_x = start_x + 1; // andre siden av x tile
+        int max_x = CHUNK_SIZE; // andre siden av x tile
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
             // check if from this x it crashes anywhere towards the max z.
             for (int z = start_z; z < max_z; z++) {
                 if (test_chunk.cubes[x][start_y][z].type == BLOCK_TYPE_AIR
                         || covered[x][start_y][z][face_direction]) {
                     max_x = x;
-                    found = true;
                     goto ExitLoopUp; 
                 }
             }
         }
 ExitLoopUp:
-        if (!found) {
-            max_x = CHUNK_SIZE;
-        }
         res.info = face_direction;
         res.corners.a0 = start_x;
         res.corners.b0 = start_z;
@@ -76,37 +66,28 @@ ExitLoopUp:
     } 
 
     if (face_direction <= FACE_DIRECTION_NORTH) {
-        int max_x = start_x + 1; // the other size of the x tile
+        int max_x = CHUNK_SIZE; // the other size of the x tile
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
             // check if covered or see through.
             if (test_chunk.cubes[x][start_y][start_z].type == BLOCK_TYPE_AIR
                     || covered[x][start_y][start_z][face_direction]) {
                 max_x = x;
-                found = true;
                 break;
             }
         }
-        if (!found) {
-            max_x = CHUNK_SIZE;
-        }
 
-        found = false;
-        int max_y = start_y + 1; // andre siden av x tile
+        int max_y = CHUNK_SIZE; // andre siden av x tile
         for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
             // check if from this x it crashes anywhere towards the max z.
             for (int x = start_x; x < max_x; x++) {
                 if (test_chunk.cubes[x][y][start_z].type == BLOCK_TYPE_AIR
                         || covered[x][y][start_z][face_direction]) {
                     max_y = y;
-                    found = true;
                     goto ExitLoopNorth; 
                 }
             }
         }
 ExitLoopNorth:
-        if (!found) {
-            max_y = CHUNK_SIZE;
-        }
         res.info = face_direction;
         res.corners.a0 = start_x;
         res.corners.b0 = start_y - 1;
@@ -125,37 +106,28 @@ ExitLoopNorth:
 
     // face_direction <= FACE_DIRECTION_EAST
     // a=y, b=z
-    int max_z = start_z + 1; // the other size of the x tile
+    int max_z = CHUNK_SIZE; // the other size of the x tile
     for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
         // check if covered or see through.
         if (test_chunk.cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
                 || covered[start_x][start_y][z][face_direction]) {
             max_z = z;
-            found = true;
             break;
         }
     }
-    if (!found) {
-        max_z = CHUNK_SIZE;
-    }
 
-    found = false;
-    int max_y = start_y + 1; // andre siden av x tile
+    int max_y = CHUNK_SIZE; // andre siden av x tile
     for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
         // check if from this x it crashes anywhere towards the max z.
         for (int z = start_z; z < max_z; z++) {
             if (test_chunk.cubes[start_x][y][z].type == BLOCK_TYPE_AIR
                     || covered[start_x][y][z][face_direction]) {
                 max_y = y;
-                found = true;
                 goto ExitLoopEast; 
             }
         }
     }
 ExitLoopEast: 
-    if (!found) {
-        max_y = CHUNK_SIZE;
-    }
 
     res.info = face_direction;
     res.corners.a0 = start_y - 1;

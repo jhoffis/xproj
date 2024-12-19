@@ -631,8 +631,8 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     f32 cube_vertices[4*num][5];
     face render_faces[num];
-    int n = 0;
-    u8 removeDirection = -1;
+
+    u8 removeDirection = -1; // TODO change into 6 different normals instead!
     if (v_cam_rot[1] < .6 || v_cam_rot[1] > 5.6) {
         removeDirection = FACE_DIRECTION_SOUTH;
     } else if (v_cam_rot[1] < 3.35 && v_cam_rot[1] > 2.15) {
@@ -642,6 +642,8 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     } else if (v_cam_rot[1] < 2.57 && v_cam_rot[1] > 0.97) {
         removeDirection = FACE_DIRECTION_WEST;
     }
+
+    int n = 0;
     for (int i = 0; i < num; i++) {
         face_stored fs = temp_faces[i];
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;

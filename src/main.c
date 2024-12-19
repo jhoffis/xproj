@@ -225,6 +225,11 @@ int main(void)
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
             if (look_y_axis > 4000 || look_y_axis < -4000) {
                 cam_rotationX -= (float) (look_y_axis) / 1000000.f;
+                if (cam_rotationX < 0) {
+                    cam_rotationX = 2*M_PI + cam_rotationX;
+                } else if (cam_rotationX > 2*M_PI) {
+                    cam_rotationX = fmod(cam_rotationX, 2*M_PI);
+                }
             }
             i16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
             if (walk_x_axis > 4000 || walk_x_axis < -4000) {

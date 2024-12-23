@@ -32,7 +32,8 @@ typedef struct {
  * And combine all those of the same type into one draw call.
  */
 typedef struct {
-    f32 vertices[4][5];
+    f32 vertices[4][3];
+    f32 tex_coords[4][2];
     u16 indices[6];
 } face;
 

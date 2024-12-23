@@ -1,6 +1,8 @@
 /libs/stb/
 /bin/
 /.cache/
+/.vs/
+/.vscode/
 *.iso
 *.exe
 *.obj

@@ -22,11 +22,11 @@ u32 width = 1280, height = 720;
 #define MUSIC_AMOUNT 5
 static u8 *music_current;
 static const char *music_strs[MUSIC_AMOUNT] = {
-    "THE WORLD WE LIVE IN",
-    "Crocodile Skins",
-    "Never Let Go (Of Me)",
-    "ONEGAI KOREA Wzxrdo",
-    "Moon over the Dunes",
+    "test",
+    // "Crocodile Skins",
+    // "Never Let Go (Of Me)",
+    // "ONEGAI KOREA Wzxrdo",
+    // "Moon over the Dunes",
 };
 static wav_entity *audio_buffer_data;
 
@@ -118,8 +118,8 @@ int main(void)
     }
     music_current = malloc(sizeof(music_current));
     *music_current = 1;
-    audio_buffer_data = create_wav_entity(music_strs[*music_current]);
-    xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
+    // audio_buffer_data = create_wav_entity(music_strs[*music_current]);
+    // xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
 
     image_data img = load_image("grass");
 

@@ -648,7 +648,9 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         face_stored fs = temp_faces[i];
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
         if (direction == removeDirection) continue;
+        face f = {0};
         fill_face_indices(cube_indices, n*6, n*4, fs);
+        memcpy(f.indices, &cube_indices[n*6], sizeof(cube_indices[0]) * 6);
         fill_face_vertices(cube_vertices, n*4, fs);
         n++;
         

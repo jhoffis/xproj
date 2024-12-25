@@ -598,13 +598,20 @@ static Vec4 transform_vector(MATRIX m, Vec4 v) {
     return result;
 }
 /// Check if a point is inside the normalized device coordinates (NDC) frustum
-static bool is_point_in_frustum_ndc(Vec4 clip_space) {
-    return clip_space.x >= 0 && 
-           clip_space.x <= 640 &&
-           clip_space.y >= 0 &&
-           clip_space.y <= 480 &&
-           clip_space.z >= 0 &&
-           clip_space.z <= 65536;
+static bool is_point_in_frustum_ndc(f32 clip_space[4]) {
+// static bool is_point_in_frustum_ndc(Vec4 clip_space) {
+    return clip_space[0] >= 0 && 
+           clip_space[0] <= 640 &&
+           clip_space[1] >= 0 &&
+           clip_space[1] <= 480 &&
+           clip_space[2] >= 0 &&
+           clip_space[2] <= 65536;
+    // return clip_space.x >= 0 && 
+    //        clip_space.x <= 640 &&
+    //        clip_space.y >= 0 &&
+    //        clip_space.y <= 480 &&
+    //        clip_space.z >= 0 &&
+    //        clip_space.z <= 65536;
 }
 /*
    https://bruop.github.io/improved_frustum_culling/ 
@@ -612,52 +619,31 @@ static bool is_point_in_frustum_ndc(Vec4 clip_space) {
 
 static bool is_point_in_frustum(f32 point[3], MATRIX viewproj) {
 
-    Vec4 p4 = {point[0], point[1], point[2], 1};
-    // mul_right_vec4_matrix(clipspace, m_model); // get the point just in the same way as in the shader code!
-    // mul_right_vec4_matrix(clipspace, m_view);
-    // mul_right_vec4_matrix(clipspace, m_proj);
-
-            // MATRIX vp;
-            // matrix_multiply(vp, m_view, m_proj);
-    Vec4 clip_space = transform_vector(m_model, p4);
-    clip_space = transform_vector(m_view, clip_space);
-    clip_space = transform_vector(m_proj, clip_space);
+    f32 clip_space[4] = {point[0], point[1], point[2], 1};
+    mul_left_vec4_matrix(clip_space, viewproj);
 
      // Perform perspective divide
-    clip_space.x /= clip_space.w;
-    clip_space.y /= clip_space.w;
-    clip_space.z /= -clip_space.w;
+    clip_space[0] /=  clip_space[3];
+    clip_space[1] /=  clip_space[3];
+    clip_space[2] /= -clip_space[3];
 
     // Check if point is inside the frustum in NDC space
     bool inside_view_frustum =  is_point_in_frustum_ndc(clip_space);
-    pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) clip_space.x, 
-                                           (i32) clip_space.y, 
-                                           (i32) clip_space.z, 
-                                           (i32) clip_space.w, 
-                                           (i32) inside_view_frustum);
-
+    // pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) clip_space[0], 
+    //                                        (i32) clip_space[1], 
+    //                                        (i32) clip_space[2], 
+    //                                        (i32) clip_space[3], 
+    //                                        (i32) inside_view_frustum);
     return inside_view_frustum;
 }
 
 static bool is_face_in_frustum(face f, MATRIX viewproj) {
+    if (is_point_in_frustum(f.vertices[0], viewproj)) return true;
+    if (is_point_in_frustum(f.vertices[1], viewproj)) return true;
+    if (is_point_in_frustum(f.vertices[2], viewproj)) return true;
+    if (is_point_in_frustum(f.vertices[3], viewproj)) return true;
 
-    f32 x0y0[3];
-    f32 x0y1[3];
-    f32 x1y0[3];
-    f32 x1y1[3];
-    memcpy(x0y0, f.vertices[0], sizeof(f32) * 3);
-    memcpy(x0y1, f.vertices[1], sizeof(f32) * 3);
-    memcpy(x1y0, f.vertices[2], sizeof(f32) * 3);
-    memcpy(x1y1, f.vertices[3], sizeof(f32) * 3);
-    // x0y0[0] = f.vertices[0][0];
-    // x0y0[1] = f.vertices[0][1];
-    // x0y0[2] = f.vertices[0][2];
-    bool in0 = is_point_in_frustum(x0y0, viewproj);
-    bool in1 = is_point_in_frustum(x0y1, viewproj);
-    bool in2 = is_point_in_frustum(x1y0, viewproj);
-    bool in3 = is_point_in_frustum(x1y1, viewproj);
-
-    return in0 || in1 || in2 || in3;
+    return false;
 }
 
 static void my_matrix_multiply(MATRIX result, MATRIX a, MATRIX b) {
@@ -684,6 +670,64 @@ static void my_matrix_multiply(MATRIX result, MATRIX a, MATRIX b) {
     }
 }
 
+// Define a 3D vector
+typedef struct {
+    float x, y, z;
+} Vector3;
+
+// Define a 3x3 rotation matrix
+typedef struct {
+    float m[3][3];
+} Matrix3;
+
+// Normalize a 3D vector
+static Vector3 normalize(Vector3 v) {
+    float magnitude = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    return (Vector3){v.x / magnitude, v.y / magnitude, v.z / magnitude};
+}
+
+// Convert Euler angles (yaw, pitch, roll in radians) to a 3x3 rotation matrix
+static Matrix3 euler_to_rotation_matrix(float yaw, float pitch, float roll) {
+    float cy = cos(yaw), sy = sin(yaw);
+    float cp = cos(pitch), sp = sin(pitch);
+    float cr = cos(roll), sr = sin(roll);
+
+    Matrix3 rotation_matrix = {
+        .m = {
+            {cy * cr + sy * sp * sr, cr * sy * sp - cy * sr, cp * sy},
+            {cp * sr,               cp * cr,               -sp     },
+            {cy * sp * sr - cr * sy, cy * cr * sp + sr * sy, cy * cp}
+        }
+    };
+    return rotation_matrix;
+}
+
+// Multiply a 3x3 matrix by a 3D vector
+static Vector3 multiply_matrix_vector(Matrix3 matrix, Vector3 vector) {
+    return (Vector3){
+        matrix.m[0][0] * vector.x + matrix.m[0][1] * vector.y + matrix.m[0][2] * vector.z,
+        matrix.m[1][0] * vector.x + matrix.m[1][1] * vector.y + matrix.m[1][2] * vector.z,
+        matrix.m[2][0] * vector.x + matrix.m[2][1] * vector.y + matrix.m[2][2] * vector.z
+    };
+}
+
+// Compute the dot product of two vectors
+static float dot_product(Vector3 a, Vector3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+// Compare the direction of two vectors
+static int is_same_direction(Vector3 a, Vector3 b, float threshold) {
+    // Normalize both vectors
+    a = normalize(a);
+    b = normalize(b);
+
+    // Compute the dot product
+    float dot = dot_product(a, b);
+
+    // Check if the angle between them is within the threshold
+    return dot >= threshold;  // Cosine similarity threshold (e.g., 0.9 for ~25°)
+}
 
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
@@ -695,6 +739,23 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     /* Tilt and rotate the object a bit */
     v_obj_rot[0] = rotX;
     v_obj_rot[1] = rotY;
+
+    Vector3 camera_position = {v_cam_loc[0], v_cam_loc[1], v_cam_loc[2]};
+
+    // Forward vector in view space
+    Vector3 forward_vector_view = {0.0f, 0.0f, -1.0f};
+
+    // Compute the rotation matrix
+    Matrix3 rotation_matrix = euler_to_rotation_matrix(v_cam_rot[1], v_cam_rot[0], v_cam_rot[2]);
+
+    // Transform the forward vector to world space
+    Vector3 camera_normal_world = multiply_matrix_vector(rotation_matrix, forward_vector_view);
+
+    // Normalize the resulting vector
+    camera_normal_world = normalize(camera_normal_world);
+    // pb_print("normal x%d y%d z%d \n", (i32) (1000 * camera_normal_world.x), 
+    //                                   (i32) (1000 * camera_normal_world.y), 
+    //                                   (i32) (1000 * camera_normal_world.z));
 
     /* Create local->world matrix given our updated object */
     matrix_unit(m_model);
@@ -751,30 +812,52 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     f32 cube_vertices[4*num][3];
     f32 tex_coors[4*num][2];
     face render_faces[num];
+    // MATRIX vm;
+    // matrix_multiply(vm, m_view, m_model);
+    MATRIX mvp;
+    matrix_multiply(mvp, m_view, m_proj);
 
-    u8 removeDirection = -1; // TODO change into 6 different normals instead!
-    if (v_cam_rot[1] < .6 || v_cam_rot[1] > 5.6) {
-        removeDirection = FACE_DIRECTION_SOUTH;
-    } else if (v_cam_rot[1] < 3.35 && v_cam_rot[1] > 2.15) {
-        removeDirection = FACE_DIRECTION_NORTH;
-    } else if (v_cam_rot[1] < 5.31 && v_cam_rot[1] > 4.11) {
-        removeDirection = FACE_DIRECTION_EAST;
-    } else if (v_cam_rot[1] < 2.57 && v_cam_rot[1] > 0.97) {
-        removeDirection = FACE_DIRECTION_WEST;
+    bool remove_directions[6];
+    for (int d = 0; d < 6; d++) { // TODO check if the object is more than 1 distance away and has the same direction because then it should not be visible.
+        Vector3 face_normal = {0};
+        switch (d) {
+            case FACE_DIRECTION_UP:
+                face_normal.y = 1;
+                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+                break;
+            case FACE_DIRECTION_DOWN:
+                face_normal.y = -1;
+                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+                break;
+            case FACE_DIRECTION_EAST:
+                face_normal.x = 1;
+                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+                break;
+            case FACE_DIRECTION_WEST:
+                face_normal.x = -1;
+                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+                break;
+            case FACE_DIRECTION_NORTH:
+                face_normal.z = 1;
+                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+                break;
+            case FACE_DIRECTION_SOUTH:
+                face_normal.z = -1;
+                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+                break;
+        }
     }
 
     int n = 0;
     for (int i = 0; i < num; i++) {
         face_stored fs = temp_faces[i];
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
-        // if (direction == removeDirection) continue;
+        
+        if (remove_directions[direction]) continue;
+
         face f = {0};
         fill_face_indices(f.indices, 0, n*4, fs);
         fill_face_vertices(f.vertices, f.tex_coords, 0, fs);
-        MATRIX vm;
-        my_matrix_multiply(vm, m_view, m_model);
-        MATRIX mvp;
-        my_matrix_multiply(mvp, m_proj, vm);
         if (!is_face_in_frustum(f, mvp)) continue;
 
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);

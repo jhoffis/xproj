@@ -130,7 +130,7 @@ int main(void)
     generate_chunk(0, 0);
 
     /* Create projection matrix */
-    create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10000.0f);
+    create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 10000.0f);
 
     /* Create viewport matrix, combine with projection */
     matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);

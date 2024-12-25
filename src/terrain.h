@@ -566,11 +566,124 @@ static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset
     tex_coors[offset + 3][1] = 0;
 }
 
-static bool is_face_in_frustum(face f, MATRIX view) {
-
-
-    return true;
+static void mul_left_vec4_matrix(f32 vec[4], f32 mat[16]) {    
+    // Cache the input vector since we'll overwrite it
+    const f32 x = vec[0], y = vec[1], z = vec[2], w = vec[3];
+    
+    // Direct calculation avoiding loops and temporary array
+    vec[0] = x * mat[0] + y * mat[4] + z * mat[8]  + w * mat[12];
+    vec[1] = x * mat[1] + y * mat[5] + z * mat[9]  + w * mat[13];
+    vec[2] = x * mat[2] + y * mat[6] + z * mat[10] + w * mat[14];
+    vec[3] = x * mat[3] + y * mat[7] + z * mat[11] + w * mat[15];
 }
+
+static void mul_right_vec4_matrix(f32 vec[4], f32 mat[16]) {    
+    // Cache the input vector since we'll overwrite it
+    const f32 x = vec[0], y = vec[1], z = vec[2], w = vec[3];
+
+    vec[0] = x * mat[0] + y * mat[1] + z * mat[2]  + w * mat[3];
+    vec[1] = x * mat[4] + y * mat[5] + z * mat[6]  + w * mat[7];
+    vec[2] = x * mat[8] + y * mat[9] + z * mat[10] + w * mat[11];
+    vec[3] = x * mat[12] + y * mat[13] + z * mat[14] + w * mat[15];
+}
+typedef struct {
+    float x, y, z, w;
+} Vec4;
+static Vec4 transform_vector(MATRIX m, Vec4 v) {
+    Vec4 result;
+    result.x = m[0]*v.x + m[4]*v.y + m[8]*v.z + m[12]*v.w;
+    result.y = m[1]*v.x + m[5]*v.y + m[9]*v.z + m[13]*v.w;
+    result.z = m[2]*v.x + m[6]*v.y + m[10]*v.z + m[14]*v.w;
+    result.w = m[3]*v.x + m[7]*v.y + m[11]*v.z + m[15]*v.w;
+    return result;
+}
+/// Check if a point is inside the normalized device coordinates (NDC) frustum
+static bool is_point_in_frustum_ndc(Vec4 clip_space) {
+    return clip_space.x >= 0 && 
+           clip_space.x <= 640 &&
+           clip_space.y >= 0 &&
+           clip_space.y <= 480 &&
+           clip_space.z >= 0 &&
+           clip_space.z <= 65536;
+}
+/*
+   https://bruop.github.io/improved_frustum_culling/ 
+*/
+
+static bool is_point_in_frustum(f32 point[3], MATRIX viewproj) {
+
+    Vec4 p4 = {point[0], point[1], point[2], 1};
+    // mul_right_vec4_matrix(clipspace, m_model); // get the point just in the same way as in the shader code!
+    // mul_right_vec4_matrix(clipspace, m_view);
+    // mul_right_vec4_matrix(clipspace, m_proj);
+
+            // MATRIX vp;
+            // matrix_multiply(vp, m_view, m_proj);
+    Vec4 clip_space = transform_vector(m_model, p4);
+    clip_space = transform_vector(m_view, clip_space);
+    clip_space = transform_vector(m_proj, clip_space);
+
+     // Perform perspective divide
+    clip_space.x /= clip_space.w;
+    clip_space.y /= clip_space.w;
+    clip_space.z /= -clip_space.w;
+
+    // Check if point is inside the frustum in NDC space
+    bool inside_view_frustum =  is_point_in_frustum_ndc(clip_space);
+    pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) clip_space.x, 
+                                           (i32) clip_space.y, 
+                                           (i32) clip_space.z, 
+                                           (i32) clip_space.w, 
+                                           (i32) inside_view_frustum);
+
+    return inside_view_frustum;
+}
+
+static bool is_face_in_frustum(face f, MATRIX viewproj) {
+
+    f32 x0y0[3];
+    f32 x0y1[3];
+    f32 x1y0[3];
+    f32 x1y1[3];
+    memcpy(x0y0, f.vertices[0], sizeof(f32) * 3);
+    memcpy(x0y1, f.vertices[1], sizeof(f32) * 3);
+    memcpy(x1y0, f.vertices[2], sizeof(f32) * 3);
+    memcpy(x1y1, f.vertices[3], sizeof(f32) * 3);
+    // x0y0[0] = f.vertices[0][0];
+    // x0y0[1] = f.vertices[0][1];
+    // x0y0[2] = f.vertices[0][2];
+    bool in0 = is_point_in_frustum(x0y0, viewproj);
+    bool in1 = is_point_in_frustum(x0y1, viewproj);
+    bool in2 = is_point_in_frustum(x1y0, viewproj);
+    bool in3 = is_point_in_frustum(x1y1, viewproj);
+
+    return in0 || in1 || in2 || in3;
+}
+
+static void my_matrix_multiply(MATRIX result, MATRIX a, MATRIX b) {
+    // Zero out the result matrix
+    for (int i = 0; i < 16; i++) {
+        result[i] = 0.0f;
+    }
+    
+    // For each column in the result
+    for (int j = 0; j < 4; j++) {
+        // For each row in the result
+        for (int i = 0; i < 4; i++) {
+            // Calculate dot product of row from a and column from b
+            float sum = 0.0f;
+            for (int k = 0; k < 4; k++) {
+                // In column-major:
+                // row i, col k of a = a[k*4 + i]
+                // row k, col j of b = b[j*4 + k]
+                sum += a[k*4 + i] * b[j*4 + k];
+            }
+            // Store in column-major: row i, col j = result[j*4 + i]
+            result[j*4 + i] = sum;
+        }
+    }
+}
+
 
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
@@ -654,11 +767,15 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     for (int i = 0; i < num; i++) {
         face_stored fs = temp_faces[i];
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
-        if (direction == removeDirection) continue;
+        // if (direction == removeDirection) continue;
         face f = {0};
         fill_face_indices(f.indices, 0, n*4, fs);
         fill_face_vertices(f.vertices, f.tex_coords, 0, fs);
-        if (!is_face_in_frustum(f, m_view)) continue;
+        MATRIX vm;
+        my_matrix_multiply(vm, m_view, m_model);
+        MATRIX mvp;
+        my_matrix_multiply(mvp, m_proj, vm);
+        if (!is_face_in_frustum(f, mvp)) continue;
 
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
         memcpy(cube_vertices[n*4], f.vertices, sizeof(f32) * 4 * 3);

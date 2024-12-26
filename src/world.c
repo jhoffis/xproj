@@ -25,27 +25,32 @@ static face_stored find_single_face(
         u8 covered[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE][FACE_DIRECTION_TOTAL]) {
 
     face_stored res = {0};
+    bool first = true;
 
     if (face_direction <= FACE_DIRECTION_UP) {
         int max_z = CHUNK_SIZE; // the other size of the x tile
         for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
             // check if covered or see through.
             if (test_chunk.cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
-                    || covered[start_x][start_y][z][face_direction]) {
+                    || (first && covered[start_x][start_y][z][face_direction])) {
                 max_z = z;
                 break;
             }
+            first = false;
         }
 
         int max_x = CHUNK_SIZE; // andre siden av x tile
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
             // check if from this x it crashes anywhere towards the max z.
+            first = true;
             for (int z = start_z; z < max_z; z++) {
                 if (test_chunk.cubes[x][start_y][z].type == BLOCK_TYPE_AIR
-                        || covered[x][start_y][z][face_direction]) {
+                        || (first && covered[x][start_y][z][face_direction])
+                        ) {
                     max_x = x;
                     goto ExitLoopUp; 
                 }
+                first = false;
             }
         }
 ExitLoopUp:
@@ -70,21 +75,25 @@ ExitLoopUp:
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
             // check if covered or see through.
             if (test_chunk.cubes[x][start_y][start_z].type == BLOCK_TYPE_AIR
-                    || covered[x][start_y][start_z][face_direction]) {
+                    || (first && covered[x][start_y][start_z][face_direction])) {
                 max_x = x;
                 break;
             }
+            first = false;
         }
 
         int max_y = CHUNK_SIZE; // andre siden av x tile
         for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
             // check if from this x it crashes anywhere towards the max z.
+            first = true;
+
             for (int x = start_x; x < max_x; x++) {
                 if (test_chunk.cubes[x][y][start_z].type == BLOCK_TYPE_AIR
-                        || covered[x][y][start_z][face_direction]) {
+                        || (first && covered[x][y][start_z][face_direction])) {
                     max_y = y;
                     goto ExitLoopNorth; 
-                }
+                }         
+                first = false;
             }
         }
 ExitLoopNorth:
@@ -110,21 +119,24 @@ ExitLoopNorth:
     for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
         // check if covered or see through.
         if (test_chunk.cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
-                || covered[start_x][start_y][z][face_direction]) {
+                || (first && covered[start_x][start_y][z][face_direction])) {
             max_z = z;
             break;
         }
+            first = false;
     }
 
     int max_y = CHUNK_SIZE; // andre siden av x tile
     for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
         // check if from this x it crashes anywhere towards the max z.
+        first = true;
         for (int z = start_z; z < max_z; z++) {
             if (test_chunk.cubes[start_x][y][z].type == BLOCK_TYPE_AIR
-                    || covered[start_x][y][z][face_direction]) {
+                    || (first && covered[start_x][y][z][face_direction])) {
                 max_y = y;
                 goto ExitLoopEast; 
             }
+            first = false;
         }
     }
 ExitLoopEast: 

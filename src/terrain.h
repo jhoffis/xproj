@@ -598,41 +598,34 @@ static Vec4 transform_vector(MATRIX m, Vec4 v) {
     return result;
 }
 /// Check if a point is inside the normalized device coordinates (NDC) frustum
-static bool is_point_in_frustum_ndc(f32 clip_space[4]) {
-// static bool is_point_in_frustum_ndc(Vec4 clip_space) {
+static inline bool is_point_in_frustum_ndc(f32 clip_space[4]) {
     return clip_space[0] >= 0 && 
            clip_space[0] <= 640 &&
            clip_space[1] >= 0 &&
            clip_space[1] <= 480 &&
            clip_space[2] >= 0 &&
            clip_space[2] <= 65536;
-    // return clip_space.x >= 0 && 
-    //        clip_space.x <= 640 &&
-    //        clip_space.y >= 0 &&
-    //        clip_space.y <= 480 &&
-    //        clip_space.z >= 0 &&
-    //        clip_space.z <= 65536;
 }
 /*
    https://bruop.github.io/improved_frustum_culling/ 
 */
 
-static bool is_point_in_frustum(f32 point[3], MATRIX viewproj) {
+static bool is_point_in_frustum(f32 point[3], MATRIX mat) {
 
-    f32 clip_space[4] = {point[0], point[1], point[2], 1};
-    mul_left_vec4_matrix(clip_space, viewproj);
-
-     // Perform perspective divide
-    clip_space[0] /=  clip_space[3];
-    clip_space[1] /=  clip_space[3];
-    clip_space[2] /= -clip_space[3];
+    f32 cs[4];
+    
+    // Direct calculation avoiding loops and temporary array
+    cs[3] =  1.0f / (point[0] * mat[3] + point[1] * mat[7] + point[2] * mat[11] + mat[15]);
+    cs[0] = (point[0] * mat[0] + point[1] * mat[4] + point[2] * mat[8]  + mat[12]) * cs[3];
+    cs[1] = (point[0] * mat[1] + point[1] * mat[5] + point[2] * mat[9]  + mat[13]) * cs[3];
+    cs[2] = (point[0] * mat[2] + point[1] * mat[6] + point[2] * mat[10] + mat[14]) * -cs[3];
 
     // Check if point is inside the frustum in NDC space
-    bool inside_view_frustum =  is_point_in_frustum_ndc(clip_space);
-    // pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) clip_space[0], 
-    //                                        (i32) clip_space[1], 
-    //                                        (i32) clip_space[2], 
-    //                                        (i32) clip_space[3], 
+    bool inside_view_frustum =  is_point_in_frustum_ndc(cs);
+    // pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) cs[0], 
+    //                                        (i32) cs[1], 
+    //                                        (i32) cs[2], 
+    //                                        (i32) cs[3], 
     //                                        (i32) inside_view_frustum);
     return inside_view_frustum;
 }
@@ -865,13 +858,14 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         if (remove_directions[direction]) continue;
 
         face f = {0};
-        fill_face_indices(f.indices, 0, n*4, fs);
         fill_face_vertices(f.vertices, f.tex_coords, 0, fs);
-        if (!is_face_in_frustum(f, mvp)) continue;
 
         Vector3 view_dir = normalize(subtract(v_cam_loc, f.vertices[0]));
         f32 dot_prod = dot_product(face_normals[direction], view_dir);
         if (dot_prod < 0) continue;
+
+        fill_face_indices(f.indices, 0, n*4, fs);
+        if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps only frustum cull whole chunks as this calculation is very heavy.
 
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
         memcpy(cube_vertices[n*4], f.vertices, sizeof(f32) * 4 * 3);

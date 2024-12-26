@@ -50,9 +50,11 @@ typedef struct {
     u8 info; // first 3 bits are direction
 } face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
 
-extern chunk_data test_chunk;
+extern chunk_data *loaded_chunks;
 extern face_stored *faces_pool;
 extern u32 num_faces_pooled;
+extern u32 num_chunks_pooled;
+extern u32 *chunk_offsets;
 
 void init_world(void);
 void generate_chunk(i32 x, i32 y);

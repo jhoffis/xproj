@@ -128,6 +128,7 @@ int main(void)
 
     init_world();
     generate_chunk(0, 0);
+    generate_chunk(1, 0);
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 10000.0f);

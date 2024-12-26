@@ -729,6 +729,17 @@ static int is_same_direction(Vector3 a, Vector3 b, float threshold) {
     return dot >= threshold;  // Cosine similarity threshold (e.g., 0.9 for ~25°)
 }
 
+static f32 distance_vec3(f32 *a, f32 *b) {
+    f32 x = b[0] - a[0];
+    f32 y = b[1] - a[1];
+    f32 z = b[2] - a[2];
+    return sqrtf(x*x + y*y + z*z);
+}
+
+static Vector3 subtract(f32 *a, f32 *b) {
+    return (Vector3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
+}
+
 // FIXME does not work when running non-statically or directly in main.c
 inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
@@ -817,48 +828,50 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     MATRIX mvp;
     matrix_multiply(mvp, m_view, m_proj);
 
-    bool remove_directions[6];
-    for (int d = 0; d < 6; d++) { // TODO check if the object is more than 1 distance away and has the same direction because then it should not be visible.
+    Vector3 face_normals[FACE_DIRECTION_TOTAL];
+    bool remove_directions[FACE_DIRECTION_TOTAL];
+    for (int d = 0; d < FACE_DIRECTION_TOTAL; d++) { // TODO check if the object is more than 1 distance away and has the same direction because then it should not be visible.
+                                  // basically, if object has same direction and is ahead by 1 then remove.
         Vector3 face_normal = {0};
         switch (d) {
             case FACE_DIRECTION_UP:
                 face_normal.y = 1;
-                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
                 break;
             case FACE_DIRECTION_DOWN:
                 face_normal.y = -1;
-                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
                 break;
             case FACE_DIRECTION_EAST:
                 face_normal.x = 1;
-                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
                 break;
             case FACE_DIRECTION_WEST:
                 face_normal.x = -1;
-                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
                 break;
             case FACE_DIRECTION_NORTH:
                 face_normal.z = 1;
-                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
                 break;
             case FACE_DIRECTION_SOUTH:
                 face_normal.z = -1;
-                remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
                 break;
         }
+        remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+        face_normals[d] = face_normal;
     }
 
     int n = 0;
     for (int i = 0; i < num; i++) {
         face_stored fs = temp_faces[i];
-        u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
         
+        u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
         if (remove_directions[direction]) continue;
 
         face f = {0};
         fill_face_indices(f.indices, 0, n*4, fs);
         fill_face_vertices(f.vertices, f.tex_coords, 0, fs);
         if (!is_face_in_frustum(f, mvp)) continue;
+
+        Vector3 view_dir = normalize(subtract(v_cam_loc, f.vertices[0]));
+        f32 dot_prod = dot_product(face_normals[direction], view_dir);
+        if (dot_prod < 0) continue;
 
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
         memcpy(cube_vertices[n*4], f.vertices, sizeof(f32) * 4 * 3);

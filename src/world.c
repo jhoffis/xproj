@@ -150,7 +150,7 @@ BreakEastLoop:
     return res;
 }
 
-static face_stored *find_faces_of_chunk(
+static void find_faces_of_chunk(
         chunk_data *chunk,
         u32 max_faces,
         u32 *out_faces_found,
@@ -169,28 +169,23 @@ static face_stored *find_faces_of_chunk(
                         faces[num_faces_found] = found_one;
                         num_faces_found++;
                         if (num_faces_found == max_faces) {
-                            *out_faces_found = num_faces_found;
-                            face_stored *out_res = malloc(sizeof(face_stored) * max_faces);
-                            memcpy(out_res, faces, sizeof(face_stored) * max_faces);
-                            if (out_res == NULL) return NULL;
-                            return out_res;
+                            memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_faces_found);
+                            num_faces_pooled += num_faces_found;
+                            return;
                         }
                     }
                 }
             }
         }
     }
-    *out_faces_found = num_faces_found;
-    face_stored *out_res = malloc(sizeof(face_stored) * num_faces_found);
-    memcpy(out_res, faces, sizeof(face_stored) * num_faces_found);
-    if (out_res == NULL) return NULL;
-    return out_res;
+    memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_faces_found);
+    num_faces_pooled += num_faces_found;
 }
 
 void init_world(void) {
     faces_pool = malloc(FACE_POOL_SIZE * sizeof(face_stored));
-    loaded_chunks = calloc(0, sizeof(chunk_data) * 2);
-    chunk_offsets = calloc(0, sizeof(u32) * 2);
+    loaded_chunks = calloc(2, sizeof(chunk_data));
+    chunk_offsets = calloc(2, sizeof(u32));
 
     // FIXME if faces_pool == null
 }
@@ -205,24 +200,11 @@ void init_world(void) {
  * Actually, you don't need to know if it's covered in any way as long as the faces
  * are made!
  */
-#define CHUNK_TEST 1
+// #define CHUNK_TEST 0
 void generate_chunk(i32 chunk_x, i32 chunk_y) {
-    chunk_data *chunk = malloc(sizeof(chunk_data));
+    chunk_data *chunk = &loaded_chunks[num_chunks_pooled];
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
-#if CHUNK_TEST == 0
-            u64 y_ran = lehmer32_seeded(10000*chunk_x + 1000*chunk_y+ 100*x + 10*z);
-            y_ran = y_ran % 3; 
-            y_ran += 1;
-            if (x > 1) y_ran += 1;
-            for (int y = 0; y < CHUNK_SIZE; y++) {
-                if (y < y_ran) {
-                    chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
-                } else {
-                    chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
-                }
-            }
-#elif CHUNK_TEST == 1
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 if ((y < 2 && x % 2 != 0 && z % 2 != 0) || (y < 1)) {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
@@ -230,7 +212,6 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
             }
-#endif
         }
     }
 
@@ -246,7 +227,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 for (int direction = 0; direction < FACE_DIRECTION_TOTAL; direction++) {
                     if (chunk->cubes[x][y][z].type == BLOCK_TYPE_AIR) {
-                        COVERED(covered, x, y, z, direction) = true;
+                        // COVERED(covered, x, y, z, direction) = true;
                         continue;
                     }
                     switch (direction) {
@@ -287,16 +268,13 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
     }
 
     u32 num_found;
-    face_stored *faces = find_faces_of_chunk(chunk, FACE_POOL_SIZE, &num_found, covered);
-    memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_found);
+    find_faces_of_chunk(chunk, FACE_POOL_SIZE, &num_found, covered);
     free(covered);
-    free(faces);
-    num_faces_pooled += num_found;
 
-    memcpy(&loaded_chunks[num_chunks_pooled], chunk, sizeof(chunk_data));
     chunk_offsets[num_chunks_pooled] = num_found;
-
     num_chunks_pooled++;
+    // memcpy(&loaded_chunks[num_chunks_pooled], chunk, sizeof(chunk_data));
+
 
     // free(chunk);
 

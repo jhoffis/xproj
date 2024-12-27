@@ -865,7 +865,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         if (dot_prod < 0) continue;
 
         fill_face_indices(f.indices, 0, n*4, fs);
-        // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
+        if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
 
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
         memcpy(&cube_vertices[n*4*3], f.vertices, sizeof(f32) * 4 * 3);

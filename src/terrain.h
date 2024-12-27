@@ -734,7 +734,7 @@ static Vector3 subtract(f32 *a, f32 *b) {
 }
 
 // FIXME does not work when running non-statically or directly in main.c
-inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
+static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
     v_obj_pos[0] = x;
     v_obj_pos[1] = 0;
@@ -808,14 +808,13 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     /*
      * Setup vertex attributes
      */
-    int num = num_faces_pooled;
-    face_stored temp_faces[num];
-    memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
-    u16 cube_indices[6 * num];
+    int num = num_faces_pooled < FACE_POOL_SIZE ? num_faces_pooled : FACE_POOL_SIZE;
+    // face_stored temp_faces[num];
+    // memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
+    u16 cube_indices[6 * num]; // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
 
-    f32 cube_vertices[4*num][3];
-    f32 tex_coors[4*num][2];
-    face render_faces[num];
+    f32 *cube_vertices = malloc(4*num*3 * sizeof(f32));
+    f32 *tex_coors = malloc(4*num*2 * sizeof(f32));
     // MATRIX vm;
     // matrix_multiply(vm, m_view, m_model);
     MATRIX mvp;
@@ -852,7 +851,7 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     int n = 0;
     for (int i = 0; i < num; i++) {
-        face_stored fs = temp_faces[i];
+        face_stored fs = faces_pool[i];
         
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
         if (remove_directions[direction]) continue;
@@ -866,43 +865,19 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         if (dot_prod < 0) continue;
 
         fill_face_indices(f.indices, 0, n*4, fs);
-        if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps only frustum cull whole chunks as this calculation is very heavy.
+        // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
 
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
-        memcpy(cube_vertices[n*4], f.vertices, sizeof(f32) * 4 * 3);
-        memcpy(tex_coors[n*4], f.tex_coords, sizeof(f32) * 4 * 2);
+        memcpy(&cube_vertices[n*4*3], f.vertices, sizeof(f32) * 4 * 3);
+        memcpy(&tex_coors[n*4*2], f.tex_coords, sizeof(f32) * 4 * 2);
 
 
         n++;
-        
-
-                // if (test_chunk.cubes[i][Y][Z].type == BLOCK_TYPE_GRASS) {
-                //     test_face[0] = find_full_face(X, Y, Z, FACE_DIRECTION_UP);    
-                //     test_face[1] = find_full_face(X, Y, Z, FACE_DIRECTION_DOWN);    
-                //     test_face[2] = find_full_face(X, Y, Z, FACE_DIRECTION_WEST);    
-                //     test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_NORTH);    
-                //     test_face[4] = find_full_face(X+15, Y, Z, FACE_DIRECTION_EAST);    
-                //     test_face[5] = find_full_face(X, Y, Z+15, FACE_DIRECTION_SOUTH);    
-                //     // test_face[3] = find_full_face(X, Y, Z, FACE_DIRECTION_EAST);    
-                //     memcpy(cube_vertices, test_face[0].vertices, sizeof(float) * 4 * 5);
-                //     memcpy(&cube_vertices[4], test_face[1].vertices, sizeof(float) * 4 * 5);
-                //     memcpy(&cube_vertices[8], test_face[2].vertices, sizeof(float) * 4 * 5);
-                //     memcpy(&cube_vertices[12], test_face[3].vertices, sizeof(float) * 4 * 5);
-                //     memcpy(&cube_vertices[16], test_face[4].vertices, sizeof(float) * 4 * 5);
-                //     memcpy(&cube_vertices[20], test_face[5].vertices, sizeof(float) * 4 * 5);
-                //     memcpy(cube_indices, test_face[0].indices, sizeof(float) * 6);
-                //     for (int i = 0; i < 6; i++)
-                //         cube_indices[i + 6] = 4 + test_face[1].indices[i];
-                //     for (int i = 0; i < 6; i++)
-                //         cube_indices[i + 12] = 8 + test_face[2].indices[i];
-                //     for (int i = 0; i < 6; i++)
-                //         cube_indices[i + 18] = 12 + test_face[3].indices[i];
-                //     for (int i = 0; i < 6; i++)
-                //         cube_indices[i + 24] = 16 + test_face[4].indices[i];
-                //     for (int i = 0; i < 6; i++)
-                //         cube_indices[i + 30] = 20 + test_face[5].indices[i];
-                //     // fill_array_singular_face_vertices(actual_num, cube_vertices, X, Y, Z);
     }
+    pb_print("rendered faces: %d\n", n);
+
+    // if (n > 224) n = 224;
+
     u32 real_size_of_verts = sizeof(f32) * 4 * n * 3;
     u32 *allocated_verts = MmAllocateContiguousMemoryEx(real_size_of_verts, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(allocated_verts, cube_vertices, real_size_of_verts);
@@ -925,6 +900,8 @@ inline static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     draw_indexed(n*6, cube_indices);
     MmFreeContiguousMemory(allocated_verts);
     MmFreeContiguousMemory(allocated_texs);
+    free(cube_vertices);
+    free(tex_coors);
 }
 
 inline static void render_terrain(image_data img) {

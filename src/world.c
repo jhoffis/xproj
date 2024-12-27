@@ -3,8 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// it can render up to 1024 faces per draw call
-#define FACE_POOL_SIZE 1024
+// Helper macro to index into the 1D covered array
+#define COVERED(covered_ptr, x, y, z, dir) ((covered_ptr)[((x) * CHUNK_SIZE * CHUNK_SIZE * FACE_DIRECTION_TOTAL) + \
+                                                ((z) * CHUNK_SIZE * FACE_DIRECTION_TOTAL) +              \
+                                                ((y) * FACE_DIRECTION_TOTAL) + (dir)])
+
 /*
  * Single zeroed pool of chunks.
  * Greedy meshing.
@@ -20,144 +23,130 @@ u32 num_chunks_pooled = 0;
 u32 *chunk_offsets;
 
 static face_stored find_single_face(
-        chunk_data *chunk,
-        int start_x, 
-        int start_y, 
-        int start_z, 
-        u8 face_direction, 
-        u8 covered[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE][FACE_DIRECTION_TOTAL]) {
-
+    chunk_data *chunk,
+    int start_x,
+    int start_y,
+    int start_z,
+    u8 face_direction,
+    u8 *covered) 
+{
     face_stored res = {0};
     bool first = true;
 
     if (face_direction <= FACE_DIRECTION_UP) {
-        int max_z = CHUNK_SIZE; // the other size of the x tile
+        int max_z = CHUNK_SIZE; 
         for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
-            // check if covered or see through.
-            if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
-                    || (first && covered[start_x][start_y][z][face_direction])) {
+            if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR ||
+                (first && COVERED(covered, start_x, start_y, z, face_direction))) {
                 max_z = z;
                 break;
             }
             first = false;
         }
 
-        int max_x = CHUNK_SIZE; // andre siden av x tile
+        int max_x = CHUNK_SIZE; 
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
-            // check if from this x it crashes anywhere towards the max z.
             first = true;
             for (int z = start_z; z < max_z; z++) {
-                if (chunk->cubes[x][start_y][z].type == BLOCK_TYPE_AIR
-                        || (first && covered[x][start_y][z][face_direction])
-                        ) {
+                if (chunk->cubes[x][start_y][z].type == BLOCK_TYPE_AIR ||
+                    (first && COVERED(covered, x, start_y, z, face_direction))) {
                     max_x = x;
-                    goto ExitLoopUp; 
+                    goto BreakUpLoop;
                 }
                 first = false;
             }
         }
-ExitLoopUp:
+BreakUpLoop:
         res.info = face_direction;
         res.corners.a0 = start_x;
         res.corners.b0 = start_z;
         res.corners.a1 = max_x;
         res.corners.b1 = max_z;
-        res.corners.c = face_direction == FACE_DIRECTION_DOWN ? start_y - 1 : start_y;
+        res.corners.c = (face_direction == FACE_DIRECTION_DOWN) ? start_y - 1 : start_y;
 
-        // make sure that these are now covered as they are used in this face.
         for (int x = start_x; x < max_x; x++) {
             for (int z = start_z; z < max_z; z++) {
-                covered[x][start_y][z][face_direction] = true;
+                COVERED(covered, x, start_y, z, face_direction) = true;
             }
-        } 
+        }
         return res;
     } 
 
     if (face_direction <= FACE_DIRECTION_NORTH) {
-        int max_x = CHUNK_SIZE; // the other size of the x tile
+        int max_x = CHUNK_SIZE; 
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
-            // check if covered or see through.
-            if (chunk->cubes[x][start_y][start_z].type == BLOCK_TYPE_AIR
-                    || (first && covered[x][start_y][start_z][face_direction])) {
+            if (chunk->cubes[x][start_y][start_z].type == BLOCK_TYPE_AIR ||
+                (first && COVERED(covered, x, start_y, start_z, face_direction))) {
                 max_x = x;
                 break;
             }
             first = false;
         }
 
-        int max_y = CHUNK_SIZE; // andre siden av x tile
+        int max_y = CHUNK_SIZE; 
         for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
-            // check if from this x it crashes anywhere towards the max z.
             first = true;
-
             for (int x = start_x; x < max_x; x++) {
-                if (chunk->cubes[x][y][start_z].type == BLOCK_TYPE_AIR
-                        || (first && covered[x][y][start_z][face_direction])) {
+                if (chunk->cubes[x][y][start_z].type == BLOCK_TYPE_AIR ||
+                    (first && COVERED(covered, x, y, start_z, face_direction))) {
                     max_y = y;
-                    goto ExitLoopNorth; 
-                }         
+                    goto BreakNorthLoop;
+                }
                 first = false;
             }
         }
-ExitLoopNorth:
+BreakNorthLoop:
         res.info = face_direction;
         res.corners.a0 = start_x;
         res.corners.b0 = start_y - 1;
         res.corners.a1 = max_x;
         res.corners.b1 = max_y - 1;
-        res.corners.c = face_direction == FACE_DIRECTION_SOUTH ? start_z : start_z + 1;
+        res.corners.c = (face_direction == FACE_DIRECTION_SOUTH) ? start_z : start_z + 1;
 
-        // make sure that these are now covered as they are used in this face.
         for (int x = start_x; x < max_x; x++) {
             for (int y = start_y; y < max_y; y++) {
-                covered[x][y][start_z][face_direction] = true;
+                COVERED(covered, x, y, start_z, face_direction) = true;
             }
-        } 
+        }
         return res;
     }
 
-    // face_direction <= FACE_DIRECTION_EAST
-    // a=y, b=z
-    int max_z = CHUNK_SIZE; // the other size of the x tile
+    // FACE_DIRECTION_EAST
+    int max_z = CHUNK_SIZE; 
     for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
-        // check if covered or see through.
-        if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR
-                || (first && covered[start_x][start_y][z][face_direction])) {
+        if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR ||
+            (first && COVERED(covered, start_x, start_y, z, face_direction))) {
             max_z = z;
             break;
         }
-            first = false;
+        first = false;
     }
 
-    int max_y = CHUNK_SIZE; // andre siden av x tile
+    int max_y = CHUNK_SIZE; 
     for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
-        // check if from this x it crashes anywhere towards the max z.
         first = true;
         for (int z = start_z; z < max_z; z++) {
-            if (chunk->cubes[start_x][y][z].type == BLOCK_TYPE_AIR
-                    || (first && covered[start_x][y][z][face_direction])) {
+            if (chunk->cubes[start_x][y][z].type == BLOCK_TYPE_AIR ||
+                (first && COVERED(covered, start_x, y, z, face_direction))) {
                 max_y = y;
-                goto ExitLoopEast; 
+                goto BreakEastLoop;
             }
             first = false;
         }
     }
-ExitLoopEast: 
-
+BreakEastLoop:
     res.info = face_direction;
     res.corners.a0 = start_y - 1;
     res.corners.b0 = start_z;
     res.corners.a1 = max_y - 1;
     res.corners.b1 = max_z;
-    res.corners.c = face_direction == FACE_DIRECTION_EAST ? start_x + 1 : start_x;
+    res.corners.c = (face_direction == FACE_DIRECTION_EAST) ? start_x + 1 : start_x;
 
-    // make sure that these are now covered as they are used in this face.
     for (int z = start_z; z < max_z; z++) {
         for (int y = start_y; y < max_y; y++) {
-            covered[start_x][y][z][face_direction] = true;
+            COVERED(covered, start_x, y, z, face_direction) = true;
         }
-    } 
-
+    }
     return res;
 }
 
@@ -165,7 +154,7 @@ static face_stored *find_faces_of_chunk(
         chunk_data *chunk,
         u32 max_faces,
         u32 *out_faces_found,
-        u8 covered[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE][FACE_DIRECTION_TOTAL]) {
+        u8 *covered) {
     // First find all possible upwards facing faces.
     face_stored faces[max_faces]; // array for reading memory more easy...
     u32 num_faces_found = 0;
@@ -174,7 +163,7 @@ static face_stored *find_faces_of_chunk(
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 for (int direction = 0; direction < FACE_DIRECTION_TOTAL; direction++) {
-                    if (covered[x][y][z][direction] == false) {
+                    if (COVERED(covered, x, y, z, direction) == false) {
                         // we got one!
                         face_stored found_one = find_single_face(chunk, x, y, z, direction, covered);
                         faces[num_faces_found] = found_one;
@@ -216,9 +205,9 @@ void init_world(void) {
  * Actually, you don't need to know if it's covered in any way as long as the faces
  * are made!
  */
-#define CHUNK_TEST 0
+#define CHUNK_TEST 1
 void generate_chunk(i32 chunk_x, i32 chunk_y) {
-    chunk_data chunk;
+    chunk_data *chunk = malloc(sizeof(chunk_data));
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
 #if CHUNK_TEST == 0
@@ -228,85 +217,67 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
             if (x > 1) y_ran += 1;
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 if (y < y_ran) {
-                    chunk.cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                    chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
                 } else {
-                    chunk.cubes[x][y][z].type = BLOCK_TYPE_AIR;
+                    chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
             }
 #elif CHUNK_TEST == 1
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 if ((y < 2 && x % 2 != 0 && z % 2 != 0) || (y < 1)) {
-                    chunk.cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                    chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
                 } else {
-                    chunk.cubes[x][y][z].type = BLOCK_TYPE_AIR;
+                    chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
             }
 #endif
         }
     }
-    u8 covered[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE][FACE_DIRECTION_TOTAL];
+
+    size_t covered_size = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * FACE_DIRECTION_TOTAL * sizeof(u8);
+    u8 *covered = (u8 *)malloc(covered_size);
+    if (!covered) {
+        exit(EXIT_FAILURE);
+    }
+    memset(covered, true, covered_size); // Initialize all to true
 
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 for (int direction = 0; direction < FACE_DIRECTION_TOTAL; direction++) {
-                    if (chunk.cubes[x][y][z].type == BLOCK_TYPE_AIR) {
-                        covered[x][y][z][direction] = true;
+                    if (chunk->cubes[x][y][z].type == BLOCK_TYPE_AIR) {
+                        COVERED(covered, x, y, z, direction) = true;
                         continue;
                     }
                     switch (direction) {
                         case FACE_DIRECTION_DOWN:
-                            if (y == 0) {
-                                covered[x][y][z][direction] = false;
-                            } else if (chunk.cubes[x][y - 1][z].type == BLOCK_TYPE_AIR) {
-                                covered[x][y][z][direction] = false;
-                            } else {
-                                covered[x][y][z][direction] = true;
+                            if (y == 0 || chunk->cubes[x][y - 1][z].type == BLOCK_TYPE_AIR) {
+                                COVERED(covered, x, y, z, direction) = false;
                             }
                             break;
                         case FACE_DIRECTION_UP:
-                            if (y + 1 == CHUNK_SIZE) {
-                                covered[x][y][z][direction] = false;
-                            } else if (chunk.cubes[x][y + 1][z].type == BLOCK_TYPE_AIR) {
-                                covered[x][y][z][direction] = false;
-                            } else {
-                                covered[x][y][z][direction] = true;
+                            if (y + 1 == CHUNK_SIZE || chunk->cubes[x][y + 1][z].type == BLOCK_TYPE_AIR) {
+                                COVERED(covered, x, y, z, direction) = false;
                             }
                             break;
                         case FACE_DIRECTION_SOUTH:
-                            if (z == 0) {
-                                covered[x][y][z][direction] = false;
-                            } else if (chunk.cubes[x][y][z - 1].type == BLOCK_TYPE_AIR) {
-                                covered[x][y][z][direction] = false;
-                            } else {
-                                covered[x][y][z][direction] = true;
+                            if (z == 0 || chunk->cubes[x][y][z - 1].type == BLOCK_TYPE_AIR) {
+                                COVERED(covered, x, y, z, direction) = false;
                             }
                             break;
                         case FACE_DIRECTION_NORTH:
-                            if (z + 1 == CHUNK_SIZE) {
-                                covered[x][y][z][direction] = false;
-                            } else if (chunk.cubes[x][y][z + 1].type == BLOCK_TYPE_AIR) {
-                                covered[x][y][z][direction] = false;
-                            } else {
-                                covered[x][y][z][direction] = true;
+                            if (z + 1 == CHUNK_SIZE || chunk->cubes[x][y][z + 1].type == BLOCK_TYPE_AIR) {
+                                COVERED(covered, x, y, z, direction) = false;
                             }
                             break;
                         case FACE_DIRECTION_WEST:
-                            if (x == 0) {
-                                covered[x][y][z][direction] = false;
-                            } else if (chunk.cubes[x - 1][y][z].type == BLOCK_TYPE_AIR) {
-                                covered[x][y][z][direction] = false;
-                            } else {
-                                covered[x][y][z][direction] = true;
+                            if (x == 0 || chunk->cubes[x - 1][y][z].type == BLOCK_TYPE_AIR) {
+                                COVERED(covered, x, y, z, direction) = false;
                             }
                             break;
                         case FACE_DIRECTION_EAST:
-                            if (x + 1 == CHUNK_SIZE) {
-                                covered[x][y][z][direction] = false;
-                            } else if (chunk.cubes[x + 1][y][z].type == BLOCK_TYPE_AIR) {
-                                covered[x][y][z][direction] = false;
-                            } else {
-                                covered[x][y][z][direction] = true;
+                            if (x + 1 == CHUNK_SIZE || chunk->cubes[x + 1][y][z].type == BLOCK_TYPE_AIR) {
+                                COVERED(covered, x, y, z, direction) = false;
                             }
                             break;
                     }
@@ -316,15 +287,17 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
     }
 
     u32 num_found;
-    face_stored *faces = find_faces_of_chunk(&chunk, FACE_POOL_SIZE, &num_found, covered);
+    face_stored *faces = find_faces_of_chunk(chunk, FACE_POOL_SIZE, &num_found, covered);
     memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_found);
+    free(covered);
     free(faces);
     num_faces_pooled += num_found;
 
-    memcpy(&loaded_chunks[num_chunks_pooled], &chunk, sizeof(chunk_data));
+    memcpy(&loaded_chunks[num_chunks_pooled], chunk, sizeof(chunk_data));
     chunk_offsets[num_chunks_pooled] = num_found;
 
     num_chunks_pooled++;
 
+    // free(chunk);
 
 }

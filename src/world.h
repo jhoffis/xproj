@@ -1,7 +1,9 @@
 #pragma once
 #include "cube.h"
 
-#define CHUNK_SIZE 16
+#define CHUNK_SIZE 32
+// it can render up to 1024 faces per draw call
+#define FACE_POOL_SIZE 1024
 
 #define FACE_TYPE_COBBLESTONE 0
 #define FACE_TYPE_GRASS_TOP 1

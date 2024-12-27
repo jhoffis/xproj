@@ -146,7 +146,7 @@ int main(void)
     f32 obj_rotationX = 0;
     f32 obj_rotationY = 0;
     f32 cam_rotationX = 0;
-    f32 cam_rotationY = 0;
+    f32 cam_rotationY = 500;
     f32 cam_posX = 0;
     f32 cam_posY = 0;
     f32 cam_posZ = 0;
@@ -315,6 +315,7 @@ int main(void)
         if (fps > 0) {
             pb_print("FPS: %d\n", fps);
         }
+        pb_print("faces: %d\n", num_faces_pooled);
 
         render_terrain(img);
 

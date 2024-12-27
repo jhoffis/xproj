@@ -5,7 +5,7 @@ NXDK_DIR ?= $(CURDIR)/../nxdk
 NXDK_SDL = y
 SHADER_OBJS = src/ps.inl src/vs.inl src/ps2.inl src/vs2.inl
 DEBUG = y
-NXDK_CFLAGS += -Og 
+NXDK_CFLAGS += -O0 
 
 include $(NXDK_DIR)/Makefile
 

@@ -169,6 +169,7 @@ static void find_faces_of_chunk(
                         faces[num_faces_found] = found_one;
                         num_faces_found++;
                         if (num_faces_found == max_faces) {
+                            *out_faces_found = num_faces_found;
                             memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_faces_found);
                             num_faces_pooled += num_faces_found;
                             return;
@@ -178,14 +179,15 @@ static void find_faces_of_chunk(
             }
         }
     }
+    *out_faces_found = num_faces_found;
     memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_faces_found);
     num_faces_pooled += num_faces_found;
 }
 
 void init_world(void) {
     faces_pool = malloc(FACE_POOL_SIZE * sizeof(face_stored));
-    loaded_chunks = calloc(2, sizeof(chunk_data));
-    chunk_offsets = calloc(2, sizeof(u32));
+    loaded_chunks = calloc(4, sizeof(chunk_data));
+    chunk_offsets = calloc(4, sizeof(u32));
 
     // FIXME if faces_pool == null
 }
@@ -201,12 +203,15 @@ void init_world(void) {
  * are made!
  */
 // #define CHUNK_TEST 0
-void generate_chunk(i32 chunk_x, i32 chunk_y) {
+void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
     chunk_data *chunk = &loaded_chunks[num_chunks_pooled];
+    chunk->x = chunk_x;
+    chunk->y = chunk_y;
+    chunk->z = chunk_z;
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
-                if ((y < 2 && x % 2 != 0 && z % 2 != 0) || (y < 1)) {
+                if ((y < 5 && x % 2 != 0 && z % 2 != 0) || (y < 3)) {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
                 } else {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
@@ -273,9 +278,4 @@ void generate_chunk(i32 chunk_x, i32 chunk_y) {
 
     chunk_offsets[num_chunks_pooled] = num_found;
     num_chunks_pooled++;
-    // memcpy(&loaded_chunks[num_chunks_pooled], chunk, sizeof(chunk_data));
-
-
-    // free(chunk);
-
 }

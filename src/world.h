@@ -1,9 +1,9 @@
 #pragma once
 #include "cube.h"
 
-#define CHUNK_SIZE 48
+#define CHUNK_SIZE 16
 // it can render up to 1024 faces per draw call
-#define FACE_POOL_SIZE 4*1024
+#define FACE_POOL_SIZE 8*1024
 
 #define FACE_TYPE_COBBLESTONE 0
 #define FACE_TYPE_GRASS_TOP 1
@@ -26,6 +26,7 @@
  * don't use unnecessary amounts of ram on this.
  */
 typedef struct {
+    i32 x, y, z;
     cube_entity cubes[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE]; // XYZ
 } chunk_data;
 
@@ -37,7 +38,7 @@ typedef struct {
     f32 vertices[4][3];
     f32 tex_coords[4][2];
     u16 indices[6];
-} face;
+} face; // Kan ha 326 tusen faces i 30MB, så disse burde lagres! Burde ha at man laster inn de nermeste 9 chunks i disse.
 
 typedef struct {
     i8 a0, a1, b0, b1, c;
@@ -59,4 +60,4 @@ extern u32 num_chunks_pooled;
 extern u32 *chunk_offsets;
 
 void init_world(void);
-void generate_chunk(i32 x, i32 y);
+void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z);

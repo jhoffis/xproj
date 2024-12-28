@@ -127,8 +127,12 @@ int main(void)
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
 
     init_world();
-    generate_chunk(0, 0);
-    generate_chunk(1, 0);
+    for (int x = 0; x < 2; x++) {
+        for (int z = 0; z < 2; z++) {
+            generate_chunk(x, 0, z);
+        }
+    }
+    // generate_chunk(1, 0);
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 10000.0f);

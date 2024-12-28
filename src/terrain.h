@@ -811,7 +811,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     int num = num_faces_pooled < FACE_POOL_SIZE ? num_faces_pooled : FACE_POOL_SIZE;
     // face_stored temp_faces[num];
     // memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
-    u16 cube_indices[6 * num]; // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
+    u16 *cube_indices = malloc(6 * num * sizeof(u16)); // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
 
     f32 *cube_vertices = malloc(4*num*3 * sizeof(f32));
     f32 *tex_coors = malloc(4*num*2 * sizeof(f32));
@@ -850,15 +850,24 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     }
 
     int n = 0;
+    int chunk_i = 0, chunk_i_cmp = 0;
     for (int i = 0; i < num; i++) {
+        if (chunk_i_cmp >= chunk_offsets[chunk_i]) {
+            chunk_i++;
+            chunk_i_cmp = 0;
+        }
+        chunk_i_cmp++;
         face_stored fs = faces_pool[i];
         
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
         if (remove_directions[direction]) continue;
 
-        f32 chunk_offset[3] = {i > chunk_offsets[0] ? 50 * CHUNK_SIZE : 0, 0, 0};
+        // f32 pos_offset[3] = {(f32)(floorf((f32)i / 6.f) * 50 * CHUNK_SIZE), 0, 0};
+        f32 pos_offset[3] = {(f32) (loaded_chunks[chunk_i].x * 50 * CHUNK_SIZE), 
+                             (f32) (loaded_chunks[chunk_i].y * 50 * CHUNK_SIZE), 
+                             (f32) (loaded_chunks[chunk_i].z * 50 * CHUNK_SIZE)};
         face f = {0};
-        fill_face_vertices(f.vertices, f.tex_coords, 0, chunk_offset, fs);
+        fill_face_vertices(f.vertices, f.tex_coords, 0, pos_offset, fs);
 
         Vector3 view_dir = normalize(subtract(v_cam_loc, f.vertices[0]));
         f32 dot_prod = dot_product(face_normals[direction], view_dir);

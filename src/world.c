@@ -186,8 +186,8 @@ static void find_faces_of_chunk(
 
 void init_world(void) {
     faces_pool = malloc(FACE_POOL_SIZE * sizeof(face_stored));
-    loaded_chunks = calloc(4, sizeof(chunk_data));
-    chunk_offsets = calloc(4, sizeof(u32));
+    loaded_chunks = calloc(25, sizeof(chunk_data));
+    chunk_offsets = calloc(25, sizeof(u32));
 
     // FIXME if faces_pool == null
 }

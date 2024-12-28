@@ -127,8 +127,8 @@ int main(void)
     memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
 
     init_world();
-    for (int x = 0; x < 2; x++) {
-        for (int z = 0; z < 2; z++) {
+    for (int x = 0; x < 4; x++) {
+        for (int z = 0; z < 4; z++) {
             generate_chunk(x, 0, z);
         }
     }

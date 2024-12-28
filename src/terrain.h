@@ -809,6 +809,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
      * Setup vertex attributes
      */
     int num = num_faces_pooled < FACE_POOL_SIZE ? num_faces_pooled : FACE_POOL_SIZE;
+    // if (num > 1000) num = 1000;
     // face_stored temp_faces[num];
     // memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
     u16 *cube_indices = malloc(6 * num * sizeof(u16)); // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
@@ -885,8 +886,6 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     }
     pb_print("rendered faces: %d\n", n);
 
-    // if (n > 224) n = 224;
-
     u32 real_size_of_verts = sizeof(f32) * 4 * n * 3;
     u32 *allocated_verts = MmAllocateContiguousMemoryEx(real_size_of_verts, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memcpy(allocated_verts, cube_vertices, real_size_of_verts);
@@ -911,6 +910,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     MmFreeContiguousMemory(allocated_texs);
     free(cube_vertices);
     free(tex_coors);
+    free(cube_indices);
 }
 
 inline static void render_terrain(image_data img) {

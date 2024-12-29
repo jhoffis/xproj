@@ -1,6 +1,8 @@
 #pragma once
 #include "cube.h"
 
+
+
 #define CHUNK_SIZE 16
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 8*1024
@@ -18,7 +20,6 @@
 #define FACE_DIRECTION_WEST 4  // -x
 #define FACE_DIRECTION_EAST 5  // +x
 #define FACE_DIRECTION_TOTAL 6
-#define FACE_MASK_INFO_DIRECTION 0x07 // lower 3 bits
 
 /*
  * Keep only the closest ones of these active, whereas the ones further way
@@ -41,17 +42,25 @@ typedef struct {
 } face; // Kan ha 326 tusen faces i 30MB, så disse burde lagres! Burde ha at man laster inn de nermeste 9 chunks i disse.
 
 typedef struct {
-    i8 a0, a1, b0, b1, c;
+    i8 a0, a1, b0, b1, c; // TODO siden vi vet at en chunk er 16x16x16 eller 32x32x32 
+                          // så kan jeg bruke enten 4 eller 5 bits for hver av disse og så ha resten i info elns.
+                          // Da kan jeg gå ned til 32 bits i stedet for 48 og ha 4 ekstra bits til info.
 } corners_i8;
 
+#define FACE_STORED_A0    0xF0000000
+#define FACE_STORED_A1    0x0F000000
+#define FACE_STORED_B0    0x00F00000
+#define FACE_STORED_B1    0x000F0000
+#define FACE_STORED_C     0x0000F000
+#define FACE_STORED_INFO  0x00000FFF
+#define FACE_STORED_INFO_DIRECTION  0x00000007
 /*
  * We only need two corners with two dimensions, and we know the direction so that we can assume whether it's x and y or x and z etc.
  * List the same face_type grouped together instead of storing it with each face.
  */
-typedef struct {
-    corners_i8 corners; // TODO possibly make into f16's with offsets of chunk location. And also, we only need 2 (opposing corners!) vertices because we know it's a flat plane!
-    u8 info; // first 3 bits are direction
-} face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
+typedef u32 face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
+#define SET_FACE_STORED(value, input, mask) (value) = ((value) & ~(mask)) | (((input & 0xF) << __builtin_ctz(mask)))
+#define GET_FACE_STORED(value, mask) ((value & mask) >> __builtin_ctz(mask))
 
 extern chunk_data *loaded_chunks;
 extern face_stored *faces_pool;

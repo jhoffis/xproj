@@ -132,8 +132,8 @@ int main(void)
             generate_chunk(x, 0, z);
         }
     }
+    // generate_chunk(0, 0, 0);
     load_chunks();
-    // generate_chunk(1, 0);
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 10000.0f);

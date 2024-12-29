@@ -417,7 +417,7 @@
 // }
 
 static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset, face_stored face) {
-    switch (face.info & FACE_MASK_INFO_DIRECTION) { 
+    switch (GET_FACE_STORED(face, FACE_STORED_INFO_DIRECTION)) { 
         case FACE_DIRECTION_DOWN:
             indices[index_offset + 0] = vertex_offset + 1;
             indices[index_offset + 1] = vertex_offset + 2;
@@ -637,7 +637,6 @@ static Vector3 subtract(f32 *a, f32 *b) {
     return (Vector3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
 }
 
-// FIXME does not work when running non-statically or directly in main.c
 static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
     v_obj_pos[0] = x;
@@ -713,13 +712,13 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
      * Setup vertex attributes
      */
     int num = num_faces_pooled < FACE_POOL_SIZE ? num_faces_pooled : FACE_POOL_SIZE;
-    // if (num > 1000) num = 1000;
     // face_stored temp_faces[num];
     // memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
     u16 *cube_indices = malloc(6 * num * sizeof(u16)); // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
 
-    f32 *cube_vertices = malloc(4*num*3 * sizeof(f32));
-    f32 *tex_coors = malloc(4*num*2 * sizeof(f32));
+    f32 *cube_vertices = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    f32 *tex_coors = MmAllocateContiguousMemoryEx(4*num*2 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+
     // MATRIX vm;
     // matrix_multiply(vm, m_view, m_model);
     MATRIX mvp;
@@ -756,10 +755,11 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     int n = 0;
     for (int i = 0; i < num; i++) {
+        
         face f = faces_calculated_pool[i];
         face_stored fs = faces_pool[i];
-        
-        u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
+        u8 direction = GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION);
+
         if (remove_directions[direction]) continue;
 
         // face f = {0};
@@ -768,28 +768,29 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         Vector3 view_dir = normalize(subtract(v_cam_loc, f.vertices[0]));
         f32 dot_prod = dot_product(face_normals[direction], view_dir);
         if (dot_prod < 0) continue;
+        // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
 
         fill_face_indices(f.indices, 0, n*4, fs);
         // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
 
+        // 3 000 000 ns ish
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
         memcpy(&cube_vertices[n*4*3], f.vertices, sizeof(f32) * 4 * 3);
-        memcpy(&tex_coors[n*4*2], f.tex_coords, sizeof(f32) * 4 * 2);
-
+        memcpy(&tex_coors[n*4*2], f.tex_coords, sizeof(f32) * 4 * 2); // TODO texture coordinates can be baked into the shader!
 
         n++;
     }
     pb_print("rendered faces: %d\n", n);
 
-    u32 real_size_of_verts = sizeof(f32) * 4 * n * 3;
-    u32 *allocated_verts = MmAllocateContiguousMemoryEx(real_size_of_verts, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(allocated_verts, cube_vertices, real_size_of_verts);
-    u32 real_size_of_texs = sizeof(f32) * 4 * n * 2;
-    u32 *allocated_texs = MmAllocateContiguousMemoryEx(real_size_of_verts, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(allocated_texs, tex_coors, real_size_of_texs);
+    // u32 real_size_of_verts = sizeof(f32) * 4 * n * 3;
+    // u32 *allocated_verts = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    // memcpy(allocated_verts, cube_vertices, real_size_of_verts);
+    // u32 real_size_of_texs = sizeof(f32) * 4 * n * 2;
+    // u32 *allocated_texs = MmAllocateContiguousMemoryEx(real_size_of_texs, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    // memcpy(allocated_texs, tex_coors, real_size_of_texs);
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(float) * 3, allocated_verts);
+            3, sizeof(float) * 3, cube_vertices);
 
     /* Set vertex diffuse color attribute */
     set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
@@ -797,14 +798,14 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            2, sizeof(float) * 2, allocated_texs);
+            2, sizeof(float) * 2, tex_coors);
 
     /* Begin drawing triangles */
     draw_indexed(n*6, cube_indices);
-    MmFreeContiguousMemory(allocated_verts);
-    MmFreeContiguousMemory(allocated_texs);
-    free(cube_vertices);
-    free(tex_coors);
+    MmFreeContiguousMemory(cube_vertices);
+    MmFreeContiguousMemory(tex_coors);
+    // free(cube_vertices);
+    // free(tex_coors);
     free(cube_indices);
 }
 

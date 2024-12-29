@@ -67,12 +67,12 @@ static face_stored find_single_face(
             }
         }
 BreakUpLoop:
-        res.info = face_direction;
-        res.corners.a0 = start_x;
-        res.corners.b0 = start_z;
-        res.corners.a1 = max_x;
-        res.corners.b1 = max_z;
-        res.corners.c = (face_direction == FACE_DIRECTION_DOWN) ? start_y - 1 : start_y;
+        SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
+        SET_FACE_STORED(res, start_x, FACE_STORED_A0);
+        SET_FACE_STORED(res, start_z, FACE_STORED_B0);
+        SET_FACE_STORED(res, max_x, FACE_STORED_A1);
+        SET_FACE_STORED(res, max_z, FACE_STORED_B1);
+        SET_FACE_STORED(res, (face_direction == FACE_DIRECTION_DOWN) ? start_y - 1 : start_y, FACE_STORED_C);
 
         for (int x = start_x; x < max_x; x++) {
             for (int z = start_z; z < max_z; z++) {
@@ -106,12 +106,19 @@ BreakUpLoop:
             }
         }
 BreakNorthLoop:
-        res.info = face_direction;
-        res.corners.a0 = start_x;
-        res.corners.b0 = start_y - 1;
-        res.corners.a1 = max_x;
-        res.corners.b1 = max_y - 1;
-        res.corners.c = (face_direction == FACE_DIRECTION_SOUTH) ? start_z : start_z + 1;
+        // res.info = face_direction;
+        // res.corners.a0 = start_x;
+        // res.corners.b0 = start_y - 1;
+        // res.corners.a1 = max_x;
+        // res.corners.b1 = max_y - 1;
+        // res.corners.c = (face_direction == FACE_DIRECTION_SOUTH) ? start_z : start_z + 1;
+
+        SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
+        SET_FACE_STORED(res, start_x, FACE_STORED_A0);
+        SET_FACE_STORED(res, start_y - 1, FACE_STORED_B0);
+        SET_FACE_STORED(res, max_x, FACE_STORED_A1);
+        SET_FACE_STORED(res, max_y - 1, FACE_STORED_B1);
+        SET_FACE_STORED(res, (face_direction == FACE_DIRECTION_SOUTH) ? start_z : start_z + 1, FACE_STORED_C);
 
         for (int x = start_x; x < max_x; x++) {
             for (int y = start_y; y < max_y; y++) {
@@ -145,12 +152,19 @@ BreakNorthLoop:
         }
     }
 BreakEastLoop:
-    res.info = face_direction;
-    res.corners.a0 = start_y - 1;
-    res.corners.b0 = start_z;
-    res.corners.a1 = max_y - 1;
-    res.corners.b1 = max_z;
-    res.corners.c = (face_direction == FACE_DIRECTION_EAST) ? start_x + 1 : start_x;
+    // res.info = face_direction;
+    // res.corners.a0 = start_y - 1;
+    // res.corners.b0 = start_z;
+    // res.corners.a1 = max_y - 1;
+    // res.corners.b1 = max_z;
+    // res.corners.c = (face_direction == FACE_DIRECTION_EAST) ? start_x + 1 : start_x;
+
+    SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
+    SET_FACE_STORED(res, start_y - 1, FACE_STORED_A0);
+    SET_FACE_STORED(res, start_z, FACE_STORED_B0);
+    SET_FACE_STORED(res, max_y - 1, FACE_STORED_A1);
+    SET_FACE_STORED(res, max_z, FACE_STORED_B1);
+    SET_FACE_STORED(res, (face_direction == FACE_DIRECTION_EAST) ? start_x + 1 : start_x, FACE_STORED_C);
 
     for (int z = start_z; z < max_z; z++) {
         for (int y = start_y; y < max_y; y++) {
@@ -283,16 +297,17 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
 }
 
 static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset, f32 chunk_offset[3], face_stored face) {
-    int a0 = face.corners.a0 * 2*cube_size;
-    int a1 = face.corners.a1 * 2*cube_size;
-    int b0 = face.corners.b0 * 2*cube_size;
-    int b1 = face.corners.b1 * 2*cube_size;
-    int c = face.corners.c * 2*cube_size;
+    int a0 = GET_FACE_STORED(face, FACE_STORED_A0) * 2*(int)cube_size;
+    int a1 = GET_FACE_STORED(face, FACE_STORED_A1) * 2*(int)cube_size;
+    int b0 = GET_FACE_STORED(face, FACE_STORED_B0) * 2*(int)cube_size;
+    int b1 = GET_FACE_STORED(face, FACE_STORED_B1) * 2*(int)cube_size;
+    int c  = GET_FACE_STORED(face, FACE_STORED_C)  * 2*(int)cube_size;
 
-    int tex_a = face.corners.a1 - face.corners.a0;
-    int tex_b = face.corners.b1 - face.corners.b0;
+    int tex_a = GET_FACE_STORED(face, FACE_STORED_A1) - GET_FACE_STORED(face, FACE_STORED_A0);
+    int tex_b = GET_FACE_STORED(face, FACE_STORED_B1) - GET_FACE_STORED(face, FACE_STORED_B0);
 
-    if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_UP) {
+    int direction = GET_FACE_STORED(face, FACE_STORED_INFO_DIRECTION);
+    if (direction <= FACE_DIRECTION_UP) {
 
         vertices[offset + 0][0] = chunk_offset[0] + a0;
         vertices[offset + 0][1] = chunk_offset[1] + c;
@@ -320,7 +335,7 @@ static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset
         return;
     } 
 
-    if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_NORTH) {
+    if (direction <= FACE_DIRECTION_NORTH) {
 
         vertices[offset + 0][0] = chunk_offset[0] + a1;
         vertices[offset + 0][1] = chunk_offset[1] + b0;
@@ -378,6 +393,7 @@ static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset
     tex_coors[offset + 3][0] = 0;
     tex_coors[offset + 3][1] = 0;
 }
+
 void load_chunks(void) {
 
     int chunk_i = 0, chunk_i_cmp = 0;

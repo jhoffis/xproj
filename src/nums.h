@@ -11,6 +11,8 @@
 
 #include <stdbool.h>
 
+#define MY_BIT_MASK(n)  (1U << (n)) - 1
+
 typedef float f32;
 typedef double f64;
 typedef unsigned char u8;

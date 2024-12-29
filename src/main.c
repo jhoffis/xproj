@@ -132,6 +132,7 @@ int main(void)
             generate_chunk(x, 0, z);
         }
     }
+    load_chunks();
     // generate_chunk(1, 0);
 
     /* Create projection matrix */

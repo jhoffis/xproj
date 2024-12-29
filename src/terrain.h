@@ -469,102 +469,6 @@ static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset
     }
 }
 
-static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset, f32 chunk_offset[3], face_stored face) {
-    int a0 = face.corners.a0 * 2*cube_size;
-    int a1 = face.corners.a1 * 2*cube_size;
-    int b0 = face.corners.b0 * 2*cube_size;
-    int b1 = face.corners.b1 * 2*cube_size;
-    int c = face.corners.c * 2*cube_size;
-
-    int tex_a = face.corners.a1 - face.corners.a0;
-    int tex_b = face.corners.b1 - face.corners.b0;
-
-    if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_UP) {
-
-        vertices[offset + 0][0] = chunk_offset[0] + a0;
-        vertices[offset + 0][1] = chunk_offset[1] + c;
-        vertices[offset + 0][2] = chunk_offset[2] + b1;
-        tex_coors[offset + 0][0] = 0;
-        tex_coors[offset + 0][1] = tex_b;
-                          
-        vertices[offset + 1][0] = chunk_offset[0] + a1;
-        vertices[offset + 1][1] = chunk_offset[1] + c;
-        vertices[offset + 1][2] = chunk_offset[2] + b1;
-        tex_coors[offset + 1][0] = tex_a;
-        tex_coors[offset + 1][1] = tex_b;
-                          
-        vertices[offset + 2][0] = chunk_offset[0] + a1;
-        vertices[offset + 2][1] = chunk_offset[1] + c;
-        vertices[offset + 2][2] = chunk_offset[2] + b0;
-        tex_coors[offset + 2][0] = tex_a;
-        tex_coors[offset + 2][1] = 0;
-                          
-        vertices[offset + 3][0] = chunk_offset[0] + a0; // TODO flytt denne til nullte vertex
-        vertices[offset + 3][1] = chunk_offset[1] + c;
-        vertices[offset + 3][2] = chunk_offset[2] + b0;
-        tex_coors[offset + 3][0] = 0;
-        tex_coors[offset + 3][1] = 0;
-        return;
-    } 
-
-    if ((face.info & FACE_MASK_INFO_DIRECTION) <= FACE_DIRECTION_NORTH) {
-
-        vertices[offset + 0][0] = chunk_offset[0] + a1;
-        vertices[offset + 0][1] = chunk_offset[1] + b0;
-        vertices[offset + 0][2] = chunk_offset[2] + c;
-        tex_coors[offset + 0][0] = 0;
-        tex_coors[offset + 0][1] = tex_a;
-                          
-        vertices[offset + 1][0] = chunk_offset[0] + a1;
-        vertices[offset + 1][1] = chunk_offset[1] + b1;
-        vertices[offset + 1][2] = chunk_offset[2] + c;
-        tex_coors[offset + 1][0] = tex_b;
-        tex_coors[offset + 1][1] = tex_a;
-                          
-        vertices[offset + 2][0] = chunk_offset[0] + a0;
-        vertices[offset + 2][1] = chunk_offset[1] + b1;
-        vertices[offset + 2][2] = chunk_offset[2] + c;
-        tex_coors[offset + 2][0] = tex_b;
-        tex_coors[offset + 2][1] = 0;
-                          
-        vertices[offset + 3][0] = chunk_offset[0] + a0;
-        vertices[offset + 3][1] = chunk_offset[1] + b0;
-        vertices[offset + 3][2] = chunk_offset[2] + c;
-        tex_coors[offset + 3][0] = 0;
-        tex_coors[offset + 3][1] = 0;
-        return;
-    } 
-
-    // int x = start_x * 2*cube_size;
-    // int y0 = (start_y - 1) * 2*cube_size;
-    // int y1 = (max_y - 1) * 2*cube_size;
-    // int z0 = start_z * 2*cube_size;
-    // int z1 = max_z * 2*cube_size;
-
-    vertices[offset + 0][0] = chunk_offset[0] + c;
-    vertices[offset + 0][1] = chunk_offset[1] + a0;
-    vertices[offset + 0][2] = chunk_offset[2] + b1;
-    tex_coors[offset + 0][0] = 0;
-    tex_coors[offset + 0][1] = tex_b;
-                      
-    vertices[offset + 1][0] = chunk_offset[0] + c;
-    vertices[offset + 1][1] = chunk_offset[1] + a1;
-    vertices[offset + 1][2] = chunk_offset[2] + b1;
-    tex_coors[offset + 1][0] = tex_a;
-    tex_coors[offset + 1][1] = tex_b;
-                      
-    vertices[offset + 2][0] = chunk_offset[0] + c;
-    vertices[offset + 2][1] = chunk_offset[1] + a1;
-    vertices[offset + 2][2] = chunk_offset[2] + b0;
-    tex_coors[offset + 2][0] = tex_a;
-    tex_coors[offset + 2][1] = 0;
-                      
-    vertices[offset + 3][0] = chunk_offset[0] + c;
-    vertices[offset + 3][1] = chunk_offset[1] + a0;
-    vertices[offset + 3][2] = chunk_offset[2] + b0;
-    tex_coors[offset + 3][0] = 0;
-    tex_coors[offset + 3][1] = 0;
-}
 
 static void mul_left_vec4_matrix(f32 vec[4], f32 mat[16]) {    
     // Cache the input vector since we'll overwrite it
@@ -851,31 +755,22 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     }
 
     int n = 0;
-    int chunk_i = 0, chunk_i_cmp = 0;
     for (int i = 0; i < num; i++) {
-        if (chunk_i_cmp >= chunk_offsets[chunk_i]) {
-            chunk_i++;
-            chunk_i_cmp = 0;
-        }
-        chunk_i_cmp++;
+        face f = faces_calculated_pool[i];
         face_stored fs = faces_pool[i];
         
         u8 direction = fs.info & FACE_MASK_INFO_DIRECTION;
         if (remove_directions[direction]) continue;
 
-        // f32 pos_offset[3] = {(f32)(floorf((f32)i / 6.f) * 50 * CHUNK_SIZE), 0, 0};
-        f32 pos_offset[3] = {(f32) (loaded_chunks[chunk_i].x * 50 * CHUNK_SIZE), 
-                             (f32) (loaded_chunks[chunk_i].y * 50 * CHUNK_SIZE), 
-                             (f32) (loaded_chunks[chunk_i].z * 50 * CHUNK_SIZE)};
-        face f = {0};
-        fill_face_vertices(f.vertices, f.tex_coords, 0, pos_offset, fs);
+        // face f = {0};
+        // fill_face_vertices(f.vertices, f.tex_coords, 0, pos_offset, fs);
 
         Vector3 view_dir = normalize(subtract(v_cam_loc, f.vertices[0]));
         f32 dot_prod = dot_product(face_normals[direction], view_dir);
         if (dot_prod < 0) continue;
 
         fill_face_indices(f.indices, 0, n*4, fs);
-        if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
+        // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
 
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
         memcpy(&cube_vertices[n*4*3], f.vertices, sizeof(f32) * 4 * 3);

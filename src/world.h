@@ -55,9 +55,11 @@ typedef struct {
 
 extern chunk_data *loaded_chunks;
 extern face_stored *faces_pool;
+extern face *faces_calculated_pool;
 extern u32 num_faces_pooled;
 extern u32 num_chunks_pooled;
 extern u32 *chunk_offsets;
 
 void init_world(void);
 void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z);
+void load_chunks(void);

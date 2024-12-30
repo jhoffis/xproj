@@ -72,7 +72,7 @@ BreakUpLoop:
         SET_FACE_STORED(res, start_z, FACE_STORED_B0);
         SET_FACE_STORED(res, max_x, FACE_STORED_A1);
         SET_FACE_STORED(res, max_z, FACE_STORED_B1);
-        SET_FACE_STORED(res, (face_direction == FACE_DIRECTION_DOWN) ? start_y - 1 : start_y, FACE_STORED_C);
+        SET_FACE_STORED(res, start_y, FACE_STORED_C);
 
         for (int x = start_x; x < max_x; x++) {
             for (int z = start_z; z < max_z; z++) {
@@ -115,10 +115,10 @@ BreakNorthLoop:
 
         SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
         SET_FACE_STORED(res, start_x, FACE_STORED_A0);
-        SET_FACE_STORED(res, start_y - 1, FACE_STORED_B0);
+        SET_FACE_STORED(res, start_y, FACE_STORED_B0);
         SET_FACE_STORED(res, max_x, FACE_STORED_A1);
-        SET_FACE_STORED(res, max_y - 1, FACE_STORED_B1);
-        SET_FACE_STORED(res, (face_direction == FACE_DIRECTION_SOUTH) ? start_z : start_z + 1, FACE_STORED_C);
+        SET_FACE_STORED(res, max_y, FACE_STORED_B1);
+        SET_FACE_STORED(res, start_z, FACE_STORED_C);
 
         for (int x = start_x; x < max_x; x++) {
             for (int y = start_y; y < max_y; y++) {
@@ -160,11 +160,11 @@ BreakEastLoop:
     // res.corners.c = (face_direction == FACE_DIRECTION_EAST) ? start_x + 1 : start_x;
 
     SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
-    SET_FACE_STORED(res, start_y - 1, FACE_STORED_A0);
+    SET_FACE_STORED(res, start_y, FACE_STORED_A0);
     SET_FACE_STORED(res, start_z, FACE_STORED_B0);
-    SET_FACE_STORED(res, max_y - 1, FACE_STORED_A1);
+    SET_FACE_STORED(res, max_y, FACE_STORED_A1);
     SET_FACE_STORED(res, max_z, FACE_STORED_B1);
-    SET_FACE_STORED(res, (face_direction == FACE_DIRECTION_EAST) ? start_x + 1 : start_x, FACE_STORED_C);
+    SET_FACE_STORED(res, start_x, FACE_STORED_C);
 
     for (int z = start_z; z < max_z; z++) {
         for (int y = start_y; y < max_y; y++) {

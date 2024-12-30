@@ -44,23 +44,23 @@ static face_stored find_single_face(
     bool first = true;
 
     if (face_direction <= FACE_DIRECTION_UP) {
-        int max_z = CHUNK_SIZE; 
-        for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
+        int max_z = CHUNK_SIZE - 1; 
+        for (int z = start_z; z < CHUNK_SIZE; z++) {
             if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR ||
-                (first && COVERED(covered, start_x, start_y, z, face_direction))) {
-                max_z = z;
+                COVERED(covered, start_x, start_y, z, face_direction)) {
+                max_z = z - 1;
                 break;
             }
             first = false;
         }
 
-        int max_x = CHUNK_SIZE; 
+        int max_x = CHUNK_SIZE - 1; 
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
             first = true;
-            for (int z = start_z; z < max_z; z++) {
+            for (int z = start_z; z <= max_z; z++) {
                 if (chunk->cubes[x][start_y][z].type == BLOCK_TYPE_AIR ||
-                    (first && COVERED(covered, x, start_y, z, face_direction))) {
-                    max_x = x;
+                    COVERED(covered, x, start_y, z, face_direction)) {
+                    max_x = x - 1;
                     goto BreakUpLoop;
                 }
                 first = false;
@@ -74,8 +74,8 @@ BreakUpLoop:
         SET_FACE_STORED(res, max_z, FACE_STORED_B1);
         SET_FACE_STORED(res, start_y, FACE_STORED_C);
 
-        for (int x = start_x; x < max_x; x++) {
-            for (int z = start_z; z < max_z; z++) {
+        for (int x = start_x; x < max_x + 1; x++) {
+            for (int z = start_z; z < max_z + 1; z++) {
                 COVERED(covered, x, start_y, z, face_direction) = true;
             }
         }
@@ -83,23 +83,23 @@ BreakUpLoop:
     } 
 
     if (face_direction <= FACE_DIRECTION_NORTH) {
-        int max_x = CHUNK_SIZE; 
-        for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
+        int max_x = CHUNK_SIZE - 1; 
+        for (int x = start_x; x < CHUNK_SIZE; x++) {
             if (chunk->cubes[x][start_y][start_z].type == BLOCK_TYPE_AIR ||
-                (first && COVERED(covered, x, start_y, start_z, face_direction))) {
-                max_x = x;
+                COVERED(covered, x, start_y, start_z, face_direction)) {
+                max_x = x - 1;
                 break;
             }
             first = false;
         }
 
-        int max_y = CHUNK_SIZE; 
+        int max_y = CHUNK_SIZE - 1; 
         for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
             first = true;
-            for (int x = start_x; x < max_x; x++) {
+            for (int x = start_x; x <= max_x; x++) {
                 if (chunk->cubes[x][y][start_z].type == BLOCK_TYPE_AIR ||
-                    (first && COVERED(covered, x, y, start_z, face_direction))) {
-                    max_y = y;
+                    COVERED(covered, x, y, start_z, face_direction)) {
+                    max_y = y - 1;
                     goto BreakNorthLoop;
                 }
                 first = false;
@@ -120,8 +120,8 @@ BreakNorthLoop:
         SET_FACE_STORED(res, max_y, FACE_STORED_B1);
         SET_FACE_STORED(res, start_z, FACE_STORED_C);
 
-        for (int x = start_x; x < max_x; x++) {
-            for (int y = start_y; y < max_y; y++) {
+        for (int x = start_x; x < max_x + 1; x++) {
+            for (int y = start_y; y < max_y + 1; y++) {
                 COVERED(covered, x, y, start_z, face_direction) = true;
             }
         }
@@ -129,23 +129,23 @@ BreakNorthLoop:
     }
 
     // FACE_DIRECTION_EAST
-    int max_z = CHUNK_SIZE; 
-    for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
+    int max_z = CHUNK_SIZE - 1; 
+    for (int z = start_z; z < CHUNK_SIZE; z++) {
         if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR ||
-            (first && COVERED(covered, start_x, start_y, z, face_direction))) {
-            max_z = z;
+            COVERED(covered, start_x, start_y, z, face_direction)) {
+            max_z = z - 1;
             break;
         }
         first = false;
     }
 
-    int max_y = CHUNK_SIZE; 
+    int max_y = CHUNK_SIZE - 1; 
     for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
         first = true;
-        for (int z = start_z; z < max_z; z++) {
+        for (int z = start_z; z <= max_z; z++) {
             if (chunk->cubes[start_x][y][z].type == BLOCK_TYPE_AIR ||
-                (first && COVERED(covered, start_x, y, z, face_direction))) {
-                max_y = y;
+                COVERED(covered, start_x, y, z, face_direction)) {
+                max_y = y - 1;
                 goto BreakEastLoop;
             }
             first = false;
@@ -166,8 +166,8 @@ BreakEastLoop:
     SET_FACE_STORED(res, max_z, FACE_STORED_B1);
     SET_FACE_STORED(res, start_x, FACE_STORED_C);
 
-    for (int z = start_z; z < max_z; z++) {
-        for (int y = start_y; y < max_y; y++) {
+    for (int z = start_z; z < max_z + 1; z++) {
+        for (int y = start_y; y < max_y + 1; y++) {
             COVERED(covered, start_x, y, z, face_direction) = true;
         }
     }
@@ -227,7 +227,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
-                if ((y < 5 && x % 2 != 0 && z % 2 != 0) || (y < 3)) {
+                if ((y < 5 && x % 2 != 0 && z % 2 != 0) || (y < 3) && x+z != 2) {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
                 } else {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
@@ -296,18 +296,21 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
     num_chunks_pooled++;
 }
 
-static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset, f32 chunk_offset[3], face_stored face) {
+static void convert_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset, f32 chunk_offset[3], face_stored face) {
     int a0 = GET_FACE_STORED(face, FACE_STORED_A0) * 2*(int)cube_size;
-    int a1 = GET_FACE_STORED(face, FACE_STORED_A1) * 2*(int)cube_size;
+    int a1 = (1 + GET_FACE_STORED(face, FACE_STORED_A1)) * 2*(int)cube_size;
     int b0 = GET_FACE_STORED(face, FACE_STORED_B0) * 2*(int)cube_size;
-    int b1 = GET_FACE_STORED(face, FACE_STORED_B1) * 2*(int)cube_size;
+    int b1 = (1 + GET_FACE_STORED(face, FACE_STORED_B1)) * 2*(int)cube_size;
     int c  = GET_FACE_STORED(face, FACE_STORED_C)  * 2*(int)cube_size;
 
-    int tex_a = GET_FACE_STORED(face, FACE_STORED_A1) - GET_FACE_STORED(face, FACE_STORED_A0);
-    int tex_b = GET_FACE_STORED(face, FACE_STORED_B1) - GET_FACE_STORED(face, FACE_STORED_B0);
+    int tex_a = (1 + GET_FACE_STORED(face, FACE_STORED_A1)) - GET_FACE_STORED(face, FACE_STORED_A0);
+    int tex_b = (1 + GET_FACE_STORED(face, FACE_STORED_B1)) - GET_FACE_STORED(face, FACE_STORED_B0);
 
     int direction = GET_FACE_STORED(face, FACE_STORED_INFO_DIRECTION);
     if (direction <= FACE_DIRECTION_UP) {
+        if (direction == FACE_DIRECTION_UP) {
+            c += 2*(int)cube_size;
+        }
 
         vertices[offset + 0][0] = chunk_offset[0] + a0;
         vertices[offset + 0][1] = chunk_offset[1] + c;
@@ -336,6 +339,9 @@ static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset
     } 
 
     if (direction <= FACE_DIRECTION_NORTH) {
+        if (direction == FACE_DIRECTION_NORTH) {
+            c += 2*(int)cube_size;
+        }
 
         vertices[offset + 0][0] = chunk_offset[0] + a1;
         vertices[offset + 0][1] = chunk_offset[1] + b0;
@@ -368,6 +374,9 @@ static void fill_face_vertices(f32 vertices[][3], f32 tex_coors[][2], u32 offset
     // int y1 = (max_y - 1) * 2*cube_size;
     // int z0 = start_z * 2*cube_size;
     // int z1 = max_z * 2*cube_size;
+    if (direction == FACE_DIRECTION_EAST) {
+        c += 2*(int)cube_size;
+    }
 
     vertices[offset + 0][0] = chunk_offset[0] + c;
     vertices[offset + 0][1] = chunk_offset[1] + a0;
@@ -409,7 +418,7 @@ void load_chunks(void) {
 
         face_stored fs = faces_pool[i];
         face f = {0};
-        fill_face_vertices(f.vertices, f.tex_coords, 0, pos_offset, fs);
+        convert_face_vertices(f.vertices, f.tex_coords, 0, pos_offset, fs);
         memcpy(&faces_calculated_pool[i], &f, sizeof(face));
    }
 }

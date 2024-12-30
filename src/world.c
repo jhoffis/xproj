@@ -45,9 +45,11 @@ static face_stored find_single_face(
 
     if (face_direction <= FACE_DIRECTION_UP) {
         int max_z = CHUNK_SIZE - 1; 
-        for (int z = start_z; z < CHUNK_SIZE; z++) {
+        for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
+            bool found_wrong_type = false;
+            int found_opens = 0;
             if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR ||
-                COVERED(covered, start_x, start_y, z, face_direction)) {
+                COVERED(covered, start_x, start_y, z, face_direction) == 2) {
                 max_z = z - 1;
                 break;
             }
@@ -56,17 +58,23 @@ static face_stored find_single_face(
 
         int max_x = CHUNK_SIZE - 1; 
         for (int x = start_x + 1; x < CHUNK_SIZE; x++) {
-            first = true;
+            bool found_wrong_type = false;
+            int found_opens = 0;
             for (int z = start_z; z <= max_z; z++) {
-                if (chunk->cubes[x][start_y][z].type == BLOCK_TYPE_AIR ||
-                    COVERED(covered, x, start_y, z, face_direction)) {
-                    max_x = x - 1;
-                    goto BreakUpLoop;
+                if (chunk->cubes[x][start_y][z].type == BLOCK_TYPE_AIR) {
+                    found_wrong_type = true;
+                    break;
                 }
-                first = false;
+                if (COVERED(covered, x, start_y, z, face_direction) == 0) {
+                    found_opens++;
+                }
+            }
+            if (found_wrong_type || found_opens == 0) {
+                max_x = x - 1;
+                break;
             }
         }
-BreakUpLoop:
+
         SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
         SET_FACE_STORED(res, start_x, FACE_STORED_A0);
         SET_FACE_STORED(res, start_z, FACE_STORED_B0);
@@ -74,9 +82,9 @@ BreakUpLoop:
         SET_FACE_STORED(res, max_z, FACE_STORED_B1);
         SET_FACE_STORED(res, start_y, FACE_STORED_C);
 
-        for (int x = start_x; x < max_x + 1; x++) {
-            for (int z = start_z; z < max_z + 1; z++) {
-                COVERED(covered, x, start_y, z, face_direction) = true;
+        for (int x = start_x; x <= max_x; x++) {
+            for (int z = start_z; z <= max_z; z++) {
+                COVERED(covered, x, start_y, z, face_direction) = 2;
             }
         }
         return res;
@@ -106,13 +114,6 @@ BreakUpLoop:
             }
         }
 BreakNorthLoop:
-        // res.info = face_direction;
-        // res.corners.a0 = start_x;
-        // res.corners.b0 = start_y - 1;
-        // res.corners.a1 = max_x;
-        // res.corners.b1 = max_y - 1;
-        // res.corners.c = (face_direction == FACE_DIRECTION_SOUTH) ? start_z : start_z + 1;
-
         SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
         SET_FACE_STORED(res, start_x, FACE_STORED_A0);
         SET_FACE_STORED(res, start_y, FACE_STORED_B0);
@@ -120,9 +121,9 @@ BreakNorthLoop:
         SET_FACE_STORED(res, max_y, FACE_STORED_B1);
         SET_FACE_STORED(res, start_z, FACE_STORED_C);
 
-        for (int x = start_x; x < max_x + 1; x++) {
-            for (int y = start_y; y < max_y + 1; y++) {
-                COVERED(covered, x, y, start_z, face_direction) = true;
+        for (int x = start_x; x <= max_x; x++) {
+            for (int y = start_y; y <= max_y; y++) {
+                COVERED(covered, x, y, start_z, face_direction) = 2;
             }
         }
         return res;
@@ -152,13 +153,6 @@ BreakNorthLoop:
         }
     }
 BreakEastLoop:
-    // res.info = face_direction;
-    // res.corners.a0 = start_y - 1;
-    // res.corners.b0 = start_z;
-    // res.corners.a1 = max_y - 1;
-    // res.corners.b1 = max_z;
-    // res.corners.c = (face_direction == FACE_DIRECTION_EAST) ? start_x + 1 : start_x;
-
     SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
     SET_FACE_STORED(res, start_y, FACE_STORED_A0);
     SET_FACE_STORED(res, start_z, FACE_STORED_B0);
@@ -166,9 +160,9 @@ BreakEastLoop:
     SET_FACE_STORED(res, max_z, FACE_STORED_B1);
     SET_FACE_STORED(res, start_x, FACE_STORED_C);
 
-    for (int z = start_z; z < max_z + 1; z++) {
-        for (int y = start_y; y < max_y + 1; y++) {
-            COVERED(covered, start_x, y, z, face_direction) = true;
+    for (int z = start_z; z <= max_z; z++) {
+        for (int y = start_y; y <= max_y; y++) {
+            COVERED(covered, start_x, y, z, face_direction) = 2;
         }
     }
     return res;

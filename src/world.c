@@ -41,19 +41,16 @@ static face_stored find_single_face(
     u8 *covered) 
 {
     face_stored res = {0};
-    bool first = true;
+    u16 block_type = chunk->cubes[start_x][start_y][start_z].type & BLOCK_TYPE_MASK;
 
     if (face_direction <= FACE_DIRECTION_UP) {
         int max_z = CHUNK_SIZE - 1; 
         for (int z = start_z + 1; z < CHUNK_SIZE; z++) {
-            bool found_wrong_type = false;
-            int found_opens = 0;
-            if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR ||
+            if (chunk->cubes[start_x][start_y][z].type != block_type ||
                 COVERED(covered, start_x, start_y, z, face_direction) == 2) {
                 max_z = z - 1;
                 break;
             }
-            first = false;
         }
 
         int max_x = CHUNK_SIZE - 1; 
@@ -61,7 +58,7 @@ static face_stored find_single_face(
             bool found_wrong_type = false;
             int found_opens = 0;
             for (int z = start_z; z <= max_z; z++) {
-                if (chunk->cubes[x][start_y][z].type == BLOCK_TYPE_AIR) {
+                if (chunk->cubes[x][start_y][z].type != block_type) {
                     found_wrong_type = true;
                     break;
                 }
@@ -93,24 +90,21 @@ static face_stored find_single_face(
     if (face_direction <= FACE_DIRECTION_NORTH) {
         int max_x = CHUNK_SIZE - 1; 
         for (int x = start_x; x < CHUNK_SIZE; x++) {
-            if (chunk->cubes[x][start_y][start_z].type == BLOCK_TYPE_AIR ||
+            if (chunk->cubes[x][start_y][start_z].type != block_type ||
                 COVERED(covered, x, start_y, start_z, face_direction)) {
                 max_x = x - 1;
                 break;
             }
-            first = false;
         }
 
         int max_y = CHUNK_SIZE - 1; 
         for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
-            first = true;
             for (int x = start_x; x <= max_x; x++) {
-                if (chunk->cubes[x][y][start_z].type == BLOCK_TYPE_AIR ||
+                if (chunk->cubes[x][y][start_z].type != block_type ||
                     COVERED(covered, x, y, start_z, face_direction)) {
                     max_y = y - 1;
                     goto BreakNorthLoop;
                 }
-                first = false;
             }
         }
 BreakNorthLoop:
@@ -132,24 +126,21 @@ BreakNorthLoop:
     // FACE_DIRECTION_EAST
     int max_z = CHUNK_SIZE - 1; 
     for (int z = start_z; z < CHUNK_SIZE; z++) {
-        if (chunk->cubes[start_x][start_y][z].type == BLOCK_TYPE_AIR ||
+        if (chunk->cubes[start_x][start_y][z].type != block_type ||
             COVERED(covered, start_x, start_y, z, face_direction)) {
             max_z = z - 1;
             break;
         }
-        first = false;
     }
 
     int max_y = CHUNK_SIZE - 1; 
     for (int y = start_y + 1; y < CHUNK_SIZE; y++) {
-        first = true;
         for (int z = start_z; z <= max_z; z++) {
-            if (chunk->cubes[start_x][y][z].type == BLOCK_TYPE_AIR ||
+            if (chunk->cubes[start_x][y][z].type != block_type ||
                 COVERED(covered, start_x, y, z, face_direction)) {
                 max_y = y - 1;
                 goto BreakEastLoop;
             }
-            first = false;
         }
     }
 BreakEastLoop:

@@ -4,6 +4,7 @@
 
 #define BLOCK_TYPE_AIR 0 // TODO don't have this
 #define BLOCK_TYPE_GRASS 1
+#define BLOCK_TYPE_MASK 0x00000FFF
 
 typedef struct {
     u32 type; // 12 first bits represent the block type? 20 bits rest are for more information. Like for instance, flowing or smt..

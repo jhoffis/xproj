@@ -11,411 +11,6 @@
 #include "cube.h"
 #include "world.h"
 
-/*
- * TODO combine two cubes into one buffer, and one index array.
- */
-
-// static ImageData img;
-// static void *textureAddr;
-
-// static void fill_array_cube_indices(u16 *indices, u16 num_cubes) {
-//     for (int i = 0; i < num_cubes; i++) {
-//         int n = 36*i;
-//         int cubeN = 8*i;
-
-//         // Top
-//         indices[n]     = cubeN + 2;
-//         indices[n + 1] = cubeN + 6;
-//         indices[n + 2] = cubeN + 7;
-//         indices[n + 3] = cubeN + 2;
-//         indices[n + 4] = cubeN + 7;
-//         indices[n + 5] = cubeN + 3;
-
-//         // Bottom
-//         indices[n + 6]  = cubeN + 0;
-//         indices[n + 7]  = cubeN + 5;
-//         indices[n + 8]  = cubeN + 4;
-//         indices[n + 9]  = cubeN + 0;
-//         indices[n + 10] = cubeN + 1;
-//         indices[n + 11] = cubeN + 5;
-
-//         // Left
-//         indices[n + 12] = cubeN + 0;
-//         indices[n + 13] = cubeN + 6;
-//         indices[n + 14] = cubeN + 2;
-//         indices[n + 15] = cubeN + 0;
-//         indices[n + 16] = cubeN + 4;
-//         indices[n + 17] = cubeN + 6;
-
-//         // Right
-//         indices[n + 18] = cubeN + 1;
-//         indices[n + 19] = cubeN + 3;
-//         indices[n + 20] = cubeN + 7;
-//         indices[n + 21] = cubeN + 1;
-//         indices[n + 22] = cubeN + 7;
-//         indices[n + 23] = cubeN + 5;
-
-//         // Front
-//         indices[n + 24] = cubeN + 0;
-//         indices[n + 25] = cubeN + 2;
-//         indices[n + 26] = cubeN + 3;
-//         indices[n + 27] = cubeN + 3;
-//         indices[n + 28] = cubeN + 1;
-//         indices[n + 29] = cubeN + 0;
-
-//         // Back
-//         indices[n + 30] = cubeN + 4;
-//         indices[n + 31] = cubeN + 7;
-//         indices[n + 32] = cubeN + 6;
-//         indices[n + 33] = cubeN + 4;
-//         indices[n + 34] = cubeN + 5;
-//         indices[n + 35] = cubeN + 7;
-//     }
-// }
-
-// static void fill_array_singular_cube_vertices(u32 offset, float cubes[][5], float x, float y, float z) {
-//     offset *= 8;
-//     x *= 2*cube_size;
-//     y *= 2*cube_size;
-//     z *= 2*cube_size;
-//     cubes[offset][0] = x + -cube_size;
-//     cubes[offset][1] = y + -cube_size;
-//     cubes[offset][2] = z +  cube_size;
-//     cubes[offset][3] = 0; // Texture
-//     cubes[offset][4] = 0;
-    
-//     cubes[offset + 1][0] = x +  cube_size;
-//     cubes[offset + 1][1] = y + -cube_size;
-//     cubes[offset + 1][2] = z +  cube_size;
-//     cubes[offset + 1][3] = cube_tex_w;
-//     cubes[offset + 1][4] = 0;
-    
-//     cubes[offset + 2][0] = x + -cube_size;
-//     cubes[offset + 2][1] = y +  cube_size;
-//     cubes[offset + 2][2] = z +  cube_size;
-//     cubes[offset + 2][3] = 0;
-//     cubes[offset + 2][4] = cube_tex_h;
-    
-//     cubes[offset + 3][0] = x +  cube_size;
-//     cubes[offset + 3][1] = y +  cube_size;
-//     cubes[offset + 3][2] = z +  cube_size;
-//     cubes[offset + 3][3] = cube_tex_w;
-//     cubes[offset + 3][4] = cube_tex_h;
-
-//     cubes[offset + 4][0] = x + -cube_size;
-//     cubes[offset + 4][1] = y + -cube_size;
-//     cubes[offset + 4][2] = z + -cube_size;
-//     cubes[offset + 4][3] = cube_tex_w;
-//     cubes[offset + 4][4] = cube_tex_h;
-
-//     cubes[offset + 5][0] = x +  cube_size;
-//     cubes[offset + 5][1] = y + -cube_size;
-//     cubes[offset + 5][2] = z + -cube_size;
-//     cubes[offset + 5][3] = 0;
-//     cubes[offset + 5][4] = cube_tex_h;
-
-//     cubes[offset + 6][0] = x + -cube_size;
-//     cubes[offset + 6][1] = y +  cube_size;
-//     cubes[offset + 6][2] = z + -cube_size;
-//     cubes[offset + 6][3] = cube_tex_w;
-//     cubes[offset + 6][4] = 0;
-
-//     cubes[offset + 7][0] = x +  cube_size;
-//     cubes[offset + 7][1] = y +  cube_size;
-//     cubes[offset + 7][2] = z + -cube_size;
-//     cubes[offset + 7][3] = 0;
-//     cubes[offset + 7][4] = 0;
-// }
-
-
-// /*
-//  * TODO replace this because in the future we want to reuse vertices 
-//  * and here we expect 4 new verticies for each face.
-//  */
-// static void fill_array_face_indices(u16 *indices, u16 num_faces) {
-//     for (int i = 0; i < num_faces; i++) {
-//         int n = 6*i;
-//         int faceN = 4*i; // 4 vertices per face
-
-//         // Top (FIXME add all directions... Probably by sending a face struct array and providing the info etc.)
-//         indices[n + 0] = faceN + 1;
-//         indices[n + 1] = faceN + 3;
-//         indices[n + 2] = faceN + 2;
-//         indices[n + 3] = faceN + 0;
-//         indices[n + 4] = faceN + 3;
-//         indices[n + 5] = faceN + 1;
-//     }
-// }
-
-// static void fill_array_singular_face_vertices(u32 offset, float cubes[][5], float x, float y, float z) {
-//     offset *= 4;
-//     x *= 2*cube_size;
-//     y *= 2*cube_size;
-//     z *= 2*cube_size;
-
-//     cubes[offset + 0][0] = x + -cube_size;
-//     cubes[offset + 0][1] = y +  cube_size;
-//     cubes[offset + 0][2] = z +  cube_size;
-//     cubes[offset + 0][3] = 0;
-//     cubes[offset + 0][4] = cube_tex_h;
-    
-//     cubes[offset + 1][0] = x +  cube_size;
-//     cubes[offset + 1][1] = y +  cube_size;
-//     cubes[offset + 1][2] = z +  cube_size;
-//     cubes[offset + 1][3] = cube_tex_w;
-//     cubes[offset + 1][4] = cube_tex_h;
-
-//     cubes[offset + 2][0] = x + -cube_size;
-//     cubes[offset + 2][1] = y +  cube_size;
-//     cubes[offset + 2][2] = z + -cube_size;
-//     cubes[offset + 2][3] = cube_tex_w;
-//     cubes[offset + 2][4] = 0;
-
-//     cubes[offset + 3][0] = x +  cube_size;
-//     cubes[offset + 3][1] = y +  cube_size;
-//     cubes[offset + 3][2] = z + -cube_size;
-//     cubes[offset + 3][3] = 0;
-//     cubes[offset + 3][4] = 0;
-// }
-
-// /*
-//  * Quite inaccurate for now.
-//  */
-// static face find_full_face(int start_x, int start_y, int start_z, u8 face_direction) {
-//     const int max_len = 16;
-//     face res = {0};
-//     bool found = false;
-//     if (face_direction <= FACE_DIRECTION_UP) {
-//         int max_z = start_z + 1; // the other size of the x tile
-//         for (int z = start_z + 1; z < max_len; z++) {
-//             // TODO perhaps check if covered or smt.
-//             if (test_chunk.cubes[start_x][start_y][z].type != BLOCK_TYPE_GRASS) {
-//                 max_z = z;
-//                 found = true;
-//                 break;
-//             }
-//         }
-//         if (!found) {
-//             max_z = max_len;
-//         }
-//         found = false;
-//         int max_x = start_x + 1; // andre siden av x tile
-//         for (int x = start_x + 1; x < max_len; x++) {
-//             // TODO check if from this x it crashes anywhere towards the max z.
-//             if (test_chunk.cubes[x][start_y][start_z].type != BLOCK_TYPE_GRASS) {
-//                 max_x = x;
-//                 found = true;
-//                 break;
-//             }
-//         }
-//         if (!found) {
-//             max_x = max_len;
-//         }
-//         switch (face_direction) {
-//             case FACE_DIRECTION_DOWN:
-//                 start_y -= 1; // move to the bottom.
-//                 res.indices[0] = 1;
-//                 res.indices[1] = 2;
-//                 res.indices[2] = 3;
-//                 res.indices[3] = 0;
-//                 res.indices[4] = 1;
-//                 res.indices[5] = 3;
-//                 break;
-//             case FACE_DIRECTION_UP:
-//                 res.indices[0] = 1;
-//                 res.indices[1] = 3;
-//                 res.indices[2] = 2;
-//                 res.indices[3] = 0;
-//                 res.indices[4] = 3;
-//                 res.indices[5] = 1;
-//                 break;
-//         }
-
-//         int x0 = start_x * 2*cube_size;
-//         int x1 = max_x * 2*cube_size;
-//         int y = start_y * 2*cube_size;
-//         int z0 = start_z * 2*cube_size;
-//         int z1 = max_z * 2*cube_size;
-
-//         res.vertices[0][0] = x0;
-//         res.vertices[0][1] = y;
-//         res.vertices[0][2] = z1;
-//         res.vertices[0][3] = 0;
-//         res.vertices[0][4] = (max_z - start_z);
-
-//         res.vertices[1][0] = x1;
-//         res.vertices[1][1] = y;
-//         res.vertices[1][2] = z1;
-//         res.vertices[1][3] = (max_x - start_x);
-//         res.vertices[1][4] = (max_z - start_z);
-
-//         res.vertices[2][0] = x1;
-//         res.vertices[2][1] = y;
-//         res.vertices[2][2] = z0;
-//         res.vertices[2][3] = (max_x - start_x);
-//         res.vertices[2][4] = 0;
-
-//         res.vertices[3][0] = x0; // TODO flytt denne til nullte vertex
-//         res.vertices[3][1] = y;
-//         res.vertices[3][2] = z0;
-//         res.vertices[3][3] = 0;
-//         res.vertices[3][4] = 0;
-//     } else if (face_direction <= FACE_DIRECTION_NORTH) {        // Sides
-//         int max_x = start_x + 1; // the other size of the x tile
-//         for (int x = start_x + 1; x < max_len; x++) {
-//             // TODO perhaps check if covered or smt.
-//             if (test_chunk.cubes[x][start_y][start_z].type != BLOCK_TYPE_GRASS) {
-//                 max_x = x;
-//                 found = true;
-//                 break;
-//             }
-//         }
-//         if (!found) {
-//             max_x = max_len;
-//         }
-//         found = false;
-//         int max_y = start_y + 1; // andre siden av x tile
-//         for (int y = start_y + 1; y < max_len; y++) {
-//             // TODO check if from this x it crashes anywhere towards the max z.
-//             if (test_chunk.cubes[start_x][y][start_z].type != BLOCK_TYPE_GRASS) {
-//                 max_y = y;
-//                 found = true;
-//                 break;
-//             }
-//         }
-//         if (!found) {
-//             max_y = max_len;
-//         }
-
-//         switch (face_direction) {
-//             case FACE_DIRECTION_NORTH:
-//                 res.indices[0] = 0;
-//                 res.indices[1] = 2;
-//                 res.indices[2] = 3;
-//                 res.indices[3] = 0;
-//                 res.indices[4] = 1;
-//                 res.indices[5] = 2;
-//                 break;
-//             case FACE_DIRECTION_SOUTH:
-//                 start_z += 1;
-//                 res.indices[0] = 0;
-//                 res.indices[1] = 3;
-//                 res.indices[2] = 2;
-//                 res.indices[3] = 0;
-//                 res.indices[4] = 2;
-//                 res.indices[5] = 1;
-//                 break;
-//         }
-//         int x0 = start_x * 2*cube_size;
-//         int x1 = max_x * 2*cube_size;
-//         int y0 = (start_y - 1) * 2*cube_size;
-//         int y1 = (max_y - 1) * 2*cube_size;
-//         int z = start_z * 2*cube_size;
-
-//         res.vertices[0][0] = x1;
-//         res.vertices[0][1] = y0;
-//         res.vertices[0][2] = z;
-//         res.vertices[0][3] = 0;
-//         res.vertices[0][4] = (max_x - start_x);
-
-//         res.vertices[1][0] = x1;
-//         res.vertices[1][1] = y1;
-//         res.vertices[1][2] = z;
-//         res.vertices[1][3] = (max_y - start_y);
-//         res.vertices[1][4] = (max_x - start_x);
-
-//         res.vertices[2][0] = x0;
-//         res.vertices[2][1] = y1;
-//         res.vertices[2][2] = z;
-//         res.vertices[2][3] = (max_y - start_y);
-//         res.vertices[2][4] = 0;
-
-//         res.vertices[3][0] = x0;
-//         res.vertices[3][1] = y0;
-//         res.vertices[3][2] = z;
-//         res.vertices[3][3] = 0;
-//         res.vertices[3][4] = 0;
-
-//     } else {
-//         // Sides
-//         int max_z = start_z + 1; // the other size of the x tile
-//         for (int z = start_z + 1; z < max_len; z++) {
-//             // TODO perhaps check if covered or smt.
-//             if (test_chunk.cubes[start_x][start_y][z].type != BLOCK_TYPE_GRASS) {
-//                 max_z = z;
-//                 found = true;
-//                 break;
-//             }
-//         }
-//         if (!found) {
-//             max_z = max_len;
-//         }
-//         found = false;
-//         int max_y = start_y + 1; // andre siden av x tile
-//         for (int y = start_y + 1; y < max_len; y++) {
-//             // TODO check if from this x it crashes anywhere towards the max z.
-//             if (test_chunk.cubes[start_x][y][start_z].type != BLOCK_TYPE_GRASS) {
-//                 max_y = y;
-//                 found = true;
-//                 break;
-//             }
-//         }
-//         if (!found) {
-//             max_y = max_len;
-//         }
-
-//         switch (face_direction) {
-//             case FACE_DIRECTION_WEST:
-//                 res.indices[0] = 0;
-//                 res.indices[1] = 3;
-//                 res.indices[2] = 2;
-//                 res.indices[3] = 0;
-//                 res.indices[4] = 2;
-//                 res.indices[5] = 1;
-//                 break;
-//             case FACE_DIRECTION_EAST:
-//                 start_x += 1;
-//                 res.indices[0] = 0;
-//                 res.indices[1] = 2;
-//                 res.indices[2] = 3;
-//                 res.indices[3] = 0;
-//                 res.indices[4] = 1;
-//                 res.indices[5] = 2;
-//                 break;
-//         }
-//         int x = start_x * 2*cube_size;
-//         int y0 = (start_y - 1) * 2*cube_size;
-//         int y1 = (max_y - 1) * 2*cube_size;
-//         int z0 = start_z * 2*cube_size;
-//         int z1 = max_z * 2*cube_size;
-
-//         res.vertices[0][0] = x;
-//         res.vertices[0][1] = y0;
-//         res.vertices[0][2] = z1;
-//         res.vertices[0][3] = 0;
-//         res.vertices[0][4] = (max_z - start_z);
-
-//         res.vertices[1][0] = x;
-//         res.vertices[1][1] = y1;
-//         res.vertices[1][2] = z1;
-//         res.vertices[1][3] = (max_y - start_y);
-//         res.vertices[1][4] = (max_z - start_z);
-
-//         res.vertices[2][0] = x;
-//         res.vertices[2][1] = y1;
-//         res.vertices[2][2] = z0;
-//         res.vertices[2][3] = (max_y - start_y);
-//         res.vertices[2][4] = 0;
-
-//         res.vertices[3][0] = x;
-//         res.vertices[3][1] = y0;
-//         res.vertices[3][2] = z0;
-//         res.vertices[3][3] = 0;
-//         res.vertices[3][4] = 0;
-//     }
-//     return res;
-// }
-
 static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset, face_stored face) {
     switch (GET_FACE_STORED(face, FACE_STORED_INFO_DIRECTION)) { 
         case FACE_DIRECTION_DOWN:
@@ -470,71 +65,55 @@ static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset
 }
 
 
-static void mul_left_vec4_matrix(f32 vec[4], f32 mat[16]) {    
+static void mul_left_vec4_matrix(f32_v4 vec, f32_m4x4 mat) {    
     // Cache the input vector since we'll overwrite it
-    const f32 x = vec[0], y = vec[1], z = vec[2], w = vec[3];
+    const f32 x = vec.x, y = vec.y, z = vec.z, w = vec.w;
     
     // Direct calculation avoiding loops and temporary array
-    vec[0] = x * mat[0] + y * mat[4] + z * mat[8]  + w * mat[12];
-    vec[1] = x * mat[1] + y * mat[5] + z * mat[9]  + w * mat[13];
-    vec[2] = x * mat[2] + y * mat[6] + z * mat[10] + w * mat[14];
-    vec[3] = x * mat[3] + y * mat[7] + z * mat[11] + w * mat[15];
+    vec.x = x * mat[0] + y * mat[4] + z * mat[8]  + w * mat[12];
+    vec.y = x * mat[1] + y * mat[5] + z * mat[9]  + w * mat[13];
+    vec.z = x * mat[2] + y * mat[6] + z * mat[10] + w * mat[14];
+    vec.w = x * mat[3] + y * mat[7] + z * mat[11] + w * mat[15];
 }
 
-static void mul_right_vec4_matrix(f32 vec[4], f32 mat[16]) {    
+static void mul_right_vec4_matrix(f32_v4 vec, f32_m4x4 mat) {    
     // Cache the input vector since we'll overwrite it
-    const f32 x = vec[0], y = vec[1], z = vec[2], w = vec[3];
+    const f32 x = vec.x, y = vec.y, z = vec.z, w = vec.w;
 
-    vec[0] = x * mat[0] + y * mat[1] + z * mat[2]  + w * mat[3];
-    vec[1] = x * mat[4] + y * mat[5] + z * mat[6]  + w * mat[7];
-    vec[2] = x * mat[8] + y * mat[9] + z * mat[10] + w * mat[11];
-    vec[3] = x * mat[12] + y * mat[13] + z * mat[14] + w * mat[15];
+    vec.x = x * mat[0]  + y * mat[1]  + z * mat[2]  + w * mat[3];
+    vec.y = x * mat[4]  + y * mat[5]  + z * mat[6]  + w * mat[7];
+    vec.z = x * mat[8]  + y * mat[9]  + z * mat[10] + w * mat[11];
+    vec.w = x * mat[12] + y * mat[13] + z * mat[14] + w * mat[15];
 }
-typedef struct {
-    float x, y, z, w;
-} Vec4;
-static Vec4 transform_vector(MATRIX m, Vec4 v) {
-    Vec4 result;
-    result.x = m[0]*v.x + m[4]*v.y + m[8]*v.z + m[12]*v.w;
-    result.y = m[1]*v.x + m[5]*v.y + m[9]*v.z + m[13]*v.w;
-    result.z = m[2]*v.x + m[6]*v.y + m[10]*v.z + m[14]*v.w;
-    result.w = m[3]*v.x + m[7]*v.y + m[11]*v.z + m[15]*v.w;
-    return result;
-}
-/// Check if a point is inside the normalized device coordinates (NDC) frustum
-static inline bool is_point_in_frustum_ndc(f32 clip_space[4]) {
-    return clip_space[0] >= 0 && 
-           clip_space[0] <= 640 &&
-           clip_space[1] >= 0 &&
-           clip_space[1] <= 480 &&
-           clip_space[2] >= 0 &&
-           clip_space[2] <= 65536;
-}
+
 /*
-   https://bruop.github.io/improved_frustum_culling/ 
-*/
+ * https://bruop.github.io/improved_frustum_culling/ 
+ */
+static bool is_point_in_frustum(f32_v3 point, f32_m4x4 viewproj) {
 
-static bool is_point_in_frustum(f32 point[3], MATRIX mat) {
-
-    f32 cs[4];
+    f32_v4 cs;
     
     // Direct calculation avoiding loops and temporary array
-    cs[3] =  1.0f / (point[0] * mat[3] + point[1] * mat[7] + point[2] * mat[11] + mat[15]);
-    cs[0] = (point[0] * mat[0] + point[1] * mat[4] + point[2] * mat[8]  + mat[12]) * cs[3];
-    cs[1] = (point[0] * mat[1] + point[1] * mat[5] + point[2] * mat[9]  + mat[13]) * cs[3];
-    cs[2] = (point[0] * mat[2] + point[1] * mat[6] + point[2] * mat[10] + mat[14]) * -cs[3];
+    cs.w =  1.0f / (point.x * viewproj[3] + point.y * viewproj[7] + point.z * viewproj[11] + viewproj[15]);
+    cs.x =         (point.x * viewproj[0] + point.y * viewproj[4] + point.z * viewproj[8]  + viewproj[12]) *  cs.w;
+    cs.y =         (point.x * viewproj[1] + point.y * viewproj[5] + point.z * viewproj[9]  + viewproj[13]) *  cs.w;
+    cs.z =         (point.x * viewproj[2] + point.y * viewproj[6] + point.z * viewproj[10] + viewproj[14]) * -cs.w;
 
     // Check if point is inside the frustum in NDC space
-    bool inside_view_frustum =  is_point_in_frustum_ndc(cs);
     // pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) cs[0], 
     //                                        (i32) cs[1], 
     //                                        (i32) cs[2], 
     //                                        (i32) cs[3], 
     //                                        (i32) inside_view_frustum);
-    return inside_view_frustum;
+    return cs.x >= 0   && 
+           cs.x <= 640 &&
+           cs.y >= 0   &&
+           cs.y <= 480 &&
+           cs.z >= 0   &&
+           cs.z <= 65536;
 }
 
-static bool is_face_in_frustum(face f, MATRIX viewproj) {
+static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
     if (is_point_in_frustum(f.vertices[0], viewproj)) return true;
     if (is_point_in_frustum(f.vertices[1], viewproj)) return true;
     if (is_point_in_frustum(f.vertices[2], viewproj)) return true;
@@ -543,78 +122,41 @@ static bool is_face_in_frustum(face f, MATRIX viewproj) {
     return false;
 }
 
-static void my_matrix_multiply(MATRIX result, MATRIX a, MATRIX b) {
-    // Zero out the result matrix
-    for (int i = 0; i < 16; i++) {
-        result[i] = 0.0f;
-    }
-    
-    // For each column in the result
-    for (int j = 0; j < 4; j++) {
-        // For each row in the result
-        for (int i = 0; i < 4; i++) {
-            // Calculate dot product of row from a and column from b
-            float sum = 0.0f;
-            for (int k = 0; k < 4; k++) {
-                // In column-major:
-                // row i, col k of a = a[k*4 + i]
-                // row k, col j of b = b[j*4 + k]
-                sum += a[k*4 + i] * b[j*4 + k];
-            }
-            // Store in column-major: row i, col j = result[j*4 + i]
-            result[j*4 + i] = sum;
-        }
-    }
-}
-
-// Define a 3D vector
-typedef struct {
-    float x, y, z;
-} Vector3;
-
-// Define a 3x3 rotation matrix
-typedef struct {
-    float m[3][3];
-} Matrix3;
-
 // Normalize a 3D vector
-static Vector3 normalize(Vector3 v) {
-    float magnitude = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    return (Vector3){v.x / magnitude, v.y / magnitude, v.z / magnitude};
+static f32_v3 normalize(f32_v3 v) {
+    f32 magnitude = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    return (f32_v3){v.x / magnitude, v.y / magnitude, v.z / magnitude};
 }
 
 // Convert Euler angles (yaw, pitch, roll in radians) to a 3x3 rotation matrix
-static Matrix3 euler_to_rotation_matrix(float yaw, float pitch, float roll) {
-    float cy = cos(yaw), sy = sin(yaw);
-    float cp = cos(pitch), sp = sin(pitch);
-    float cr = cos(roll), sr = sin(roll);
+static void euler_to_rotation_matrix(f32_m3x3 rotation_matrix, f32 pitch, f32 yaw, f32 roll) {
+    f32 cy = cos(yaw), sy = sin(yaw);
+    f32 cp = cos(pitch), sp = sin(pitch);
+    f32 cr = cos(roll), sr = sin(roll);
 
-    Matrix3 rotation_matrix = {
-        .m = {
-            {cy * cr + sy * sp * sr, cr * sy * sp - cy * sr, cp * sy},
-            {cp * sr,               cp * cr,               -sp     },
-            {cy * sp * sr - cr * sy, cy * cr * sp + sr * sy, cy * cp}
-        }
-    };
-    return rotation_matrix;
+    memcpy(rotation_matrix, (f32_m3x3) {
+        cy * cr + sy * sp * sr, cr * sy * sp - cy * sr, cp * sy,
+        cp * sr,                cp * cr,               -sp     ,
+        cy * sp * sr - cr * sy, cy * cr * sp + sr * sy, cy * cp
+    }, sizeof(f32_m3x3));
 }
 
 // Multiply a 3x3 matrix by a 3D vector
-static Vector3 multiply_matrix_vector(Matrix3 matrix, Vector3 vector) {
-    return (Vector3){
-        matrix.m[0][0] * vector.x + matrix.m[0][1] * vector.y + matrix.m[0][2] * vector.z,
-        matrix.m[1][0] * vector.x + matrix.m[1][1] * vector.y + matrix.m[1][2] * vector.z,
-        matrix.m[2][0] * vector.x + matrix.m[2][1] * vector.y + matrix.m[2][2] * vector.z
+static f32_v3 multiply_matrix_vector(f32_m3x3 matrix, f32_v3 vector) {
+    return (f32_v3){
+        matrix[0] * vector.x + matrix[1] * vector.y + matrix[2] * vector.z,
+        matrix[3] * vector.x + matrix[4] * vector.y + matrix[5] * vector.z,
+        matrix[6] * vector.x + matrix[7] * vector.y + matrix[8] * vector.z
     };
 }
 
 // Compute the dot product of two vectors
-static float dot_product(Vector3 a, Vector3 b) {
+static f32 dot_product(f32_v3 a, f32_v3 b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 // Compare the direction of two vectors
-static int is_same_direction(Vector3 a, Vector3 b, float threshold) {
+static i32 is_same_direction(f32_v3 a, f32_v3 b, float threshold) {
     // Normalize both vectors
     a = normalize(a);
     b = normalize(b);
@@ -633,8 +175,8 @@ static f32 distance_vec3(f32 *a, f32 *b) {
     return sqrtf(x*x + y*y + z*z);
 }
 
-static Vector3 subtract(f32 *a, f32 *b) {
-    return (Vector3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
+static f32_v3 subtract(f32 *a, f32 *b) {
+    return (f32_v3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
 }
 
 static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
@@ -647,16 +189,17 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     v_obj_rot[0] = rotX;
     v_obj_rot[1] = rotY;
 
-    Vector3 camera_position = {v_cam_loc[0], v_cam_loc[1], v_cam_loc[2]};
+    f32_v3 camera_position = {v_cam_loc[0], v_cam_loc[1], v_cam_loc[2]};
 
     // Forward vector in view space
-    Vector3 forward_vector_view = {0.0f, 0.0f, -1.0f};
+    f32_v3 forward_vector_view = {0.0f, 0.0f, -1.0f};
 
     // Compute the rotation matrix
-    Matrix3 rotation_matrix = euler_to_rotation_matrix(v_cam_rot[1], v_cam_rot[0], v_cam_rot[2]);
+    f32_m3x3 rotation_matrix;
+    euler_to_rotation_matrix(rotation_matrix, v_cam_rot[0], v_cam_rot[1], v_cam_rot[2]);
 
     // Transform the forward vector to world space
-    Vector3 camera_normal_world = multiply_matrix_vector(rotation_matrix, forward_vector_view);
+    f32_v3 camera_normal_world = multiply_matrix_vector(rotation_matrix, forward_vector_view);
 
     // Normalize the resulting vector
     camera_normal_world = normalize(camera_normal_world);
@@ -724,11 +267,11 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     MATRIX mvp;
     matrix_multiply(mvp, m_view, m_proj);
 
-    Vector3 face_normals[FACE_DIRECTION_TOTAL];
+    f32_v3 face_normals[FACE_DIRECTION_TOTAL];
     bool remove_directions[FACE_DIRECTION_TOTAL];
     for (int d = 0; d < FACE_DIRECTION_TOTAL; d++) { // TODO check if the object is more than 1 distance away and has the same direction because then it should not be visible.
                                   // basically, if object has same direction and is ahead by 1 then remove.
-        Vector3 face_normal = {0};
+        f32_v3 face_normal = {0};
         switch (d) {
             case FACE_DIRECTION_UP:
                 face_normal.y = 1;
@@ -762,10 +305,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
         if (remove_directions[direction]) continue;
 
-        // face f = {0};
-        // fill_face_vertices(f.vertices, f.tex_coords, 0, pos_offset, fs);
-
-        Vector3 view_dir = normalize(subtract(v_cam_loc, f.vertices[0]));
+        f32_v3 view_dir = normalize(subtract(v_cam_loc, (f32 *) &f.vertices[0]));
         f32 dot_prod = dot_product(face_normals[direction], view_dir);
         if (dot_prod < 0) continue;
         // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
@@ -858,11 +398,7 @@ inline static void render_terrain(image_data img) {
         pb_end(p);
 
         f32 dist = 50;
-        // for (int y = 0; y < 20; y++) {
-        //     for (int x = 0; x < 10; x++) {
-                render_cube(0, 0, 0, 0); //  obj_rotationX/1000.0f * M_PI * -0.25f, obj_rotationY/1000.0f * M_PI * -0.25f);
-        //     }
-        // }
+        render_cube(0, 0, 0, 0);
     }
 }
 

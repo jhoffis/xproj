@@ -36,7 +36,7 @@ typedef struct {
  * And combine all those of the same type into one draw call.
  */
 typedef struct {
-    f32 vertices[4][3];
+    f32_v3 vertices[4];
     f32 tex_coords[4][2];
     u16 indices[6];
 } face; // Kan ha 326 tusen faces i 30MB, så disse burde lagres! Burde ha at man laster inn de nermeste 9 chunks i disse.
@@ -46,7 +46,11 @@ typedef struct {
                           // så kan jeg bruke enten 4 eller 5 bits for hver av disse og så ha resten i info elns.
                           // Da kan jeg gå ned til 32 bits i stedet for 48 og ha 4 ekstra bits til info.
 } corners_i8;
-
+/*
+ * We only need two corners with two dimensions, and we know the direction so that we can assume whether it's x and y or x and z etc.
+ * List the same face_type grouped together instead of storing it with each face.
+ */
+typedef u32 face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
 #define FACE_STORED_A0    0xF0000000
 #define FACE_STORED_A1    0x0F000000
 #define FACE_STORED_B0    0x00F00000
@@ -54,11 +58,6 @@ typedef struct {
 #define FACE_STORED_C     0x0000F000
 #define FACE_STORED_INFO  0x00000FFF
 #define FACE_STORED_INFO_DIRECTION  0x00000007
-/*
- * We only need two corners with two dimensions, and we know the direction so that we can assume whether it's x and y or x and z etc.
- * List the same face_type grouped together instead of storing it with each face.
- */
-typedef u32 face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
 #define SET_FACE_STORED(value, input, mask) (value) = ((value) & ~(mask)) | (((input & 0xF) << __builtin_ctz(mask)))
 #define GET_FACE_STORED(value, mask) ((value & mask) >> __builtin_ctz(mask))
 

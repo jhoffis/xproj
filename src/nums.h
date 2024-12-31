@@ -52,6 +52,24 @@ _Static_assert(sizeof(u64) == 8, "Must be 8 bytes");
 _Static_assert(sizeof(i64) == 8, "Must be 8 bytes");
 _Static_assert(sizeof(u128) == 16, "Must be 16 bytes");
 
+typedef struct {
+    f32 x;
+    f32 y;
+} f32_v2;
+typedef struct {
+    f32 x;
+    f32 y;
+    f32 z;
+} f32_v3;
+typedef struct {
+    f32 x;
+    f32 y;
+    f32 z;
+    f32 w;
+} f32_v4;
+typedef f32 f32_m3x3[9];
+typedef f32 f32_m4x4[16];
+
 // // Define the structure for a 16-bit float
 // // Convert float to half float
 // f16 float_to_half(float f) {

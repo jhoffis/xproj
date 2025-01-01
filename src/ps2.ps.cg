@@ -1,5 +1,5 @@
 struct vOut {
-	float4 col  : COLOR;
+//	float4 col  : COLOR;
 	float2 tex0 : TEXCOORD0;
 };
 

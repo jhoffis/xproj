@@ -1,12 +1,12 @@
 struct vIn {
     float4 tex  : TEXCOORD;
-	float4 color : DIFFUSE;
+//	float4 color : DIFFUSE;
 	float4 pos  : POSITION;
 };
 
 struct vOut {
 	float4 pos  : POSITION;
-	float4 col  : COLOR;
+//	float4 col  : COLOR;
 	float4 tex0 : TEXCOORD0;
 };
 
@@ -27,7 +27,7 @@ vOut main(
 
 	result.pos = pos;
 	result.tex0 = I.tex;
-    result.col.rgb = I.color; // FIXME inconsistent!
+//    result.col.rgb = I.color; // FIXME inconsistent!
 
 	return result;
 }

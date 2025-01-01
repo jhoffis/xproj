@@ -1,4 +1,4 @@
-/* !!TS1.0 (line 14) */
+/* !!TS1.0 (line 13) */
 #pragma push_macro("MASK")
 #undef MASK
 #define MASK(mask, val) (((val) << (__builtin_ffs(mask)-1)) & (mask))
@@ -16,7 +16,7 @@ pb_push1(p, NV097_SET_SHADER_STAGE_PROGRAM,
 p += 2;
 
 #pragma pop_macro("MASK")
-/* !!RC1.0 (line 17) */
+/* !!RC1.0 (line 16) */
 #pragma push_macro("MASK")
 #undef MASK
 #define MASK(mask, val) (((val) << (__builtin_ffs(mask)-1)) & (mask))

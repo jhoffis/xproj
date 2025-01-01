@@ -333,8 +333,8 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
             3, sizeof(float) * 3, cube_vertices);
 
     /* Set vertex diffuse color attribute */
-    set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(Vertex), &alloc_vertices_cube[3]);
+    // set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+    //         3, sizeof(Vertex), &alloc_vertices_cube[3]);
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,

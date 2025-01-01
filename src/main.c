@@ -123,16 +123,7 @@ int main(void)
 
     image_data img = load_image("grass");
 
-    alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
-
     init_world();
-    for (int x = 0; x < 4; x++) {
-        for (int z = 0; z < 4; z++) {
-            generate_chunk(x, 0, z);
-        }
-    }
-    // generate_chunk(0, 0, 0);
     load_chunks();
 
     /* Create projection matrix */
@@ -261,14 +252,16 @@ int main(void)
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)) {
                 g_render_method = g_render_method == TRIANGLES ? LINES : TRIANGLES;    
             }
-
-            pb_print(
+            int chunk_pos_x = (int)(floorf(v_cam_loc[0] / (CHUNK_SIZE * BLOCK_SIZE))); 
+            int chunk_pos_z = (int)(floorf(v_cam_loc[2] / (CHUNK_SIZE * BLOCK_SIZE)));
+                pb_print(
                     "- Lstick: x=%d, y=%d\n"
                     "- Rstick: x=%d, y=%d\n"
                     "- Ltrig: %d\n"
                     "- Rtrig: %d\n"
                     "- rot: x=%d, y=%d\n"
                     "- pos: x=%d, y=%d, z=%d\n"
+                    "- chunk: x=%d, z=%d\n"
                     // "Buttons:\n"
                     // "- A:%d B:%d X:%d Y:%d\n"
                     // "- Back:%d Start:%d White:%d Black:%d\n"
@@ -285,11 +278,14 @@ int main(void)
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT),
-                    (i16)(100*cam_rotationX), 
-                    (i16)(100*cam_rotationY),
-                    (i16)v_cam_loc[0], 
-                    (i16)v_cam_loc[1], 
-                    (i16)v_cam_loc[2]
+                    (i16)(100 * cam_rotationX),
+                    (i16)(100 * cam_rotationY),
+                    (i16)v_cam_loc[0],
+                    (i16)v_cam_loc[1],
+                    (i16)v_cam_loc[2],
+                    chunk_pos_x,
+                    chunk_pos_z
+
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A),
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B),
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X),
@@ -304,12 +300,12 @@ int main(void)
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT),
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSTICK),
                     // SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSTICK),
-                    // SDL_GameControllerGetVendor(pad), 
+                    // SDL_GameControllerGetVendor(pad),
                     // SDL_GameControllerGetProduct(pad),
                     // f3key,
                     // (int) obj_rotationX,
                     // (int) obj_rotationY
-                        );
+                );
 
             // pb_print("SDL audio driver: %s\n", SDL_GetCurrentAudioDriver());
 

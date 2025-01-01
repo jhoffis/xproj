@@ -13,22 +13,30 @@ unsigned long times(void *);
 
 //vector functions
 
-void vector_apply(VECTOR output, VECTOR input0, MATRIX input1)
-{
-    VECTOR work;
-
-    work[_X]=input0[_X]*input1[_11]+input0[_Y]*input1[_12]+input0[_Z]*input1[_13]+input0[_W]*input1[_14];
-    work[_Y]=input0[_X]*input1[_21]+input0[_Y]*input1[_22]+input0[_Z]*input1[_23]+input0[_W]*input1[_24];
-    work[_Z]=input0[_X]*input1[_31]+input0[_Y]*input1[_32]+input0[_Z]*input1[_33]+input0[_W]*input1[_34];
-    work[_W]=input0[_X]*input1[_41]+input0[_Y]*input1[_42]+input0[_Z]*input1[_43]+input0[_W]*input1[_44];
-
-    // Output the result.
-    vector_copy(output, work);
+void mul_left_vec4_matrix(f32_v4 vec, f32_m4x4 mat) {    
+    // Cache the input vector since we'll overwrite it
+    const f32 x = vec.x, y = vec.y, z = vec.z, w = vec.w;
+    
+    // Direct calculation avoiding loops and temporary array
+    vec.x = x * mat[0] + y * mat[4] + z * mat[8]  + w * mat[12];
+    vec.y = x * mat[1] + y * mat[5] + z * mat[9]  + w * mat[13];
+    vec.z = x * mat[2] + y * mat[6] + z * mat[10] + w * mat[14];
+    vec.w = x * mat[3] + y * mat[7] + z * mat[11] + w * mat[15];
 }
 
-void vector_clamp(VECTOR output, VECTOR input0, float min, float max)
+void mul_right_vec4_matrix(f32_v4 vec, f32_m4x4 mat) {    
+    // Cache the input vector since we'll overwrite it
+    const f32 x = vec.x, y = vec.y, z = vec.z, w = vec.w;
+
+    vec.x = x * mat[0]  + y * mat[1]  + z * mat[2]  + w * mat[3];
+    vec.y = x * mat[4]  + y * mat[5]  + z * mat[6]  + w * mat[7];
+    vec.z = x * mat[8]  + y * mat[9]  + z * mat[10] + w * mat[11];
+    vec.w = x * mat[12] + y * mat[13] + z * mat[14] + w * mat[15];
+}
+
+void vector_clamp(f32_v4 output, f32_v4 input0, f32 min, f32 max)
 {
-    VECTOR work;
+    f32_v4 work;
 
     // Copy the vector.
     vector_copy(work, input0);
@@ -49,14 +57,14 @@ void vector_clamp(VECTOR output, VECTOR input0, float min, float max)
     vector_copy(output, work);
 }
 
-void vector_copy(VECTOR output, VECTOR input0)
+void vector_copy(f32_v4 output, f32_v4 input0)
 {
-    memcpy(output,input0,sizeof(VECTOR));
+    memcpy(output,input0,sizeof(f32_v4));
 }
 
-float vector_innerproduct(VECTOR input0, VECTOR input1)
+f32 vector_innerproduct(f32_v4 input0, f32_v4 input1)
 {
-    VECTOR work0, work1;
+    f32_v4 work0, work1;
 
     // Normalize the first vector.
     work0[_X] = (input0[_X] / input0[_W]);
@@ -74,9 +82,9 @@ float vector_innerproduct(VECTOR input0, VECTOR input1)
     return (work0[_X] * work1[_X]) + (work0[_Y] * work1[_Y]) + (work0[_Z] * work1[_Z]);
 }
 
-void vector_multiply(VECTOR output, VECTOR input0, VECTOR input1)
+void vector_multiply(f32_v4 output, f32_v4 input0, f32_v4 input1)
 {
-    VECTOR work;
+    f32_v4 work;
 
     // Multiply the vectors together.
     work[_X] = input0[_X] * input1[_X];
@@ -88,9 +96,9 @@ void vector_multiply(VECTOR output, VECTOR input0, VECTOR input1)
     vector_copy(output, work);
 }
 
-void vector_normalize(VECTOR output, VECTOR input0)
+void vector_normalize(f32_v4 output, f32_v4 input0)
 {
-    float k;
+    f32 k;
 
     k=1.0f/sqrt(input0[_X]*input0[_X]+input0[_Y]*input0[_Y]+input0[_Z]*input0[_Z]);
     output[_X]*=k;
@@ -98,9 +106,9 @@ void vector_normalize(VECTOR output, VECTOR input0)
     output[_Z]*=k;
 }
 
-void vector_outerproduct(VECTOR output, VECTOR input0, VECTOR input1)
+void vector_outerproduct(f32_v4 output, f32_v4 input0, f32_v4 input1)
 {
-    VECTOR work;
+    f32_v4 work;
 
     work[_X]=input0[_Y]*input1[_Z]-input0[_Z]*input1[_Y];
     work[_Y]=input0[_Z]*input1[_X]-input0[_X]*input1[_Z];
@@ -112,14 +120,14 @@ void vector_outerproduct(VECTOR output, VECTOR input0, VECTOR input1)
 
 //matrices function
 
-void matrix_copy(MATRIX output, MATRIX input0) 
+void matrix_copy(f32_m4x4 output, f32_m4x4 input0) 
 {
-    memcpy(output,input0,sizeof(MATRIX));
+    memcpy(output,input0,sizeof(f32_m4x4));
 }
 
-void matrix_inverse(MATRIX output, MATRIX input0) 
+void matrix_inverse(f32_m4x4 output, f32_m4x4 input0) 
 {
-    MATRIX work;
+    f32_m4x4 work;
 
     // Calculate the inverse of the matrix.
     matrix_transpose(work, input0);
@@ -135,9 +143,9 @@ void matrix_inverse(MATRIX output, MATRIX input0)
     matrix_copy(output, work);
 }
 
-void matrix_multiply(MATRIX output, MATRIX input0, MATRIX input1)
+void matrix_multiply(f32_m4x4 output, f32_m4x4 input0, f32_m4x4 input1)
 {
-    MATRIX work;
+    f32_m4x4 work;
     
     work[_11]=input0[_11]*input1[_11]+input0[_12]*input1[_21]+input0[_13]*input1[_31]+input0[_14]*input1[_41];
     work[_12]=input0[_11]*input1[_12]+input0[_12]*input1[_22]+input0[_13]*input1[_32]+input0[_14]*input1[_42];
@@ -160,9 +168,9 @@ void matrix_multiply(MATRIX output, MATRIX input0, MATRIX input1)
     matrix_copy(output, work);
 }
 
-void matrix_rotate(MATRIX output, MATRIX input0, VECTOR input1) 
+void matrix_rotate(f32_m4x4 output, f32_m4x4 input0, f32_v4 input1) 
 {
-    MATRIX work;
+    f32_m4x4 work;
 
     // Apply the z-axis rotation.
     matrix_unit(work);
@@ -189,9 +197,9 @@ void matrix_rotate(MATRIX output, MATRIX input0, VECTOR input1)
     matrix_multiply(output, output, work);
 }
 
-void matrix_scale(MATRIX output, MATRIX input0, VECTOR input1) 
+void matrix_scale(f32_m4x4 output, f32_m4x4 input0, f32_v4 input1) 
 {
-    MATRIX work;
+    f32_m4x4 work;
 
     // Apply the scaling.
     matrix_unit(work);
@@ -201,9 +209,9 @@ void matrix_scale(MATRIX output, MATRIX input0, VECTOR input1)
     matrix_multiply(output, input0, work);
 }
 
-void matrix_translate(MATRIX output, MATRIX input0, VECTOR input1) 
+void matrix_translate(f32_m4x4 output, f32_m4x4 input0, f32_v4 input1) 
 {
-    MATRIX work;
+    f32_m4x4 work;
 
     // Apply the translation.
     matrix_unit(work);
@@ -213,9 +221,9 @@ void matrix_translate(MATRIX output, MATRIX input0, VECTOR input1)
     matrix_multiply(output, input0, work);
 }
 
-void matrix_transpose(MATRIX output, MATRIX input0) 
+void matrix_transpose(f32_m4x4 output, f32_m4x4 input0) 
 {
-    MATRIX work;
+    f32_m4x4 work;
 
     // Transpose the matrix.
     work[_11] = input0[_11];
@@ -239,10 +247,10 @@ void matrix_transpose(MATRIX output, MATRIX input0)
     matrix_copy(output, work);
 }
 
-void matrix_unit(MATRIX output) 
+void matrix_unit(f32_m4x4 output) 
 {
     // Create a unit matrix.
-    memset(output, 0, sizeof(MATRIX));
+    memset(output, 0, sizeof(f32_m4x4));
     output[_11] = 1.00f;
     output[_22] = 1.00f;
     output[_33] = 1.00f;
@@ -251,7 +259,7 @@ void matrix_unit(MATRIX output)
 
 //creation functions
 
-void create_local_world(MATRIX local_world, VECTOR translation, VECTOR rotation)
+void create_local_world(f32_m4x4 local_world, f32_v4 translation, f32_v4 rotation)
 {
     // Create the local_world matrix.
     matrix_unit(local_world);
@@ -259,7 +267,7 @@ void create_local_world(MATRIX local_world, VECTOR translation, VECTOR rotation)
     matrix_translate(local_world, local_world, translation);
 }
 
-void create_local_light(MATRIX local_light, VECTOR rotation) 
+void create_local_light(f32_m4x4 local_light, f32_v4 rotation) 
 {
     // Create the local_light matrix.
     matrix_unit(local_light);
@@ -267,9 +275,9 @@ void create_local_light(MATRIX local_light, VECTOR rotation)
 }
 
 
-void create_world_view(MATRIX world_view, VECTOR translation, VECTOR rotation) 
+void create_world_view(f32_m4x4 world_view, f32_v4 translation, f32_v4 rotation) 
 {
-    VECTOR work0, work1;
+    f32_v4 work0, work1;
 
     // Reverse the translation.
     work0[_X] = -translation[_X];
@@ -289,7 +297,7 @@ void create_world_view(MATRIX world_view, VECTOR translation, VECTOR rotation)
     matrix_rotate(world_view, world_view, work1);
 }
 
-void create_view_screen(MATRIX view_screen, float aspect, float left, float right, float bottom, float top, float near, float far) 
+void create_view_screen(f32_m4x4 view_screen, f32 aspect, f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) 
 {
 /* We want to create a matrix that transforms 
    field of view frustum (a truncated pyramid)
@@ -349,7 +357,7 @@ void create_view_screen(MATRIX view_screen, float aspect, float left, float righ
     view_screen[_44] = 0.00f;
 }
 
-void create_local_screen(MATRIX local_screen, MATRIX local_world, MATRIX world_view, MATRIX view_screen) 
+void create_local_screen(f32_m4x4 local_screen, f32_m4x4 local_world, f32_m4x4 world_view, f32_m4x4 view_screen) 
 {
     // Create the local_screen matrix.
     matrix_unit(local_screen);

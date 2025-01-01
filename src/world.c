@@ -1,5 +1,6 @@
 #include "world.h"
 #include "random.h"
+#include "mvp.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -392,6 +393,18 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
  *      Gjør også de lenger unna gradvis mer og mer lod.
  */
 void load_chunks(void) {
+
+    // load chunks around player, if not loaded in, check disk, if not there then generate and store on disk.
+    int current_chunk_x = (int)(floorf(v_cam_loc[0] / (CHUNK_SIZE * BLOCK_SIZE)));
+    int current_chunk_y = (int)(floorf(v_cam_loc[1] / (CHUNK_SIZE * BLOCK_SIZE)));
+    int current_chunk_z = (int)(floorf(v_cam_loc[2] / (CHUNK_SIZE * BLOCK_SIZE)));
+
+    for (int x = current_chunk_x - CHUNK_VIEW_DISTANCE; x < current_chunk_x + CHUNK_VIEW_DISTANCE; x++) {
+        for (int z = current_chunk_z - CHUNK_VIEW_DISTANCE; z < current_chunk_z + CHUNK_VIEW_DISTANCE; z++) {
+
+            generate_chunk(x, 0, z);
+        }
+    }
 
     int chunk_i = 0, chunk_i_cmp = 0;
     for (int i = 0; i < num_faces_pooled; i++) {

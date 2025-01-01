@@ -1,6 +1,7 @@
 //port of ooPo's ps2sdk math3d library
 #pragma once
 #include "nums.h"
+#include <math.h>
 
 //vector indices
 #define	_X					0
@@ -32,8 +33,8 @@
 
 // Normalize a 3D vector
 static f32_v3 normalize(f32_v3 v) {
-    f32 magnitude = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    return (f32_v3){v.x / magnitude, v.y / magnitude, v.z / magnitude};
+    f32 magnitude = 1.0f / sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    return (f32_v3){v.x * magnitude, v.y * magnitude, v.z * magnitude};
 }
 
 // Convert Euler angles (yaw, pitch, roll in radians) to a 3x3 rotation matrix
@@ -87,27 +88,27 @@ static f32_v3 subtract(f32 *a, f32 *b) {
     return (f32_v3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
 }
 
-void mul_left_vec4_matrix(f32_v4 vec, f32_m4x4 mat);
+void vec4_mul_left_matrix(f32_v4 vec, f32_m4x4 mat);
 
-void mul_right_vec4_matrix(f32_v4 vec, f32_m4x4 mat);
-
-// Clamp a vector's values by cutting them off at a minimum and maximum value.
-void vector_clamp(f32_v4 output, f32_v4 input0, f32 min, f32 max);
+void vec4_mul_right_matrix(f32_v4 vec, f32_m4x4 mat);
 
 // Copy a vector.
-void vector_copy(f32_v4 output, f32_v4 input0);
+void vec4_copy(f32_v4 *output, f32_v4 *input0);
+
+// Clamp a vector's values by cutting them off at a minimum and maximum value.
+f32_v4 vec4_copy_clamp(f32_v4 input0, f32 min, f32 max);
 
 // Calculate the inner product of two vectors. Returns a scalar value.
-f32 vector_innerproduct(f32_v4 input0, f32_v4 input1);
+f32 vec4_copy_innerproduct(f32_v4 input0, f32_v4 input1);
 
 // Multiply two vectors together.
-void vector_multiply(f32_v4 output, f32_v4 input0, f32_v4 input1);
+f32_v4 vec4_copy_multiply(f32_v4 input0, f32_v4 input1);
 
 // Normalize a vector by determining its length and dividing its values by this value.
-void vector_normalize(f32_v4 output, f32_v4 input0);
+f32_v4 vec4_copy_normalize(f32_v4 input0);
 
 // Calculate the outer product of two vectors.
-void vector_outerproduct(f32_v4 output, f32_v4 input0, f32_v4 input1);
+f32_v4 vec4_copy_outerproduct(f32_v4 input0, f32_v4 input1);
 
 //matrices functions
 

@@ -65,27 +65,6 @@ static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset
 }
 
 
-static void mul_left_vec4_matrix(f32_v4 vec, f32_m4x4 mat) {    
-    // Cache the input vector since we'll overwrite it
-    const f32 x = vec.x, y = vec.y, z = vec.z, w = vec.w;
-    
-    // Direct calculation avoiding loops and temporary array
-    vec.x = x * mat[0] + y * mat[4] + z * mat[8]  + w * mat[12];
-    vec.y = x * mat[1] + y * mat[5] + z * mat[9]  + w * mat[13];
-    vec.z = x * mat[2] + y * mat[6] + z * mat[10] + w * mat[14];
-    vec.w = x * mat[3] + y * mat[7] + z * mat[11] + w * mat[15];
-}
-
-static void mul_right_vec4_matrix(f32_v4 vec, f32_m4x4 mat) {    
-    // Cache the input vector since we'll overwrite it
-    const f32 x = vec.x, y = vec.y, z = vec.z, w = vec.w;
-
-    vec.x = x * mat[0]  + y * mat[1]  + z * mat[2]  + w * mat[3];
-    vec.y = x * mat[4]  + y * mat[5]  + z * mat[6]  + w * mat[7];
-    vec.z = x * mat[8]  + y * mat[9]  + z * mat[10] + w * mat[11];
-    vec.w = x * mat[12] + y * mat[13] + z * mat[14] + w * mat[15];
-}
-
 /*
  * https://bruop.github.io/improved_frustum_culling/ 
  */
@@ -122,81 +101,24 @@ static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
     return false;
 }
 
-// Normalize a 3D vector
-static f32_v3 normalize(f32_v3 v) {
-    f32 magnitude = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    return (f32_v3){v.x / magnitude, v.y / magnitude, v.z / magnitude};
-}
-
-// Convert Euler angles (yaw, pitch, roll in radians) to a 3x3 rotation matrix
-static void euler_to_rotation_matrix(f32_m3x3 rotation_matrix, f32 pitch, f32 yaw, f32 roll) {
-    f32 cy = cos(yaw), sy = sin(yaw);
-    f32 cp = cos(pitch), sp = sin(pitch);
-    f32 cr = cos(roll), sr = sin(roll);
-
-    memcpy(rotation_matrix, (f32_m3x3) {
-        cy * cr + sy * sp * sr, cr * sy * sp - cy * sr, cp * sy,
-        cp * sr,                cp * cr,               -sp     ,
-        cy * sp * sr - cr * sy, cy * cr * sp + sr * sy, cy * cp
-    }, sizeof(f32_m3x3));
-}
-
-// Multiply a 3x3 matrix by a 3D vector
-static f32_v3 multiply_matrix_vector(f32_m3x3 matrix, f32_v3 vector) {
-    return (f32_v3){
-        matrix[0] * vector.x + matrix[1] * vector.y + matrix[2] * vector.z,
-        matrix[3] * vector.x + matrix[4] * vector.y + matrix[5] * vector.z,
-        matrix[6] * vector.x + matrix[7] * vector.y + matrix[8] * vector.z
-    };
-}
-
-// Compute the dot product of two vectors
-static f32 dot_product(f32_v3 a, f32_v3 b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-// Compare the direction of two vectors
-static i32 is_same_direction(f32_v3 a, f32_v3 b, float threshold) {
-    // Normalize both vectors
-    a = normalize(a);
-    b = normalize(b);
-
-    // Compute the dot product
-    float dot = dot_product(a, b);
-
-    // Check if the angle between them is within the threshold
-    return dot >= threshold;  // Cosine similarity threshold (e.g., 0.9 for ~25°)
-}
-
-static f32 distance_vec3(f32 *a, f32 *b) {
-    f32 x = b[0] - a[0];
-    f32 y = b[1] - a[1];
-    f32 z = b[2] - a[2];
-    return sqrtf(x*x + y*y + z*z);
-}
-
-static f32_v3 subtract(f32 *a, f32 *b) {
-    return (f32_v3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
-}
-
 static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     
-    v_obj_pos[0] = x;
-    v_obj_pos[1] = 0;
-    v_obj_pos[2] = y;
+    // v_obj_pos.x = x;
+    // v_obj_pos.y = 0;
+    // v_obj_pos.z = y;
 
     /* Tilt and rotate the object a bit */
-    v_obj_rot[0] = rotX;
-    v_obj_rot[1] = rotY;
+    // v_obj_rot[0] = rotX;
+    // v_obj_rot[1] = rotY;
 
-    f32_v3 camera_position = {v_cam_loc[0], v_cam_loc[1], v_cam_loc[2]};
+    f32_v3 camera_position = {v_cam_loc.x, v_cam_loc.y, v_cam_loc.z};
 
     // Forward vector in view space
     f32_v3 forward_vector_view = {0.0f, 0.0f, -1.0f};
 
     // Compute the rotation matrix
     f32_m3x3 rotation_matrix;
-    euler_to_rotation_matrix(rotation_matrix, v_cam_rot[0], v_cam_rot[1], v_cam_rot[2]);
+    euler_to_rotation_matrix(rotation_matrix, v_cam_rot.x, v_cam_rot.y, v_cam_rot.z);
 
     // Transform the forward vector to world space
     f32_v3 camera_normal_world = multiply_matrix_vector(rotation_matrix, forward_vector_view);
@@ -209,9 +131,9 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     /* Create local->world matrix given our updated object */
     matrix_unit(m_model);
-    matrix_rotate(m_model, m_model, v_obj_rot);
-    matrix_scale(m_model, m_model, v_obj_scale);
-    matrix_translate(m_model, m_model, v_obj_pos);
+    // matrix_rotate(m_model, m_model, v_obj_rot);
+    // matrix_scale(m_model, m_model, v_obj_scale);
+    // matrix_translate(m_model, m_model, v_obj_pos);
 
     u32 *p = pb_begin();
     /* Set shader constants cursor at C0 */
@@ -264,7 +186,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     // MATRIX vm;
     // matrix_multiply(vm, m_view, m_model);
-    MATRIX mvp;
+    f32_m4x4 mvp;
     matrix_multiply(mvp, m_view, m_proj);
 
     f32_v3 face_normals[FACE_DIRECTION_TOTAL];
@@ -305,7 +227,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
         if (remove_directions[direction]) continue;
 
-        f32_v3 view_dir = normalize(subtract(v_cam_loc, (f32 *) &f.vertices[0]));
+        f32_v3 view_dir = normalize(subtract((f32 *) &v_cam_loc, (f32 *) &f.vertices[0]));
         f32 dot_prod = dot_product(face_normals[direction], view_dir);
         if (dot_prod < 0) continue;
         // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);

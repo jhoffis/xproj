@@ -157,16 +157,16 @@ int main(void)
 
 
 
-        v_cam_rot[0] = cam_rotationX;
-        v_cam_rot[1] = cam_rotationY;
-        v_cam_loc[1] = cam_posY;
+        v_cam_rot.x = cam_rotationX;
+        v_cam_rot.x = cam_rotationY;
+        v_cam_loc.y = cam_posY;
 
         float x = sin(cam_rotationY) * move_speed;
         float z = cos(cam_rotationY) * move_speed;
 
         // Forward and backwards + side to side
-        v_cam_loc[0] += (x * cam_posZ) + (z * cam_posX);
-        v_cam_loc[2] += (z * cam_posZ) - (x * cam_posX);
+        v_cam_loc.x += (x * cam_posZ) + (z * cam_posX);
+        v_cam_loc.z += (z * cam_posZ) - (x * cam_posX);
 
 
         /* Create view matrix (our camera is static) */
@@ -252,8 +252,8 @@ int main(void)
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)) {
                 g_render_method = g_render_method == TRIANGLES ? LINES : TRIANGLES;    
             }
-            int chunk_pos_x = (int)(floorf(v_cam_loc[0] / (CHUNK_SIZE * BLOCK_SIZE))); 
-            int chunk_pos_z = (int)(floorf(v_cam_loc[2] / (CHUNK_SIZE * BLOCK_SIZE)));
+            int chunk_pos_x = (int)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE))); 
+            int chunk_pos_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
                 pb_print(
                     "- Lstick: x=%d, y=%d\n"
                     "- Rstick: x=%d, y=%d\n"
@@ -280,9 +280,9 @@ int main(void)
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT),
                     (i16)(100 * cam_rotationX),
                     (i16)(100 * cam_rotationY),
-                    (i16)v_cam_loc[0],
-                    (i16)v_cam_loc[1],
-                    (i16)v_cam_loc[2],
+                    (i16)v_cam_loc.x,
+                    (i16)v_cam_loc.y,
+                    (i16)v_cam_loc.z,
                     chunk_pos_x,
                     chunk_pos_z
 

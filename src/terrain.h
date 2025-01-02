@@ -93,6 +93,8 @@ static bool is_point_in_frustum(f32_v3 point, f32_m4x4 viewproj) {
 }
 
 static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
+    // TODO check if right point is to the left and if left point is to the right>?
+    //      and if bottom is above top
     if (is_point_in_frustum(f.vertices[0], viewproj)) return true;
     if (is_point_in_frustum(f.vertices[1], viewproj)) return true;
     if (is_point_in_frustum(f.vertices[2], viewproj)) return true;
@@ -102,14 +104,16 @@ static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
 }
 
 static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
-    
-    // v_obj_pos.x = x;
-    // v_obj_pos.y = 0;
-    // v_obj_pos.z = y;
+    f32_v4 v_obj_pos = {0,0,0,1}; 
+    f32_v4 v_obj_rot = {0,0,0,1}; 
+    f32_v4 v_obj_scale = {1,1,1,1}; 
+    v_obj_pos.x = x;
+    v_obj_pos.y = 0;
+    v_obj_pos.z = y;
 
     /* Tilt and rotate the object a bit */
-    // v_obj_rot[0] = rotX;
-    // v_obj_rot[1] = rotY;
+    v_obj_rot.x = rotX;
+    v_obj_rot.y = rotY;
 
     f32_v3 camera_position = {v_cam_loc.x, v_cam_loc.y, v_cam_loc.z};
 
@@ -118,13 +122,13 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     // Compute the rotation matrix
     f32_m3x3 rotation_matrix;
-    euler_to_rotation_matrix(rotation_matrix, v_cam_rot.x, v_cam_rot.y, v_cam_rot.z);
+    mat3x3_euler_to_rotation_matrix(rotation_matrix, v_cam_rot.x, v_cam_rot.y, v_cam_rot.z);
 
     // Transform the forward vector to world space
-    f32_v3 camera_normal_world = multiply_matrix_vector(rotation_matrix, forward_vector_view);
+    f32_v3 camera_normal_world = vec3_multiply_mat3x3(rotation_matrix, forward_vector_view);
 
     // Normalize the resulting vector
-    camera_normal_world = normalize(camera_normal_world);
+    camera_normal_world = vec3_normalize(camera_normal_world);
     // pb_print("normal x%d y%d z%d \n", (i32) (1000 * camera_normal_world.x), 
     //                                   (i32) (1000 * camera_normal_world.y), 
     //                                   (i32) (1000 * camera_normal_world.z));
@@ -214,7 +218,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
                 face_normal.z = -1;
                 break;
         }
-        remove_directions[d] = is_same_direction(camera_normal_world, face_normal, 0.7f);
+        remove_directions[d] = vec3_is_same_direction(camera_normal_world, face_normal, 0.7f);
         face_normals[d] = face_normal;
     }
 
@@ -227,13 +231,13 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
         if (remove_directions[direction]) continue;
 
-        f32_v3 view_dir = normalize(subtract((f32 *) &v_cam_loc, (f32 *) &f.vertices[0]));
-        f32 dot_prod = dot_product(face_normals[direction], view_dir);
+        f32_v3 view_dir = vec3_normalize(vec3_subtract((f32 *) &v_cam_loc, (f32 *) &f.vertices[0]));
+        f32 dot_prod = vec3_dot_product(face_normals[direction], view_dir);
         if (dot_prod < 0) continue;
         // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
 
         fill_face_indices(f.indices, 0, n*4, fs);
-        // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
+        if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
 
         // 3 000 000 ns ish
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);

@@ -2,6 +2,8 @@
 #pragma once
 #include "nums.h"
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 //vector indices
 #define	_X					0
@@ -32,61 +34,20 @@
 
 
 // Normalize a 3D vector
-static f32_v3 normalize(f32_v3 v) {
-    f32 magnitude = 1.0f / sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    return (f32_v3){v.x * magnitude, v.y * magnitude, v.z * magnitude};
-}
-
-// Convert Euler angles (yaw, pitch, roll in radians) to a 3x3 rotation matrix
-static void euler_to_rotation_matrix(f32_m3x3 rotation_matrix, f32 pitch, f32 yaw, f32 roll) {
-    f32 cy = cos(yaw), sy = sin(yaw);
-    f32 cp = cos(pitch), sp = sin(pitch);
-    f32 cr = cos(roll), sr = sin(roll);
-
-    memcpy(rotation_matrix, (f32_m3x3) {
-        cy * cr + sy * sp * sr, cr * sy * sp - cy * sr, cp * sy,
-        cp * sr,                cp * cr,               -sp     ,
-        cy * sp * sr - cr * sy, cy * cr * sp + sr * sy, cy * cp
-    }, sizeof(f32_m3x3));
-}
+f32_v3 vec3_normalize(f32_v3 v);
 
 // Multiply a 3x3 matrix by a 3D vector
-static f32_v3 multiply_matrix_vector(f32_m3x3 matrix, f32_v3 vector) {
-    return (f32_v3){
-        matrix[0] * vector.x + matrix[1] * vector.y + matrix[2] * vector.z,
-        matrix[3] * vector.x + matrix[4] * vector.y + matrix[5] * vector.z,
-        matrix[6] * vector.x + matrix[7] * vector.y + matrix[8] * vector.z
-    };
-}
+f32_v3 vec3_multiply_mat3x3(f32_m3x3 matrix, f32_v3 vector);
 
 // Compute the dot product of two vectors
-static f32 dot_product(f32_v3 a, f32_v3 b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
+f32 vec3_dot_product(f32_v3 a, f32_v3 b);
 
 // Compare the direction of two vectors
-static i32 is_same_direction(f32_v3 a, f32_v3 b, float threshold) {
-    // Normalize both vectors
-    a = normalize(a);
-    b = normalize(b);
+i32 vec3_is_same_direction(f32_v3 a, f32_v3 b, float threshold);
 
-    // Compute the dot product
-    float dot = dot_product(a, b);
+f32 vec3_distance(f32 *a, f32 *b);
 
-    // Check if the angle between them is within the threshold
-    return dot >= threshold;  // Cosine similarity threshold (e.g., 0.9 for ~25°)
-}
-
-static f32 distance_vec3(f32 *a, f32 *b) {
-    f32 x = b[0] - a[0];
-    f32 y = b[1] - a[1];
-    f32 z = b[2] - a[2];
-    return sqrtf(x*x + y*y + z*z);
-}
-
-static f32_v3 subtract(f32 *a, f32 *b) {
-    return (f32_v3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
-}
+f32_v3 vec3_subtract(f32 *a, f32 *b);
 
 void vec4_mul_left_matrix(f32_v4 vec, f32_m4x4 mat);
 
@@ -137,6 +98,9 @@ void matrix_transpose(f32_m4x4 output, f32_m4x4 input0);
 void matrix_unit(f32_m4x4 output);
 
 //creation functions
+
+// Convert Euler angles (yaw, pitch, roll in radians) to a 3x3 rotation matrix
+void mat3x3_euler_to_rotation_matrix(f32_m3x3 rotation_matrix, f32 pitch, f32 yaw, f32 roll);
 
 // Create a local_world matrix given a translation and rotation.
 // Commonly used to describe an object's position and orientation.

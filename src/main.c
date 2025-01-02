@@ -142,9 +142,9 @@ int main(void)
     f32 obj_rotationX = 0;
     f32 obj_rotationY = 0;
     f32 cam_rotationX = 0;
-    f32 cam_rotationY = 500;
+    f32 cam_rotationY = 0;
     f32 cam_posX = 0;
-    f32 cam_posY = 0;
+    f32 cam_posY = 400;
     f32 cam_posZ = 0;
     for (;;) {
 
@@ -158,7 +158,7 @@ int main(void)
 
 
         v_cam_rot.x = cam_rotationX;
-        v_cam_rot.x = cam_rotationY;
+        v_cam_rot.y = cam_rotationY;
         v_cam_loc.y = cam_posY;
 
         float x = sin(cam_rotationY) * move_speed;

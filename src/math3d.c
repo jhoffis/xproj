@@ -1,9 +1,5 @@
 //port of ooPo's ps2sdk math3d library
 
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-
 #include "math3d.h"
 
 unsigned long times(void *);
@@ -12,6 +8,52 @@ unsigned long times(void *);
 
 
 //vector functions
+
+
+// Normalize a 3D vector
+f32_v3 vec3_normalize(f32_v3 v) {
+    f32 magnitude = 1.0f / sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    return (f32_v3){v.x * magnitude, v.y * magnitude, v.z * magnitude};
+}
+
+// Multiply a 3x3 matrix by a 3D vector
+f32_v3 vec3_multiply_mat3x3(f32_m3x3 matrix, f32_v3 vector) {
+    return (f32_v3){
+        matrix[0] * vector.x + matrix[1] * vector.y + matrix[2] * vector.z,
+        matrix[3] * vector.x + matrix[4] * vector.y + matrix[5] * vector.z,
+        matrix[6] * vector.x + matrix[7] * vector.y + matrix[8] * vector.z
+    };
+}
+
+// Compute the dot product of two vectors
+f32 vec3_dot_product(f32_v3 a, f32_v3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+// Compare the direction of two vectors
+i32 vec3_is_same_direction(f32_v3 a, f32_v3 b, float threshold) {
+    // Normalize both vectors
+    a = vec3_normalize(a);
+    b = vec3_normalize(b);
+
+    // Compute the dot product
+    float dot = vec3_dot_product(a, b);
+
+    // Check if the angle between them is within the threshold
+    return dot >= threshold;  // Cosine similarity threshold (e.g., 0.9 for ~25°)
+}
+
+f32 vec3_distance(f32 *a, f32 *b) {
+    f32 x = b[0] - a[0];
+    f32 y = b[1] - a[1];
+    f32 z = b[2] - a[2];
+    return sqrtf(x*x + y*y + z*z);
+}
+
+f32_v3 vec3_subtract(f32 *a, f32 *b) {
+    return (f32_v3){a[0] - b[0], a[1] - b[1], a[2] - b[2]};
+}
+
 
 void vec4_mul_left_matrix(f32_v4 vec, f32_m4x4 mat) {    
     // Cache the input vector since we'll overwrite it
@@ -111,6 +153,20 @@ f32_v4 vec4_copy_outerproduct(f32_v4 input0, f32_v4 input1)
 }
 
 //matrices function
+
+// Convert Euler angles (yaw, pitch, roll in radians) to a 3x3 rotation matrix
+void mat3x3_euler_to_rotation_matrix(f32_m3x3 rotation_matrix, f32 pitch, f32 yaw, f32 roll) {
+    f32 cy = cos(yaw), sy = sin(yaw);
+    f32 cp = cos(pitch), sp = sin(pitch);
+    f32 cr = cos(roll), sr = sin(roll);
+
+    memcpy(rotation_matrix, (f32_m3x3) {
+        cy * cr + sy * sp * sr, cr * sy * sp - cy * sr, cp * sy,
+        cp * sr,                cp * cr,               -sp     ,
+        cy * sp * sr - cr * sy, cy * cr * sp + sr * sy, cy * cp
+    }, sizeof(f32_m3x3));
+}
+
 
 void matrix_copy(f32_m4x4 output, f32_m4x4 input0) 
 {

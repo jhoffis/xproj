@@ -75,8 +75,12 @@ static bool is_point_in_frustum(f32_v3 point, f32_m4x4 viewproj) {
     // Direct calculation avoiding loops and temporary array
     cs.w =  1.0f / (point.x * viewproj[3] + point.y * viewproj[7] + point.z * viewproj[11] + viewproj[15]);
     cs.x =         (point.x * viewproj[0] + point.y * viewproj[4] + point.z * viewproj[8]  + viewproj[12]) *  cs.w;
+    if (!(cs.x >= 0 && cs.x <= 640)) return false;
     cs.y =         (point.x * viewproj[1] + point.y * viewproj[5] + point.z * viewproj[9]  + viewproj[13]) *  cs.w;
+    if (!(cs.y >= 0 && cs.y <= 480)) return false;
     cs.z =         (point.x * viewproj[2] + point.y * viewproj[6] + point.z * viewproj[10] + viewproj[14]) * -cs.w;
+    if (!(cs.z >= 0 && cs.z <= 65536)) return false;
+    return true;
 
     // Check if point is inside the frustum in NDC space
     // pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) cs[0], 
@@ -84,12 +88,12 @@ static bool is_point_in_frustum(f32_v3 point, f32_m4x4 viewproj) {
     //                                        (i32) cs[2], 
     //                                        (i32) cs[3], 
     //                                        (i32) inside_view_frustum);
-    return cs.x >= 0   && 
-           cs.x <= 640 &&
-           cs.y >= 0   &&
-           cs.y <= 480 &&
-           cs.z >= 0   &&
-           cs.z <= 65536;
+    // return cs.x >= 0   && 
+    //        cs.x <= 640 &&
+    //        cs.y >= 0   &&
+    //        cs.y <= 480 &&
+    //        cs.z >= 0   &&
+    //        cs.z <= 65536;
 }
 
 static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {

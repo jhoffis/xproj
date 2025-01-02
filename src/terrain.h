@@ -75,9 +75,9 @@ static bool is_point_in_frustum(f32_v3 point, f32_m4x4 viewproj) {
     // Direct calculation avoiding loops and temporary array
     cs.w =  1.0f / (point.x * viewproj[3] + point.y * viewproj[7] + point.z * viewproj[11] + viewproj[15]);
     cs.x =         (point.x * viewproj[0] + point.y * viewproj[4] + point.z * viewproj[8]  + viewproj[12]) *  cs.w;
-    if (!(cs.x >= 0 && cs.x <= 640)) return false;
+    if (!(cs.x >= 0 && cs.x <= screen_width)) return false;
     cs.y =         (point.x * viewproj[1] + point.y * viewproj[5] + point.z * viewproj[9]  + viewproj[13]) *  cs.w;
-    if (!(cs.y >= 0 && cs.y <= 480)) return false;
+    if (!(cs.y >= 0 && cs.y <= screen_height)) return false;
     cs.z =         (point.x * viewproj[2] + point.y * viewproj[6] + point.z * viewproj[10] + viewproj[14]) * -cs.w;
     if (!(cs.z >= 0 && cs.z <= 65536)) return false;
     return true;

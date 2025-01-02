@@ -17,7 +17,6 @@
 
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
-u32 width = 1280, height = 720;
 
 #define MUSIC_AMOUNT 5
 static u8 *music_current;
@@ -95,10 +94,10 @@ int main(void)
     int f3key = 0;
     LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
 
-    if (!XVideoSetMode(width, height, 32, REFRESH_60HZ)) {
-        width = 640;
-        height = 480;
-        XVideoSetMode(width, height, 32, REFRESH_DEFAULT);
+    if (!XVideoSetMode(screen_width, screen_height, 32, REFRESH_60HZ)) {
+        screen_width = 640;
+        screen_height = 480;
+        XVideoSetMode(screen_width, screen_height, 32, REFRESH_DEFAULT);
     }
 
     pbk_init = pb_init() == 0;
@@ -127,10 +126,10 @@ int main(void)
     load_chunks();
 
     /* Create projection matrix */
-    create_view_screen(m_proj, (float)width/(float)height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 10000.0f);
+    create_view_screen(m_proj, (float)screen_width/(float)screen_height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 10000.0f);
 
     /* Create viewport matrix, combine with projection */
-    matrix_viewport(m_viewport, 0, 0, width, height, 0, 65536.0f);
+    matrix_viewport(m_viewport, 0, 0, screen_width, screen_height, 0, 65536.0f);
     matrix_multiply(m_proj, m_proj, (float*)m_viewport);
 
     // default surface color anyway but...
@@ -151,8 +150,8 @@ int main(void)
         pb_wait_for_vbl();
         pb_target_back_buffer();
         pb_reset();
-        pb_erase_depth_stencil_buffer(0, 0, width, height);
-        pb_fill(0, 0, width, height, 0xff0E060C);
+        pb_erase_depth_stencil_buffer(0, 0, screen_width, screen_height);
+        pb_fill(0, 0, screen_width, screen_height, 0xff0E060C);
         pb_erase_text_screen();
 
 

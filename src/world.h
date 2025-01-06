@@ -4,7 +4,7 @@
 
 
 #define CHUNK_SIZE 16
-#define CHUNK_VIEW_DISTANCE 2
+#define CHUNK_VIEW_DISTANCE 1
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 8*1024
 
@@ -70,5 +70,6 @@ extern u32 num_chunks_pooled;
 extern u32 *chunk_offsets;
 
 void init_world(void);
+void destroy_world(void);
 void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z);
 void load_chunks(void);

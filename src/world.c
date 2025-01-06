@@ -36,6 +36,13 @@ void init_world(void) {
     faces_calculated_pool = calloc(10000, sizeof(face));
 }
 
+void destroy_world(void) {
+    free(loaded_chunks);
+    free(faces_pool);
+    free(faces_calculated_pool);
+    free(chunk_offsets);
+}
+
 static face_stored find_single_face(
     chunk_data *chunk,
     int start_x,

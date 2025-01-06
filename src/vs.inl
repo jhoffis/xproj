@@ -1,4 +1,4 @@
-// cgc version 3.1.0013, build date Apr 18 2012
+// cgc version 3.1.0013, build date Apr 24 2012
 // command line args: -profile vp20
 // source file: src/vs.vs.cg
 //vendor NVIDIA Corporation

@@ -1,4 +1,5 @@
 #pragma once
+#include "pbkit/pbkit.h"
 #include "png_loader.h"
 #include "nums.h"
 
@@ -233,15 +234,15 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         face_stored fs = faces_pool[i];
         u8 direction = GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION);
 
-        if (remove_directions[direction]) continue;
+        // if (remove_directions[direction]) continue;
 
         f32_v3 view_dir = vec3_normalize(vec3_subtract((f32 *) &v_cam_loc, (f32 *) &f.vertices[0]));
         f32 dot_prod = vec3_dot_product(face_normals[direction], view_dir);
-        if (dot_prod < 0) continue;
+        // if (dot_prod < 0) continue;
         // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
 
         fill_face_indices(f.indices, 0, n*4, fs);
-        if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
+        // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
 
         // 3 000 000 ns ish
         memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
@@ -300,7 +301,7 @@ inline static void render_terrain(image_data img) {
         DWORD filter = ((4 << 24) & NV097_SET_TEXTURE_FILTER_MAG) | 
                        ((7 << 16) & NV097_SET_TEXTURE_FILTER_MIN) | 
 				       ((4 << 12) & NV097_SET_SURFACE_FORMAT_ANTI_ALIASING); // 0x04074000
-		DWORD control_enable = NV097_SET_TEXTURE_CONTROL0_ENABLE | NV097_SET_TEXTURE_CONTROL0_MAX_LOD_CLAMP;
+		DWORD control_enable = NV097_SET_TEXTURE_CONTROL0_ENABLE | NV097_SET_TEXTURE_CONTROL0_MIN_LOD_CLAMP;
 
         /* Enable texture stage 0 */
         /* FIXME: Use constants instead of the hardcoded values below */
@@ -309,7 +310,7 @@ inline static void render_terrain(image_data img) {
         p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img.addr26bits, format); //set stage 0 texture address & format
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),  0x00000101); //set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),  0x00010101); //set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0), control_enable); //set stage 0 texture enable flags
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0), filter); //set stage 0 texture filters (AA!)
         pb_end(p);

@@ -1,7 +1,12 @@
+#ifndef DBG
+    #define DBG 1
+#endif
+
 #include <hal/debug.h>
 #include <hal/video.h>
 #include <windows.h>
 
+#include "SDL_gamecontroller.h"
 #include "audio.h"
 #include "png_loader.h"
 #include "nums.h"
@@ -13,6 +18,8 @@
 #include "mvp.h"
 #include "wav_loader.h"
 #include "nxdk_wav.h"
+
+
 
 
 SDL_GameController *pad = NULL;
@@ -30,6 +37,10 @@ static const char *music_strs[MUSIC_AMOUNT] = {
 static wav_entity *audio_buffer_data;
 
 void cleanup() {
+
+    destroy_world();
+    free(music_current);
+
     if (pbk_init) {
         pb_kill();
     }
@@ -126,15 +137,14 @@ int main(void)
     load_chunks();
 
     /* Create projection matrix */
-    create_view_screen(m_proj, (float)screen_width/(float)screen_height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 10000.0f);
+    create_view_screen(m_proj, (float)screen_width/(float)screen_height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 30000.0f);
 
     /* Create viewport matrix, combine with projection */
-    matrix_viewport(m_viewport, 0, 0, screen_width, screen_height, 0, 65536.0f);
+    matrix_viewport(m_viewport, 0, 0, screen_width, screen_height, 1, -1.0f);
     matrix_multiply(m_proj, m_proj, (float*)m_viewport);
 
     // default surface color anyway but...
     pb_set_color_format(NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8, false);
-    
 
     f32 move_speed = 5;
     i32 sw = 0;
@@ -142,9 +152,9 @@ int main(void)
     f32 obj_rotationY = 0;
     f32 cam_rotationX = 0;
     f32 cam_rotationY = 0;
-    f32 cam_posX = 0;
-    f32 cam_posY = 400;
-    f32 cam_posZ = 0;
+    f32 cam_posX = -3;
+    f32 cam_posY = 30;
+    f32 cam_posZ = 8;
     for (;;) {
 
         pb_wait_for_vbl();
@@ -209,7 +219,7 @@ int main(void)
         else {
             float movement_spd = 3;
             i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
-            if (look_x_axis > 4000 || look_x_axis < -4000) {
+            if (look_x_axis > 10000 || look_x_axis < -10000) {
                 // x is y because rotation ok?!
                 cam_rotationY -= (float) (look_x_axis) / 1000000.f;
                 if (cam_rotationY < 0) {
@@ -219,7 +229,7 @@ int main(void)
                 }
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
-            if (look_y_axis > 4000 || look_y_axis < -4000) {
+            if (look_y_axis > 10000 || look_y_axis < -10000) {
                 cam_rotationX -= (float) (look_y_axis) / 1000000.f;
                 if (cam_rotationX < 0) {
                     cam_rotationX = 2*M_PI + cam_rotationX;
@@ -228,7 +238,7 @@ int main(void)
                 }
             }
             i16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
-            if (walk_x_axis > 4000 || walk_x_axis < -4000) {
+            if (walk_x_axis > 10000 || walk_x_axis < -10000) {
                 // x is y because rotation ok?!
                 cam_posX = movement_spd * (float) (walk_x_axis) / 32767.f;
             } else {
@@ -236,7 +246,7 @@ int main(void)
             }
 
             i16 walk_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
-            if (walk_y_axis > 4000 || walk_y_axis < -4000) {
+            if (walk_y_axis > 10000 || walk_y_axis < -10000) {
                 cam_posZ = movement_spd * (float) (walk_y_axis) / 32767.f;
             } else {
                 cam_posZ = 0;
@@ -246,6 +256,10 @@ int main(void)
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B) | SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
                 cam_posY -= 5;
+            }
+
+            if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) && SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK)) {
+                break;
             }
 
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)) {
@@ -338,6 +352,7 @@ int main(void)
             last = now;
         }
     }
+
     cleanup();
     return 0;
 }

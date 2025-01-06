@@ -1,4 +1,4 @@
-XBE_TITLE = default
+XBE_TITLE = xproj
 OUTPUT_DIR = out
 SRCS = $(shell find $(CURDIR)/src -name '*.c')
 NXDK_DIR ?= $(CURDIR)/../nxdk

@@ -338,7 +338,7 @@ int main(void)
         }
         if (fps > 0) {
             pb_print("FPS: %d\n", fps);
-            pb_print("DELTA: %d\n", (u64) (1000000 * timer_delta()));
+            // pb_print("DELTA: %d\n", (u64) (1000000 * timer_delta()));
         }
         pb_print("faces: %d\n", num_faces_pooled);
 

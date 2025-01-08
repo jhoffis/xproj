@@ -7,6 +7,7 @@ float4 main(vOut I,
 	uniform sampler2D colorMap) : COLOR
 {
 	float4 color = tex2D(colorMap, I.tex0.xy);
+    //float4 color = float4(0, 1, 0, 1);
 	return color;
 	// return float4(I.tex0.xy, 0, 1);
 }

@@ -292,6 +292,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
 }
 
 static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored face) {
+    out->info = GET_FACE_STORED(face, FACE_STORED_INFO); 
     int a0 = GET_FACE_STORED(face, FACE_STORED_A0) * (int)cube_size;
     int a1 = (1 + GET_FACE_STORED(face, FACE_STORED_A1)) * (int)cube_size;
     int b0 = GET_FACE_STORED(face, FACE_STORED_B0) * (int)cube_size;
@@ -341,24 +342,25 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
         out->vertices[0].x = chunk_offset[0] + a1;
         out->vertices[0].y = chunk_offset[1] + b0;
         out->vertices[0].z = chunk_offset[2] + c;
-        out->tex_coords[0][0] = 0;
-        out->tex_coords[0][1] = tex_a;
                           
         out->vertices[1].x = chunk_offset[0] + a1;
         out->vertices[1].y = chunk_offset[1] + b1;
         out->vertices[1].z = chunk_offset[2] + c;
-        out->tex_coords[1][0] = tex_b;
-        out->tex_coords[1][1] = tex_a;
                           
         out->vertices[2].x = chunk_offset[0] + a0;
         out->vertices[2].y = chunk_offset[1] + b1;
         out->vertices[2].z = chunk_offset[2] + c;
-        out->tex_coords[2][0] = tex_b;
-        out->tex_coords[2][1] = 0;
                           
         out->vertices[3].x = chunk_offset[0] + a0;
         out->vertices[3].y = chunk_offset[1] + b0;
         out->vertices[3].z = chunk_offset[2] + c;
+
+        out->tex_coords[0][0] = 0;
+        out->tex_coords[0][1] = tex_a;
+        out->tex_coords[1][0] = tex_b;
+        out->tex_coords[1][1] = tex_a;
+        out->tex_coords[2][0] = tex_b;
+        out->tex_coords[2][1] = 0;
         out->tex_coords[3][0] = 0;
         out->tex_coords[3][1] = 0;
         return;

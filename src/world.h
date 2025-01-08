@@ -40,6 +40,7 @@ typedef struct {
     f32_v3 vertices[4];
     f32 tex_coords[4][2];
     u16 indices[6];
+    u16 info;
 } face; // Kan ha 326 tusen faces i 30MB, så disse burde lagres! Burde ha at man laster inn de nermeste 9 chunks i disse.
 
 typedef struct {

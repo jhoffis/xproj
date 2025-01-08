@@ -6,61 +6,35 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "profileapi.h"
 #include "random.h"
 #include "shader.h"
 #include "mvp.h"
 #include "cube.h"
 #include "world.h"
+#include "timer_util.h"
 
-static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset, face_stored face) {
-    switch (GET_FACE_STORED(face, FACE_STORED_INFO_DIRECTION)) { 
+static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset, u8 direction) {
+    switch (direction) { 
         case FACE_DIRECTION_DOWN:
-            indices[index_offset + 0] = vertex_offset + 1;
-            indices[index_offset + 1] = vertex_offset + 2;
+        case FACE_DIRECTION_SOUTH:
+        case FACE_DIRECTION_EAST:
+            indices[index_offset + 0] = vertex_offset + 0;
+            indices[index_offset + 1] = vertex_offset + 1;
             indices[index_offset + 2] = vertex_offset + 3;
-            indices[index_offset + 3] = vertex_offset + 0;
-            indices[index_offset + 4] = vertex_offset + 1;
+            indices[index_offset + 3] = vertex_offset + 1;
+            indices[index_offset + 4] = vertex_offset + 2;
             indices[index_offset + 5] = vertex_offset + 3;
             break;
         case FACE_DIRECTION_UP:
-            indices[index_offset + 0] = vertex_offset + 1;
-            indices[index_offset + 1] = vertex_offset + 3;
-            indices[index_offset + 2] = vertex_offset + 2;
-            indices[index_offset + 3] = vertex_offset + 0;
-            indices[index_offset + 4] = vertex_offset + 3;
-            indices[index_offset + 5] = vertex_offset + 1;
-            break;
         case FACE_DIRECTION_NORTH:
-            indices[index_offset + 0] = vertex_offset + 0;
-            indices[index_offset + 1] = vertex_offset + 3;
-            indices[index_offset + 2] = vertex_offset + 2;
-            indices[index_offset + 3] = vertex_offset + 0;
-            indices[index_offset + 4] = vertex_offset + 2;
-            indices[index_offset + 5] = vertex_offset + 1;
-            break;
-        case FACE_DIRECTION_SOUTH:
-            indices[index_offset + 0] = vertex_offset + 0;
-            indices[index_offset + 1] = vertex_offset + 2;
-            indices[index_offset + 2] = vertex_offset + 3;
-            indices[index_offset + 3] = vertex_offset + 0;
-            indices[index_offset + 4] = vertex_offset + 1;
-            indices[index_offset + 5] = vertex_offset + 2;
-            break;
         case FACE_DIRECTION_WEST:
             indices[index_offset + 0] = vertex_offset + 0;
             indices[index_offset + 1] = vertex_offset + 3;
-            indices[index_offset + 2] = vertex_offset + 2;
-            indices[index_offset + 3] = vertex_offset + 0;
+            indices[index_offset + 2] = vertex_offset + 1;
+            indices[index_offset + 3] = vertex_offset + 3;
             indices[index_offset + 4] = vertex_offset + 2;
             indices[index_offset + 5] = vertex_offset + 1;
-            break;
-        case FACE_DIRECTION_EAST:
-            indices[index_offset + 0] = vertex_offset + 0;
-            indices[index_offset + 1] = vertex_offset + 2;
-            indices[index_offset + 2] = vertex_offset + 3;
-            indices[index_offset + 3] = vertex_offset + 0;
-            indices[index_offset + 4] = vertex_offset + 1;
-            indices[index_offset + 5] = vertex_offset + 2;
             break;
     }
 }
@@ -80,7 +54,7 @@ static bool is_point_in_frustum(f32_v3 point, f32_m4x4 viewproj) {
     cs.y =         (point.x * viewproj[1] + point.y * viewproj[5] + point.z * viewproj[9]  + viewproj[13]) *  cs.w;
     if (!(cs.y >= 0 && cs.y <= screen_height)) return false;
     cs.z =         (point.x * viewproj[2] + point.y * viewproj[6] + point.z * viewproj[10] + viewproj[14]) * -cs.w;
-    if (!(cs.z >= 0 && cs.z <= 65536)) return false;
+    // if (!(cs.z >= -1 && cs.z <= 1)) return false;
     return true;
 
     // Check if point is inside the frustum in NDC space
@@ -109,6 +83,9 @@ static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
 }
 
 static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
+    LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
+    QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
+    QueryPerformanceCounter(&win_clock_start);      // Record start time
     f32_v4 v_obj_pos = {0,0,0,1}; 
     f32_v4 v_obj_rot = {0,0,0,1}; 
     f32_v4 v_obj_scale = {1,1,1,1}; 
@@ -182,6 +159,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     }
     pb_end(p);
 
+    timer_stamp_print("setup pb", &win_clock_start);
     /*
      * Setup vertex attributes
      */
@@ -193,6 +171,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     f32 *cube_vertices = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     f32 *tex_coors = MmAllocateContiguousMemoryEx(4*num*2 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
 
+    timer_stamp_print("setup vertex", &win_clock_start);
     // MATRIX vm;
     // matrix_multiply(vm, m_view, m_model);
     f32_m4x4 mvp;
@@ -227,30 +206,38 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         face_normals[d] = face_normal;
     }
 
+    timer_stamp_print("after setup vertex", &win_clock_start);
+
     int n = 0;
     for (int i = 0; i < num; i++) {
         
-        face f = faces_calculated_pool[i];
-        face_stored fs = faces_pool[i];
-        u8 direction = GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION);
+        u8 direction = faces_calculated_pool[i].info;
 
         if (remove_directions[direction]) continue;
 
-        f32_v3 view_dir = vec3_normalize(vec3_subtract((f32 *) &v_cam_loc, (f32 *) &f.vertices[0]));
+        f32_v3 view_dir = vec3_normalize(vec3_subtract((f32 *) &v_cam_loc, (f32 *) &faces_calculated_pool[i].vertices[0]));
         f32 dot_prod = vec3_dot_product(face_normals[direction], view_dir);
         if (dot_prod < 0) continue;
         // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
 
-        fill_face_indices(f.indices, 0, n*4, fs);
+        fill_face_indices(&cube_indices[n*6], 0, n*4, direction);
         // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
 
+        // if (n == 0) {
+        //     timer_stamp_print("fill face", &win_clock_start);
+        // }
         // 3 000 000 ns ish
-        memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
-        memcpy(&cube_vertices[n*4*3], f.vertices, sizeof(f32) * 4 * 3);
-        memcpy(&tex_coors[n*4*2], f.tex_coords, sizeof(f32) * 4 * 2); // TODO texture coordinates can be baked into the shader!
+        // memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
+        memcpy(&cube_vertices[n*4*3], faces_calculated_pool[i].vertices, sizeof(f32) * 4 * 3);
+        memcpy(&tex_coors[n*4*2], faces_calculated_pool[i].tex_coords, sizeof(f32) * 4 * 2); // TODO texture coordinates can be baked into the shader!
 
+        // if (n == 0) {
+        //     timer_stamp_print("indices and memcpys", &win_clock_start);
+        // }
         n++;
     }
+    // n = 0;
+    timer_stamp_print("calculate vertices", &win_clock_start);
     pb_print("rendered faces: %d\n", n);
 
     // u32 real_size_of_verts = sizeof(f32) * 4 * n * 3;
@@ -278,6 +265,8 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     // free(cube_vertices);
     // free(tex_coors);
     free(cube_indices);
+
+    timer_stamp_print("after drawn", &win_clock_start);
 }
 
 inline static void render_terrain(image_data img) {

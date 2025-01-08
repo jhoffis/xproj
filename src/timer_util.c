@@ -1,5 +1,6 @@
 #include "timer_util.h"
 #include "nums.h"
+#include "pbkit/pbkit.h"
 #include "profileapi.h"
 #include "sysinfoapi.h"
 
@@ -34,5 +35,12 @@ void timer_update_delta(void) {
 
 f64 timer_delta(void) {
     return m_delta;
+}
+
+void timer_stamp_print(const char *title, LARGE_INTEGER *clock_start) {
+    LARGE_INTEGER win_clock_end;
+    QueryPerformanceCounter(&win_clock_end); // Record end time
+    double elapsed = (double)(win_clock_end.QuadPart - clock_start->QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds
+    pb_print("%s ns: %d\n", title, (long) elapsed);
 }
 

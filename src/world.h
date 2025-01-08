@@ -4,7 +4,7 @@
 
 
 #define CHUNK_SIZE 16
-#define CHUNK_VIEW_DISTANCE 1
+#define CHUNK_VIEW_DISTANCE 2
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 8*1024
 

@@ -1,11 +1,12 @@
-#ifndef DBG
-    #define DBG 1
-#endif
+// #ifndef DBG
+//     #define DBG 1
+// #endif
 
 #include <hal/debug.h>
 #include <hal/video.h>
 #include <windows.h>
 
+#include "timer_util.h"
 #include "SDL_gamecontroller.h"
 #include "audio.h"
 #include "png_loader.h"
@@ -104,6 +105,8 @@ int main(void)
     frames = fps = 0;
     int f3key = 0;
     LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
+
+    timer_init();
 
     if (!XVideoSetMode(screen_width, screen_height, 32, REFRESH_60HZ)) {
         screen_width = 640;
@@ -217,11 +220,15 @@ int main(void)
             pb_print("Press start on a controller to test\n");
         }
         else {
-            float movement_spd = 3;
+            float movement_spd = 200;
+            f32 looking_spd = 150;
+            const f32 dead_zone = 14000;
+            const f64 delta = timer_delta();
             i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
-            if (look_x_axis > 10000 || look_x_axis < -10000) {
+            if (look_x_axis > dead_zone || look_x_axis < -dead_zone) {
                 // x is y because rotation ok?!
-                cam_rotationY -= (float) (look_x_axis) / 1000000.f;
+                look_x_axis += (look_x_axis > 0 ? -1 : 1) * dead_zone;
+                cam_rotationY -= looking_spd * (float) (look_x_axis) / 1000000.f * delta;
                 if (cam_rotationY < 0) {
                     cam_rotationY = 2*M_PI + cam_rotationY;
                 } else if (cam_rotationY > 2*M_PI) {
@@ -229,8 +236,9 @@ int main(void)
                 }
             }
             i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
-            if (look_y_axis > 10000 || look_y_axis < -10000) {
-                cam_rotationX -= (float) (look_y_axis) / 1000000.f;
+            if (look_y_axis > dead_zone || look_y_axis < -dead_zone) {
+                look_y_axis += (look_y_axis > 0 ? -1 : 1) * dead_zone;
+                cam_rotationX -= looking_spd * (float) (look_y_axis) / 1000000.f * delta;
                 if (cam_rotationX < 0) {
                     cam_rotationX = 2*M_PI + cam_rotationX;
                 } else if (cam_rotationX > 2*M_PI) {
@@ -238,24 +246,26 @@ int main(void)
                 }
             }
             i16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
-            if (walk_x_axis > 10000 || walk_x_axis < -10000) {
+            if (walk_x_axis > dead_zone || walk_x_axis < -dead_zone) {
                 // x is y because rotation ok?!
-                cam_posX = movement_spd * (float) (walk_x_axis) / 32767.f;
+                walk_x_axis += (walk_x_axis > 0 ? -1 : 1) * dead_zone;
+                cam_posX = movement_spd * (float) (walk_x_axis) / 32767.f * delta;
             } else {
                 cam_posX = 0;
             }
 
             i16 walk_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
-            if (walk_y_axis > 10000 || walk_y_axis < -10000) {
-                cam_posZ = movement_spd * (float) (walk_y_axis) / 32767.f;
+            if (walk_y_axis > dead_zone || walk_y_axis < -dead_zone) {
+                walk_y_axis += (walk_y_axis > 0 ? -1 : 1) * dead_zone;
+                cam_posZ = movement_spd * (float) (walk_y_axis) / 32767.f * delta;
             } else {
                 cam_posZ = 0;
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A) | SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
-                cam_posY += 5;
+                cam_posY += movement_spd * delta;
             }
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B) | SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
-                cam_posY -= 5;
+                cam_posY -= movement_spd * delta;
             }
 
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) && SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK)) {
@@ -328,6 +338,7 @@ int main(void)
         }
         if (fps > 0) {
             pb_print("FPS: %d\n", fps);
+            pb_print("DELTA: %d\n", (u64) (1000000 * timer_delta()));
         }
         pb_print("faces: %d\n", num_faces_pooled);
 
@@ -345,6 +356,7 @@ int main(void)
         frames++;
 
         /* Latch FPS counter every second */
+        timer_update_delta();
         now = GetTickCount();
         if ((now-last) > 1000) {
             fps = frames;

@@ -234,11 +234,11 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
         face_stored fs = faces_pool[i];
         u8 direction = GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION);
 
-        // if (remove_directions[direction]) continue;
+        if (remove_directions[direction]) continue;
 
         f32_v3 view_dir = vec3_normalize(vec3_subtract((f32 *) &v_cam_loc, (f32 *) &f.vertices[0]));
         f32 dot_prod = vec3_dot_product(face_normals[direction], view_dir);
-        // if (dot_prod < 0) continue;
+        if (dot_prod < 0) continue;
         // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
 
         fill_face_indices(f.indices, 0, n*4, fs);
@@ -293,14 +293,15 @@ inline static void render_terrain(image_data img) {
                        (((2 << 4) & NV097_SET_TEXTURE_FORMAT_DIMENSIONALITY)) | // 0x000000F0
                        ((NV097_SET_TEXTURE_FORMAT_COLOR_SZ_A8R8G8B8 << 8) & NV097_SET_TEXTURE_FORMAT_COLOR) | // 0x0000FF00
                        ((1 << 16) & NV097_SET_TEXTURE_FORMAT_MIPMAP_LEVELS) | // 0x000F0000
-                       ((9 << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2 (so up to 16^2)
-                       ((9 << 24) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V);
+                       ((4 << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2 (so up to 16^2)
+                       ((4 << 24) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V);
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U               0x00F00000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V               0x0F000000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_P               0xF0000000
         DWORD filter = ((4 << 24) & NV097_SET_TEXTURE_FILTER_MAG) | 
                        ((7 << 16) & NV097_SET_TEXTURE_FILTER_MIN) | 
 				       ((4 << 12) & NV097_SET_SURFACE_FORMAT_ANTI_ALIASING); // 0x04074000
+        filter = 0x01014000;
 		DWORD control_enable = NV097_SET_TEXTURE_CONTROL0_ENABLE | NV097_SET_TEXTURE_CONTROL0_MIN_LOD_CLAMP;
 
         /* Enable texture stage 0 */

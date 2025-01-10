@@ -6,8 +6,13 @@ struct vOut {
 float4 main(vOut I,
 	uniform sampler2D colorMap) : COLOR
 {
-	float4 color = tex2D(colorMap, I.tex0.xy);
-    //float4 color = float4(0, 1, 0, 1);
-	return color;
+    float2 atlasScale = float2(16.0 / 64.0, 1.0); // Scale for 16x16 in 64x16
+    float2 atlasOffset = float2(16.0 / 64.0, 0.0); // Offset for the second block
+
+    // Apply the scaling and offset directly
+    float2 adjustedTex = I.tex0;
+
+    // Sample the texture
+    return tex2D(colorMap, adjustedTex);
 	// return float4(I.tex0.xy, 0, 1);
 }

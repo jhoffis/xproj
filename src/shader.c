@@ -121,27 +121,37 @@ void pack_u16_list(u32 * out, u16 *list, u32 size) {
  *  First draw the demo and then try to get a model from the disk. 
  *  But draw a cube instead - just so it's easier to see what it's doing.
  */
-void draw_indexed(u32 num_cube_indices, u16 *cube_indices) {
-    #define MIN(a,b) ((a)<(b)?(a):(b))
+void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
+    #define MIN(a, b) ((a) < (b) ? (a) : (b))
     #define MAX_BATCH 120
 
-    u32 *p;
-    u32 num_this_batch;
     num_cube_indices /= 2;
+    u32 *p;
 
-    for (u32 i = 0; i < num_cube_indices; i += num_this_batch) {
-        num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
-        // num_this_batch -= num_this_batch %18;
+    for (u32 i = 0; i < num_cube_indices; i += MAX_BATCH) {
+        u32 num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
 
-        //What are the indices?
         p = pb_begin();
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
-        pb_push(p++, 0x40000000|NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
+        pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
-        // send indices
-        memcpy(p, &cube_indices[2*i], num_this_batch * sizeof(u32));
+        u32 base_offset = 2 * i;
+        __builtin_prefetch(&cube_indices[base_offset + 32], 0, 1);
+
+        // Process indices with loop unrolling
+        for (u32 j = 0; j < num_this_batch; j += 4) {
+            p[j]     = cube_indices[base_offset + 2 * j];
+            p[j + 1] = cube_indices[base_offset + 2 * (j + 1)];
+            p[j + 2] = cube_indices[base_offset + 2 * (j + 2)];
+            p[j + 3] = cube_indices[base_offset + 2 * (j + 3)];
+
+            // Prefetch further ahead
+            if (j + 8 < num_this_batch) {
+                __builtin_prefetch(&cube_indices[base_offset + 2 * (j + 8)], 0, 1);
+            }
+        }
+
         p += num_this_batch;
-
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
         pb_end(p);
     }

@@ -21,26 +21,37 @@
  */
 
 chunk_data *loaded_chunks;
-face_stored *faces_pool;
-face *faces_calculated_pool;
-u32 num_faces_pooled = 0;
-u32 num_chunks_pooled = 0;
 u32 *chunk_offsets;
+u32 num_chunks_pooled = 0;
+
+f32_v3 *chunk_vertices;
+f32_v2 *chunk_tex_coords;
+u32    *chunk_indices;
+u32 vertex_i, tex_coords_i;
+
+
+face_stored *faces_pool;
+u32 num_faces_pooled = 0;
 
 
 void init_world(void) {
     faces_pool = malloc(FACE_POOL_SIZE * sizeof(face_stored));
-    loaded_chunks = calloc(25, sizeof(chunk_data));
-    chunk_offsets = calloc(25, sizeof(u32));
+    u16 chunk_size = 2*CHUNK_VIEW_DISTANCE*2*CHUNK_VIEW_DISTANCE;
+    loaded_chunks = calloc(chunk_size, sizeof(chunk_data));
+    chunk_offsets = calloc(chunk_size, sizeof(u32));
 
-    faces_calculated_pool = calloc(10000, sizeof(face));
+    chunk_vertices   = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    chunk_tex_coords = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
 }
 
 void destroy_world(void) {
     free(loaded_chunks);
     free(faces_pool);
-    free(faces_calculated_pool);
     free(chunk_offsets);
+    MmFreeContiguousMemory(chunk_vertices);
+    MmFreeContiguousMemory(chunk_tex_coords);
+    MmFreeContiguousMemory(chunk_indices);
 }
 
 static face_stored find_single_face(
@@ -172,11 +183,12 @@ BreakEastLoop:
 
 static void find_faces_of_chunk(
         chunk_data *chunk,
-        u32 max_faces,
         u32 *out_faces_found,
         u8 *covered) {
     // First find all possible upwards facing faces.
-    face_stored faces[max_faces]; // array for reading memory more easy...
+    if (num_faces_pooled == FACE_POOL_SIZE) {
+        return;
+    }
     u32 num_faces_found = 0;
     int start_x, start_y, start_z;
     for (int x = 0; x < CHUNK_SIZE; x++) {
@@ -186,12 +198,11 @@ static void find_faces_of_chunk(
                     if (COVERED(covered, x, y, z, direction) == COVERED_FALSE) {
                         // we got one!
                         face_stored found_one = find_single_face(chunk, x, y, z, direction, covered);
-                        faces[num_faces_found] = found_one;
+                        faces_pool[num_faces_pooled] = found_one;
+                        num_faces_pooled++;
                         num_faces_found++;
-                        if (num_faces_found == max_faces) {
+                        if (num_faces_pooled == FACE_POOL_SIZE) {
                             *out_faces_found = num_faces_found;
-                            memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_faces_found);
-                            num_faces_pooled += num_faces_found;
                             return;
                         }
                     }
@@ -200,8 +211,6 @@ static void find_faces_of_chunk(
         }
     }
     *out_faces_found = num_faces_found;
-    memcpy(&faces_pool[num_faces_pooled], faces, sizeof(face_stored) * num_faces_found);
-    num_faces_pooled += num_faces_found;
 }
 
 /*
@@ -284,11 +293,36 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
     }
 
     u32 num_found;
-    find_faces_of_chunk(chunk, FACE_POOL_SIZE, &num_found, covered);
+    find_faces_of_chunk(chunk, &num_found, covered);
     free(covered);
 
     chunk_offsets[num_chunks_pooled] = num_found;
     num_chunks_pooled++;
+}
+
+static void fill_face_indices(u16 indices[], u8 direction) {
+    switch (direction) { 
+        case FACE_DIRECTION_DOWN:
+        case FACE_DIRECTION_SOUTH:
+        case FACE_DIRECTION_EAST:
+            indices[0] = 0;
+            indices[1] = 1;
+            indices[2] = 3;
+            indices[3] = 1;
+            indices[4] = 2;
+            indices[5] = 3;
+            break;
+        case FACE_DIRECTION_UP:
+        case FACE_DIRECTION_NORTH:
+        case FACE_DIRECTION_WEST:
+            indices[0] = 0;
+            indices[1] = 3;
+            indices[2] = 1;
+            indices[3] = 3;
+            indices[4] = 2;
+            indices[5] = 1;
+            break;
+    }
 }
 
 static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored face) {
@@ -303,6 +337,9 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
     int tex_b = (1 + GET_FACE_STORED(face, FACE_STORED_B1)) - GET_FACE_STORED(face, FACE_STORED_B0);
 
     int direction = GET_FACE_STORED(face, FACE_STORED_INFO_DIRECTION);
+
+    fill_face_indices(out->indices, direction);
+    
     if (direction <= FACE_DIRECTION_UP) {
         if (direction == FACE_DIRECTION_UP) {
             c += (int)cube_size;
@@ -311,26 +348,26 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
         out->vertices[0].x = chunk_offset[0] + a0;
         out->vertices[0].y = chunk_offset[1] + c;
         out->vertices[0].z = chunk_offset[2] + b1;
-        out->tex_coords[0][0] = 0;
-        out->tex_coords[0][1] = tex_b;
+        out->tex_coords[0].x = 0;
+        out->tex_coords[0].y = tex_b;
 
         out->vertices[1].x = chunk_offset[0] + a1;
         out->vertices[1].y = chunk_offset[1] + c;
         out->vertices[1].z = chunk_offset[2] + b1;
-        out->tex_coords[1][0] = tex_a;
-        out->tex_coords[1][1] = tex_b;
+        out->tex_coords[1].x = tex_a;
+        out->tex_coords[1].y = tex_b;
 
         out->vertices[2].x = chunk_offset[0] + a1;
         out->vertices[2].y = chunk_offset[1] + c;
         out->vertices[2].z = chunk_offset[2] + b0;
-        out->tex_coords[2][0] = tex_a;
-        out->tex_coords[2][1] = 0;
+        out->tex_coords[2].x = tex_a;
+        out->tex_coords[2].y = 0;
                           
         out->vertices[3].x = chunk_offset[0] + a0;
         out->vertices[3].y = chunk_offset[1] + c;
         out->vertices[3].z = chunk_offset[2] + b0;
-        out->tex_coords[3][0] = 0;
-        out->tex_coords[3][1] = 0;
+        out->tex_coords[3].x = 0;
+        out->tex_coords[3].y = 0;
         return;
     } 
 
@@ -355,14 +392,14 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
         out->vertices[3].y = chunk_offset[1] + b0;
         out->vertices[3].z = chunk_offset[2] + c;
 
-        out->tex_coords[0][0] = 0;
-        out->tex_coords[0][1] = tex_a;
-        out->tex_coords[1][0] = tex_b;
-        out->tex_coords[1][1] = tex_a;
-        out->tex_coords[2][0] = tex_b;
-        out->tex_coords[2][1] = 0;
-        out->tex_coords[3][0] = 0;
-        out->tex_coords[3][1] = 0;
+        out->tex_coords[0].x = tex_a - .25;
+        out->tex_coords[0].y = tex_b - .5;
+        out->tex_coords[1].x = tex_a - .25;
+        out->tex_coords[1].y = 0;
+        out->tex_coords[2].x = 0.5;
+        out->tex_coords[2].y = 0;
+        out->tex_coords[3].x = 0.5;
+        out->tex_coords[3].y = tex_b - .5;
         return;
     } 
 
@@ -373,26 +410,27 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
     out->vertices[0].x = chunk_offset[0] + c;
     out->vertices[0].y = chunk_offset[1] + a0;
     out->vertices[0].z = chunk_offset[2] + b1;
-    out->tex_coords[0][0] = 0;
-    out->tex_coords[0][1] = tex_b;
                       
     out->vertices[1].x = chunk_offset[0] + c;
     out->vertices[1].y = chunk_offset[1] + a1;
     out->vertices[1].z = chunk_offset[2] + b1;
-    out->tex_coords[1][0] = tex_a;
-    out->tex_coords[1][1] = tex_b;
                       
     out->vertices[2].x = chunk_offset[0] + c;
     out->vertices[2].y = chunk_offset[1] + a1;
     out->vertices[2].z = chunk_offset[2] + b0;
-    out->tex_coords[2][0] = tex_a;
-    out->tex_coords[2][1] = 0;
                       
     out->vertices[3].x = chunk_offset[0] + c;
     out->vertices[3].y = chunk_offset[1] + a0;
     out->vertices[3].z = chunk_offset[2] + b0;
-    out->tex_coords[3][0] = 0;
-    out->tex_coords[3][1] = 0;
+
+        out->tex_coords[0].x = 0;
+        out->tex_coords[0].y = tex_a;
+        out->tex_coords[1].x = 0;
+        out->tex_coords[1].y = 0;
+        out->tex_coords[2].x = tex_b;
+        out->tex_coords[2].y = 0;
+        out->tex_coords[3].x = tex_b;
+        out->tex_coords[3].y = tex_a;
 }
 
 /*
@@ -414,7 +452,10 @@ void load_chunks(void) {
             generate_chunk(x, 0, z);
         }
     }
+    // generate_chunk(0, 0, 0);
 
+    vertex_i = 0;
+    tex_coords_i = 0;
     int chunk_i = 0, chunk_i_cmp = 0;
     for (int i = 0; i < num_faces_pooled; i++) {
         if (chunk_i_cmp >= chunk_offsets[chunk_i]) {
@@ -429,6 +470,47 @@ void load_chunks(void) {
         face_stored fs = faces_pool[i];
         face f = {0};
         convert_face_vertices(&f, pos_offset, fs);
-        memcpy(&faces_calculated_pool[i], &f, sizeof(face));
+
+        u16 index_nums[4];
+
+        for (int v = 0; v < 4; v++) {
+            // TODO finnes vertex fra før? pek mot den i tilfelle.
+            chunk_vertices[vertex_i] = f.vertices[v];
+            index_nums[v] = vertex_i; // FIXME this assumes we render everything in every chunk!
+            vertex_i++;
+
+            chunk_tex_coords[tex_coords_i] = f.tex_coords[v];
+            tex_coords_i++;
+            // TODO finnes vertex fra før? pek mot den i tilfelle.
+            // bool found = false;
+            // for (int other_i = 0; other_i < vertex_i; other_i++) {
+            //     if (chunk_vertices[other_i].x == f.vertices[v].x && 
+            //         chunk_vertices[other_i].y == f.vertices[v].y &&
+            //         chunk_vertices[other_i].z == f.vertices[v].z) {
+            //         found = true;
+            //         index_nums[v] = other_i;
+            //         break;
+            //     }
+            // }
+            // if (!found) {
+            //     chunk_vertices[vertex_i] = f.vertices[v];
+            //     index_nums[v] = vertex_i; // FIXME this assumes we render everything in every chunk!
+            //     vertex_i++;
+            // } 
+
+
+        }
+
+        for (int index = 0; index < 6; index += 2) {
+            chunk_indices[i*6 + index] = ((u32) index_nums[f.indices[index]])
+                                         | ((u32)index_nums[f.indices[index + 1]] << 16);
+        }
+
+
+
+        // memcpy(&chunk_vertices[i], , );
+        // memcpy(&chunk_tex_coords[i], , );
+        // memcpy(&chunk_indices[i], , );
+        // memcpy(&faces_calculated_pool[i], &f, sizeof(face));
    }
 }

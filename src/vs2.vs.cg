@@ -1,13 +1,13 @@
 struct vIn {
-    float4 tex  : TEXCOORD;
-//	float4 color : DIFFUSE;
+    float2 tex  : TEXCOORD;
+	float4 color : DIFFUSE;
 	float4 pos  : POSITION;
 };
 
 struct vOut {
 	float4 pos  : POSITION;
 //	float4 col  : COLOR;
-	float4 tex0 : TEXCOORD0;
+	float2 tex0 : TEXCOORD0;
 };
 
 vOut main(
@@ -26,7 +26,11 @@ vOut main(
 	pos.xyz = pos.xyz / pos.w;
 
 	result.pos = pos;
-	result.tex0 = I.tex;
+//	result.tex0 = float4(I.tex.x, I.tex.y, 0, 0);
+  //  float2 tex = float2(I.color.xy);
+ //   float2 tex2 = tex * float2(1.00001, 1);
+    result.tex0 = I.tex;
+    //result.tex0.x -= .5;
 //    result.col.rgb = I.color; // FIXME inconsistent!
 
 	return result;

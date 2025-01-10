@@ -14,31 +14,6 @@
 #include "world.h"
 #include "timer_util.h"
 
-static void fill_face_indices(u16 indices[], u32 index_offset, u32 vertex_offset, u8 direction) {
-    switch (direction) { 
-        case FACE_DIRECTION_DOWN:
-        case FACE_DIRECTION_SOUTH:
-        case FACE_DIRECTION_EAST:
-            indices[index_offset + 0] = vertex_offset + 0;
-            indices[index_offset + 1] = vertex_offset + 1;
-            indices[index_offset + 2] = vertex_offset + 3;
-            indices[index_offset + 3] = vertex_offset + 1;
-            indices[index_offset + 4] = vertex_offset + 2;
-            indices[index_offset + 5] = vertex_offset + 3;
-            break;
-        case FACE_DIRECTION_UP:
-        case FACE_DIRECTION_NORTH:
-        case FACE_DIRECTION_WEST:
-            indices[index_offset + 0] = vertex_offset + 0;
-            indices[index_offset + 1] = vertex_offset + 3;
-            indices[index_offset + 2] = vertex_offset + 1;
-            indices[index_offset + 3] = vertex_offset + 3;
-            indices[index_offset + 4] = vertex_offset + 2;
-            indices[index_offset + 5] = vertex_offset + 1;
-            break;
-    }
-}
-
 
 /*
  * https://bruop.github.io/improved_frustum_culling/ 
@@ -166,10 +141,10 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     int num = num_faces_pooled < FACE_POOL_SIZE ? num_faces_pooled : FACE_POOL_SIZE;
     // face_stored temp_faces[num];
     // memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
-    u16 *cube_indices = malloc(6 * num * sizeof(u16)); // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
+    // u16 *cube_indices = malloc(6 * num * sizeof(u16)); // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
 
-    f32 *cube_vertices = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    f32 *tex_coors = MmAllocateContiguousMemoryEx(4*num*2 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    // f32 *cube_vertices = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    // f32 *tex_coors = MmAllocateContiguousMemoryEx(4*num*2 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
 
     timer_stamp_print("setup vertex", &win_clock_start);
     // MATRIX vm;
@@ -209,62 +184,75 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     timer_stamp_print("after setup vertex", &win_clock_start);
 
     int n = 0;
-    for (int i = 0; i < num; i++) {
-        
-        u8 direction = faces_calculated_pool[i].info;
-
-        if (remove_directions[direction]) continue;
-
-        f32_v3 view_dir = vec3_normalize(vec3_subtract((f32 *) &v_cam_loc, (f32 *) &faces_calculated_pool[i].vertices[0]));
-        f32 dot_prod = vec3_dot_product(face_normals[direction], view_dir);
-        if (dot_prod < 0) continue;
-        // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
-
-        fill_face_indices(&cube_indices[n*6], 0, n*4, direction);
-        // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
-
-        // if (n == 0) {
-        //     timer_stamp_print("fill face", &win_clock_start);
-        // }
-        // 3 000 000 ns ish
-        // memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
-        memcpy(&cube_vertices[n*4*3], faces_calculated_pool[i].vertices, sizeof(f32) * 4 * 3);
-        memcpy(&tex_coors[n*4*2], faces_calculated_pool[i].tex_coords, sizeof(f32) * 4 * 2); // TODO texture coordinates can be baked into the shader!
-
-        // if (n == 0) {
-        //     timer_stamp_print("indices and memcpys", &win_clock_start);
-        // }
-        n++;
-    }
-    // n = 0;
-    timer_stamp_print("calculate vertices", &win_clock_start);
-    pb_print("rendered faces: %d\n", n);
+    // for (int i = 0; i < num; i++) {
+    //     
+    //     u8 direction = faces_calculated_pool[i].info;
+    //
+    //     // if (remove_directions[direction]) continue;
+    //
+    //     f32_v3 view_dir = vec3_normalize(vec3_subtract((f32 *) &v_cam_loc, (f32 *) &faces_calculated_pool[i].vertices[0]));
+    //     f32 dot_prod = vec3_dot_product(face_normals[direction], view_dir);
+    //     // if (dot_prod < 0) continue;
+    //     // pb_print("viewdir x%d, y%d, z%d dot %d i%d dir%d\n", (i32) (100*view_dir.x), (i32) (100*view_dir.y), (i32) (100*view_dir.z), (i32) (100*dot_prod), i, direction);
+    //
+    //     fill_face_indices(&cube_indices[n*6], 0, n*4, direction);
+    //     // if (!is_face_in_frustum(f, mvp)) continue; // TODO perhaps first frustum cull whole chunks as this calculation is very heavy.
+    //
+    //     // if (n == 0) {
+    //     //     timer_stamp_print("fill face", &win_clock_start);
+    //     // }
+    //     // 3 000 000 ns ish
+    //     // memcpy(&cube_indices[n*6], f.indices, sizeof(u16) * 6);
+    //     memcpy(&cube_vertices[n*4*3], faces_calculated_pool[i].vertices, sizeof(f32) * 4 * 3);
+    //     memcpy(&tex_coors[n*4*2], faces_calculated_pool[i].tex_coords, sizeof(f32) * 4 * 2); // TODO texture coordinates can be baked into the shader!
+    //
+    //     // if (n == 0) {
+    //     //     timer_stamp_print("indices and memcpys", &win_clock_start);
+    //     // }
+    //     n++;
+    // }
+    n = num_faces_pooled;
+    // n = 16000;
+    // memcpy(&cube_vertices[0], chunk_vertices, n * sizeof(f32) * 4 * 3);
+    // timer_stamp_print("copy test", &win_clock_start);
+    pb_print("rendered faces: %d, vi %d\n", n, vertex_i);
 
     // u32 real_size_of_verts = sizeof(f32) * 4 * n * 3;
     // u32 *allocated_verts = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     // memcpy(allocated_verts, cube_vertices, real_size_of_verts);
     // u32 real_size_of_texs = sizeof(f32) * 4 * n * 2;
     // u32 *allocated_texs = MmAllocateContiguousMemoryEx(real_size_of_texs, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    // memcpy(allocated_texs, tex_coors, real_size_of_texs);
+    // memcpy(allocated_texs, chunk_tex_coords, real_size_of_texs);
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(float) * 3, cube_vertices);
+            3, sizeof(float) * 3, chunk_vertices);
+    
+
+    f32_v4 *colors = malloc(n * sizeof(f32_v4));
+    memset(colors, 3, n * sizeof(f32_v4));
+    for (int a = 0; a < n; a++) {
+        colors[a].x = 0.5;
+        colors[a].y = 0.5;
+    }
 
     /* Set vertex diffuse color attribute */
-    // set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-    //         3, sizeof(Vertex), &alloc_vertices_cube[3]);
+    set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+            3, sizeof(f32_v4), colors);
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            2, sizeof(float) * 2, tex_coors);
+            2, sizeof(float) * 2, chunk_tex_coords);
+
+    timer_stamp_print("calculate vertices", &win_clock_start);
 
     /* Begin drawing triangles */
-    draw_indexed(n*6, cube_indices);
-    MmFreeContiguousMemory(cube_vertices);
-    MmFreeContiguousMemory(tex_coors);
+    draw_indexed(n*6, chunk_indices);
+    // draw_arrays(g_render_method, 0, n);
+    // MmFreeContiguousMemory(cube_vertices);
+    // MmFreeContiguousMemory(allocated_texs);
     // free(cube_vertices);
     // free(tex_coors);
-    free(cube_indices);
+    free(colors);
 
     timer_stamp_print("after drawn", &win_clock_start);
 }
@@ -282,15 +270,15 @@ inline static void render_terrain(image_data img) {
                        (((2 << 4) & NV097_SET_TEXTURE_FORMAT_DIMENSIONALITY)) | // 0x000000F0
                        ((NV097_SET_TEXTURE_FORMAT_COLOR_SZ_A8R8G8B8 << 8) & NV097_SET_TEXTURE_FORMAT_COLOR) | // 0x0000FF00
                        ((1 << 16) & NV097_SET_TEXTURE_FORMAT_MIPMAP_LEVELS) | // 0x000F0000
-                       ((4 << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2 (so up to 16^2)
-                       ((4 << 24) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V);
+                       ((6 << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2 (so up to 16^2)
+                       ((5 << 24) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V);
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U               0x00F00000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V               0x0F000000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_P               0xF0000000
         DWORD filter = ((4 << 24) & NV097_SET_TEXTURE_FILTER_MAG) | 
                        ((7 << 16) & NV097_SET_TEXTURE_FILTER_MIN) | 
 				       ((4 << 12) & NV097_SET_SURFACE_FORMAT_ANTI_ALIASING); // 0x04074000
-        filter = 0x01014000;
+        filter = 0x01014000; // nearest neighbor
 		DWORD control_enable = NV097_SET_TEXTURE_CONTROL0_ENABLE | NV097_SET_TEXTURE_CONTROL0_MIN_LOD_CLAMP;
 
         /* Enable texture stage 0 */
@@ -320,6 +308,9 @@ inline static void render_terrain(image_data img) {
 
         f32 dist = 50;
         render_cube(0, 0, 0, 0);
+        // render_cube(0, 0, 0, 0);
+        // render_cube(0, 0, 0, 0);
+        // render_cube(0, 0, 0, 0);
     }
 }
 

@@ -70,6 +70,12 @@ typedef struct {
 typedef f32 f32_m3x3[9];
 typedef f32 f32_m4x4[16];
 
+_Static_assert(sizeof(f32_v2) == 8, "Must be 8 bytes");
+_Static_assert(sizeof(f32_v3) == 12, "Must be 12 bytes");
+_Static_assert(sizeof(f32_v4) == 16, "Must be 16 bytes");
+_Static_assert(sizeof(f32_m3x3) == 4*9, "Must be 36 bytes");
+_Static_assert(sizeof(f32_m4x4) == 4*16, "Must be 64 bytes");
+
 // // Define the structure for a 16-bit float
 // // Convert float to half float
 // f16 float_to_half(float f) {

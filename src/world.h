@@ -3,10 +3,10 @@
 
 
 
-#define CHUNK_SIZE 16
-#define CHUNK_VIEW_DISTANCE 2
+#define CHUNK_SIZE 1
+#define CHUNK_VIEW_DISTANCE 1
 // it can render up to 1024 faces per draw call
-#define FACE_POOL_SIZE 8*1024
+#define FACE_POOL_SIZE 4*32*1024
 
 #define FACE_TYPE_COBBLESTONE 0
 #define FACE_TYPE_GRASS_TOP 1
@@ -28,6 +28,9 @@
  * don't use unnecessary amounts of ram on this.
  */
 typedef struct {
+    u32 offset_vertices;
+    u32 offset_tex_coords;
+    u32 offset_indices;
     i32 x, y, z;
     cube_entity cubes[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE]; // XYZ
 } chunk_data;
@@ -38,16 +41,11 @@ typedef struct {
  */
 typedef struct {
     f32_v3 vertices[4];
-    f32 tex_coords[4][2];
+    f32_v2 tex_coords[4];
     u16 indices[6];
     u16 info;
 } face; // Kan ha 326 tusen faces i 30MB, så disse burde lagres! Burde ha at man laster inn de nermeste 9 chunks i disse.
 
-typedef struct {
-    i8 a0, a1, b0, b1, c; // TODO siden vi vet at en chunk er 16x16x16 eller 32x32x32 
-                          // så kan jeg bruke enten 4 eller 5 bits for hver av disse og så ha resten i info elns.
-                          // Da kan jeg gå ned til 32 bits i stedet for 48 og ha 4 ekstra bits til info.
-} corners_i8;
 /*
  * We only need two corners with two dimensions, and we know the direction so that we can assume whether it's x and y or x and z etc.
  * List the same face_type grouped together instead of storing it with each face.
@@ -64,11 +62,16 @@ typedef u32 face_stored; // Use to store basic info of the face, so that you can
 #define GET_FACE_STORED(value, mask) ((value & mask) >> __builtin_ctz(mask))
 
 extern chunk_data *loaded_chunks;
-extern face_stored *faces_pool;
-extern face *faces_calculated_pool;
-extern u32 num_faces_pooled;
-extern u32 num_chunks_pooled;
 extern u32 *chunk_offsets;
+extern u32 num_chunks_pooled;
+
+extern f32_v3 *chunk_vertices;
+extern f32_v2 *chunk_tex_coords;
+extern u32    *chunk_indices;
+extern u32    vertex_i, tex_coords_i;
+
+extern face_stored *faces_pool;
+extern u32 num_faces_pooled;
 
 void init_world(void);
 void destroy_world(void);

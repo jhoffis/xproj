@@ -253,10 +253,12 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
                         chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
                     else 
                         chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
+                // } else if (x % 2 == 0) {
+                    // chunk->cubes[x][y][z].type = BLOCK_TYPE_COBBLESTONE;
                 } else {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
-                chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                // chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
             }
         }
     }
@@ -466,13 +468,12 @@ void load_chunks(void) {
     int current_chunk_y = (int)(floorf(v_cam_loc.y / (CHUNK_SIZE * BLOCK_SIZE)));
     int current_chunk_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
 
-    // for (int x = current_chunk_x - CHUNK_VIEW_DISTANCE; x < current_chunk_x + CHUNK_VIEW_DISTANCE; x++) {
-    //     for (int z = current_chunk_z - CHUNK_VIEW_DISTANCE; z < current_chunk_z + CHUNK_VIEW_DISTANCE; z++) {
-    //
-            // generate_chunk(x, 0, z);
-    //     }
-    // }
-    generate_chunk(0, 0, 0);
+    for (int x = current_chunk_x - CHUNK_VIEW_DISTANCE; x < current_chunk_x + CHUNK_VIEW_DISTANCE; x++) {
+        for (int z = current_chunk_z - CHUNK_VIEW_DISTANCE; z < current_chunk_z + CHUNK_VIEW_DISTANCE; z++) {
+            generate_chunk(x, 0, z);
+        }
+    }
+    // generate_chunk(0, 0, 0);
 
     int chunk_i = 0, chunk_i_cmp = 0;
 
@@ -526,8 +527,8 @@ void load_chunks(void) {
             }
         }
         if (n < FACE_TYPE_AMOUNT - 1) {
-            offset_vertices[n] = this_vertex_i;
-            offset_indices[n] = this_indices;
+            offset_vertices[n] = vertex_i;
+            offset_indices[n] = indices;
         }
     }
 

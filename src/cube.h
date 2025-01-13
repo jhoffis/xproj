@@ -12,6 +12,7 @@
 #define BLOCK_TYPE_GRASS 0
 // singles:
 #define BLOCK_TYPE_DIRT 1
+#define BLOCK_TYPE_COBBLESTONE 2
 
 typedef struct {
     u32 type; // 12 first bits represent the block type? 20 bits rest are for more information. Like for instance, flowing or smt..

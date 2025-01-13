@@ -58,9 +58,9 @@ static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
 }
 
 static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
-    LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
-    QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
-    QueryPerformanceCounter(&win_clock_start);      // Record start time
+    // LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
+    // QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
+    // QueryPerformanceCounter(&win_clock_start);      // Record start time
     f32_v4 v_obj_pos   = {0,0,0,1}; 
     f32_v4 v_obj_rot   = {0,0,0,1}; 
     f32_v4 v_obj_scale = {1,1,1,1}; 
@@ -134,7 +134,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     }
     pb_end(p);
 
-    timer_stamp_print("setup pb", &win_clock_start);
+    // timer_stamp_print("setup pb", &win_clock_start);
     /*
      * Setup vertex attributes
      */
@@ -146,7 +146,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     // f32 *cube_vertices = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     // f32 *tex_coors = MmAllocateContiguousMemoryEx(4*num*2 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
 
-    timer_stamp_print("setup vertex", &win_clock_start);
+    // timer_stamp_print("setup vertex", &win_clock_start);
     // MATRIX vm;
     // matrix_multiply(vm, m_view, m_model);
     f32_m4x4 mvp;
@@ -181,7 +181,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
         face_normals[d] = face_normal;
     }
 
-    timer_stamp_print("after setup vertex", &win_clock_start);
+    // timer_stamp_print("after setup vertex", &win_clock_start);
 
     // for (int i = 0; i < num; i++) {
     //     
@@ -241,7 +241,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
             2, sizeof(float) * 2, &chunk_tex_coords[vertex_offset]);
 
-    timer_stamp_print("calculate vertices", &win_clock_start);
+    // timer_stamp_print("calculate vertices", &win_clock_start);
 
     /* Begin drawing triangles */
     draw_indexed(n*3, &chunk_indices[index_offset]);
@@ -252,7 +252,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     // free(tex_coors);
     free(colors);
 
-    timer_stamp_print("after drawn", &win_clock_start);
+    // timer_stamp_print("after drawn", &win_clock_start);
 }
 
 inline static void render_terrain() {

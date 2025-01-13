@@ -14,6 +14,8 @@ float2 floorAlt(float2 x) {
     return x - fracAlt(x); // Subtract fractional part to get the floor
 }
 
+// TODO Shadows can be made by transfering a shadow-map (picture) 
+//      as a texture atlas, as shadows are not to be repeated.
 float4 main(vOut I, uniform sampler2D colorMap) : COLOR {
     // Extract the bounds of the sub-texture
 /*    float u_min = I.subTextureBounds.x;

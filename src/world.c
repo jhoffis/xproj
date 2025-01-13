@@ -501,10 +501,14 @@ void load_chunks(void) {
         types_sizes[pos] += 1;
     }
 
+    /*
+     *  Order vertices according to their texture, this is because we need to repeat the texture
+     *  and texture atlas does not work with repeating textures.
+     */
     u32 vertex_i = 0, indices = 0;
     for (int n = 0; n < FACE_TYPE_AMOUNT; n++) {
         num_faces_type[n] = types_sizes[n];
-        u32 this_vertex_i = 0, this_indices = 0;
+        u32 this_vertex_i = 0;
 
         for (int fi = 0; fi < types_sizes[n]; fi++) {
             u16 index_nums[4];
@@ -520,10 +524,10 @@ void load_chunks(void) {
             }
 
             for (int index = 0; index < 6; index += 2) {
+                // transfering data takes 32 bits divided into two parts.
                 chunk_indices[indices] = ((u32) index_nums[f.indices[index]])
                     | ((u32)index_nums[f.indices[index + 1]] << 16);
                 indices++;
-                this_indices++;
             }
         }
         if (n < FACE_TYPE_AMOUNT - 1) {

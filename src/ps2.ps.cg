@@ -1,18 +1,38 @@
+
 struct vOut {
-//	float4 col  : COLOR;
-	float2 tex0 : TEXCOORD0;
+    float2 tex0 : TEXCOORD0; // UV coordinates
+    float2 subTextureBounds : TEXCOORD1; // Bounds of the sub-texture (u_min, v_min, u_max, v_max)
+    float2 subTextureBounds2 : TEXCOORD2; // Bounds of the sub-texture (u_min, v_min, u_max, v_max)
 };
 
-float4 main(vOut I,
-	uniform sampler2D colorMap) : COLOR
-{
-    float2 atlasScale = float2(16.0 / 64.0, 1.0); // Scale for 16x16 in 64x16
-    float2 atlasOffset = float2(16.0 / 64.0, 0.0); // Offset for the second block
-
-    // Apply the scaling and offset directly
-    float2 adjustedTex = I.tex0;
-
-    // Sample the texture
-    return tex2D(colorMap, adjustedTex);
-	// return float4(I.tex0.xy, 0, 1);
+// Custom fractional and floor functions
+float2 fracAlt(float2 x) {
+    return x - float2((int)x.x, (int)x.y); // Compute fractional part
 }
+
+float2 floorAlt(float2 x) {
+    return x - fracAlt(x); // Subtract fractional part to get the floor
+}
+
+float4 main(vOut I, uniform sampler2D colorMap) : COLOR {
+    // Extract the bounds of the sub-texture
+/*    float u_min = I.subTextureBounds.x;
+    float v_min = I.subTextureBounds.y;
+    float u_max = I.subTextureBounds2.x;
+    float v_max = I.subTextureBounds2.y;
+
+    // Compute UV wrapping manually
+    float2 uvWrap = I.tex0 - floorAlt(I.tex0);
+
+    // Remap UV coordinates to the sub-texture
+    float2 sampledUV = float2(
+        u_min + uvWrap.x * (u_max - u_min),
+        v_min + uvWrap.y * (v_max - v_min)
+    );
+
+    // Sample the texture with the remapped UVs
+    return lerp(tex2D(colorMap, I.tex0), float4(1, 0.5, 0.5, 1.0), 0.5);
+    */
+    return tex2D(colorMap, I.tex0);
+}
+

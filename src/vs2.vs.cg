@@ -30,7 +30,10 @@ vOut main(
   //  float2 tex = float2(I.color.xy);
  //   float2 tex2 = tex * float2(1.00001, 1);
     result.tex0 = I.tex;
-    //result.tex0.x -= .5;
+//    result.tex0.x *= I.color.x;
+//if (result.pos.x >= 200) {
+//        result.tex0.x = 0;
+//    }
 //    result.col.rgb = I.color; // FIXME inconsistent!
 
 	return result;

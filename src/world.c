@@ -95,6 +95,7 @@ static face_stored find_single_face(
         }
 
         SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
+        SET_FACE_STORED(res, block_type, FACE_STORED_INFO_TYPE);
         SET_FACE_STORED(res, start_x, FACE_STORED_A0);
         SET_FACE_STORED(res, start_z, FACE_STORED_B0);
         SET_FACE_STORED(res, max_x, FACE_STORED_A1);
@@ -131,6 +132,7 @@ static face_stored find_single_face(
         }
 BreakNorthLoop:
         SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
+        SET_FACE_STORED(res, block_type, FACE_STORED_INFO_TYPE);
         SET_FACE_STORED(res, start_x, FACE_STORED_A0);
         SET_FACE_STORED(res, start_y, FACE_STORED_B0);
         SET_FACE_STORED(res, max_x, FACE_STORED_A1);
@@ -167,6 +169,7 @@ BreakNorthLoop:
     }
 BreakEastLoop:
     SET_FACE_STORED(res, face_direction, FACE_STORED_INFO_DIRECTION);
+    SET_FACE_STORED(res, block_type, FACE_STORED_INFO_TYPE);
     SET_FACE_STORED(res, start_y, FACE_STORED_A0);
     SET_FACE_STORED(res, start_z, FACE_STORED_B0);
     SET_FACE_STORED(res, max_y, FACE_STORED_A1);
@@ -232,8 +235,16 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
-                if ((y < 5 && x % 2 != 0 && z % 2 != 0) || (y < 3) && x+z != 2) {
-                    chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                if (y < 5 && x % 2 != 0 && z % 2 != 0) {                    
+                    if (y == 4)
+                        chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                    else 
+                        chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
+                } else if (y < 3 && x+z != 2) {
+                    if (y == 2)
+                        chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                    else 
+                        chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
                 } else {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
@@ -327,11 +338,11 @@ static void fill_face_indices(u16 indices[], u8 direction) {
 
 static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored face) {
     out->info = GET_FACE_STORED(face, FACE_STORED_INFO); 
-    int a0 = GET_FACE_STORED(face, FACE_STORED_A0) * (int)cube_size;
-    int a1 = (1 + GET_FACE_STORED(face, FACE_STORED_A1)) * (int)cube_size;
-    int b0 = GET_FACE_STORED(face, FACE_STORED_B0) * (int)cube_size;
-    int b1 = (1 + GET_FACE_STORED(face, FACE_STORED_B1)) * (int)cube_size;
-    int c  = GET_FACE_STORED(face, FACE_STORED_C)  * (int)cube_size;
+    int a0 = GET_FACE_STORED(face, FACE_STORED_A0) * (int)BLOCK_SIZE;
+    int a1 = (1 + GET_FACE_STORED(face, FACE_STORED_A1)) * (int)BLOCK_SIZE;
+    int b0 = GET_FACE_STORED(face, FACE_STORED_B0) * (int)BLOCK_SIZE;
+    int b1 = (1 + GET_FACE_STORED(face, FACE_STORED_B1)) * (int)BLOCK_SIZE;
+    int c  = GET_FACE_STORED(face, FACE_STORED_C)  * (int)BLOCK_SIZE;
 
     int tex_a = (1 + GET_FACE_STORED(face, FACE_STORED_A1)) - GET_FACE_STORED(face, FACE_STORED_A0);
     int tex_b = (1 + GET_FACE_STORED(face, FACE_STORED_B1)) - GET_FACE_STORED(face, FACE_STORED_B0);
@@ -342,7 +353,7 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
     
     if (direction <= FACE_DIRECTION_UP) {
         if (direction == FACE_DIRECTION_UP) {
-            c += (int)cube_size;
+            c += (int)BLOCK_SIZE;
         }
 
         out->vertices[0].x = chunk_offset[0] + a0;
@@ -373,7 +384,7 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
 
     if (direction <= FACE_DIRECTION_NORTH) {
         if (direction == FACE_DIRECTION_NORTH) {
-            c += (int)cube_size;
+            c += (int)BLOCK_SIZE;
         }
 
         out->vertices[0].x = chunk_offset[0] + a1;
@@ -392,19 +403,19 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
         out->vertices[3].y = chunk_offset[1] + b0;
         out->vertices[3].z = chunk_offset[2] + c;
 
-        out->tex_coords[0].x = tex_a - .25;
-        out->tex_coords[0].y = tex_b - .5;
-        out->tex_coords[1].x = tex_a - .25;
+        out->tex_coords[0].x = tex_a;
+        out->tex_coords[0].y = tex_b;
+        out->tex_coords[1].x = tex_a;
         out->tex_coords[1].y = 0;
-        out->tex_coords[2].x = 0.5;
+        out->tex_coords[2].x = 0;
         out->tex_coords[2].y = 0;
-        out->tex_coords[3].x = 0.5;
-        out->tex_coords[3].y = tex_b - .5;
+        out->tex_coords[3].x = 0;
+        out->tex_coords[3].y = tex_b;
         return;
     } 
 
     if (direction == FACE_DIRECTION_EAST) {
-        c += (int)cube_size;
+        c += (int)BLOCK_SIZE;
     }
 
     out->vertices[0].x = chunk_offset[0] + c;
@@ -446,30 +457,34 @@ void load_chunks(void) {
     int current_chunk_y = (int)(floorf(v_cam_loc.y / (CHUNK_SIZE * BLOCK_SIZE)));
     int current_chunk_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
 
-    for (int x = current_chunk_x - CHUNK_VIEW_DISTANCE; x < current_chunk_x + CHUNK_VIEW_DISTANCE; x++) {
-        for (int z = current_chunk_z - CHUNK_VIEW_DISTANCE; z < current_chunk_z + CHUNK_VIEW_DISTANCE; z++) {
-
-            generate_chunk(x, 0, z);
-        }
-    }
-    // generate_chunk(0, 0, 0);
+    // for (int x = current_chunk_x - CHUNK_VIEW_DISTANCE; x < current_chunk_x + CHUNK_VIEW_DISTANCE; x++) {
+    //     for (int z = current_chunk_z - CHUNK_VIEW_DISTANCE; z < current_chunk_z + CHUNK_VIEW_DISTANCE; z++) {
+    //
+            // generate_chunk(x, 0, z);
+    //     }
+    // }
+    generate_chunk(0, 0, 0);
 
     vertex_i = 0;
     tex_coords_i = 0;
     int chunk_i = 0, chunk_i_cmp = 0;
+
+    face *types_faces = malloc(num_faces_pooled * 256 * sizeof(face));
+
     for (int i = 0; i < num_faces_pooled; i++) {
         if (chunk_i_cmp >= chunk_offsets[chunk_i]) {
             chunk_i++;
             chunk_i_cmp = 0;
         }
         chunk_i_cmp++;
-        f32 pos_offset[3] = {(f32) (loaded_chunks[chunk_i].x * cube_size * CHUNK_SIZE), 
-                             (f32) (loaded_chunks[chunk_i].y * cube_size * CHUNK_SIZE), 
-                             (f32) (loaded_chunks[chunk_i].z * cube_size * CHUNK_SIZE)};
+        f32 pos_offset[3] = {(f32) (loaded_chunks[chunk_i].x * BLOCK_SIZE * CHUNK_SIZE), 
+                             (f32) (loaded_chunks[chunk_i].y * BLOCK_SIZE * CHUNK_SIZE), 
+                             (f32) (loaded_chunks[chunk_i].z * BLOCK_SIZE * CHUNK_SIZE)};
 
         face_stored fs = faces_pool[i];
         face f = {0};
         convert_face_vertices(&f, pos_offset, fs);
+        types_faces[num_faces_pooled * GET_FACE_STORED(fs, FACE_STORED_INFO_TYPE)] = f;
 
         u16 index_nums[4];
 

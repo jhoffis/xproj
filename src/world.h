@@ -3,10 +3,13 @@
 
 
 
-#define CHUNK_SIZE 1
+#define CHUNK_SIZE 16
 #define CHUNK_VIEW_DISTANCE 1
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 4*32*1024
+#define FACE_TEXTURE_ATLAS_WIDTH 4
+#define FACE_TEXTURE_ATLAS_HEIGHT 2
+
 
 #define FACE_TYPE_COBBLESTONE 0
 #define FACE_TYPE_GRASS_TOP 1
@@ -56,7 +59,9 @@ typedef u32 face_stored; // Use to store basic info of the face, so that you can
 #define FACE_STORED_B0    0x00F00000
 #define FACE_STORED_B1    0x000F0000
 #define FACE_STORED_C     0x0000F000
-#define FACE_STORED_INFO  0x00000FFF
+#define FACE_STORED_INFO  0x00000FFF 
+#define FACE_STORED_INFO_EXPANSION  0x00000800 
+#define FACE_STORED_INFO_TYPE       0x000007F8 // 256 types
 #define FACE_STORED_INFO_DIRECTION  0x00000007
 #define SET_FACE_STORED(value, input, mask) (value) = ((value) & ~(mask)) | (((input & 0xF) << __builtin_ctz(mask)))
 #define GET_FACE_STORED(value, mask) ((value & mask) >> __builtin_ctz(mask))

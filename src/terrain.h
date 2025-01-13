@@ -264,14 +264,17 @@ inline static void render_terrain(image_data img) {
          * Setup texture stages
          */
 
+        u8 u = fast_log2(img.w);
+        u8 v = fast_log2(img.h);
+
         int channels = 2;
         DWORD format = ((channels & NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA) |
                        (NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE_COLOR * NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE)) | // 0x0000000F
                        (((2 << 4) & NV097_SET_TEXTURE_FORMAT_DIMENSIONALITY)) | // 0x000000F0
                        ((NV097_SET_TEXTURE_FORMAT_COLOR_SZ_A8R8G8B8 << 8) & NV097_SET_TEXTURE_FORMAT_COLOR) | // 0x0000FF00
                        ((1 << 16) & NV097_SET_TEXTURE_FORMAT_MIPMAP_LEVELS) | // 0x000F0000
-                       ((6 << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2 (so up to 16^2)
-                       ((5 << 24) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V);
+                       ((u << 20) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U) | // I manually did 512 (which is the width of my texture) and log2 (so up to 16^2)
+                       ((v << 24) & NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V);
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U               0x00F00000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V               0x0F000000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_P               0xF0000000

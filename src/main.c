@@ -39,6 +39,7 @@ static wav_entity *audio_buffer_data;
 
 void cleanup() {
 
+    destroy_cubes();
     destroy_world();
     free(music_current);
 
@@ -134,8 +135,7 @@ int main(void)
     // audio_buffer_data = create_wav_entity(music_strs[*music_current]);
     // xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
 
-    image_data img = load_image("grass");
-
+    init_cubes();
     init_world();
     load_chunks();
 
@@ -342,7 +342,7 @@ int main(void)
         }
         pb_print("faces: %d\n", num_faces_pooled);
 
-        render_terrain(img);
+        render_terrain(*get_cube_texture(BLOCK_TYPE_GRASS, FACE_DIRECTION_DOWN));
 
         QueryPerformanceCounter(&win_clock_end); // Record end time
         double elapsed = (double)(win_clock_end.QuadPart - win_clock_start.QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds

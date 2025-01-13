@@ -76,6 +76,13 @@ _Static_assert(sizeof(f32_v4) == 16, "Must be 16 bytes");
 _Static_assert(sizeof(f32_m3x3) == 4*9, "Must be 36 bytes");
 _Static_assert(sizeof(f32_m4x4) == 4*16, "Must be 64 bytes");
 
+static inline u8 fast_log2(u16 x) {
+    if (x == 0) {
+        return 0; // log2(0) is undefined, return 0 or handle as an error
+    }
+    return 15 - __builtin_clz(x); // 16-bit width: 15 - leading zeros
+}
+
 // // Define the structure for a 16-bit float
 // // Convert float to half float
 // f16 float_to_half(float f) {

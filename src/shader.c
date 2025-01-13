@@ -125,33 +125,35 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
     #define MIN(a, b) ((a) < (b) ? (a) : (b))
     #define MAX_BATCH 120
 
-    num_cube_indices /= 2;
     u32 *p;
 
     for (u32 i = 0; i < num_cube_indices; i += MAX_BATCH) {
         u32 num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
 
-        p = pb_begin();
+        u32 *p = pb_begin();
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
         pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
-        u32 base_offset = 2 * i;
+        u32 base_offset = i; // No longer multiplied since each index is a `u32`
+
+        // Prefetch data to improve cache efficiency
         __builtin_prefetch(&cube_indices[base_offset + 32], 0, 1);
 
-        // Process indices with loop unrolling
+        // Process indices with loop unrolling for better performance
         for (u32 j = 0; j < num_this_batch; j += 4) {
-            p[j]     = cube_indices[base_offset + 2 * j];
-            p[j + 1] = cube_indices[base_offset + 2 * (j + 1)];
-            p[j + 2] = cube_indices[base_offset + 2 * (j + 2)];
-            p[j + 3] = cube_indices[base_offset + 2 * (j + 3)];
+            p[j]     = cube_indices[base_offset + j];
+            p[j + 1] = cube_indices[base_offset + j + 1];
+            p[j + 2] = cube_indices[base_offset + j + 2];
+            p[j + 3] = cube_indices[base_offset + j + 3];
 
-            // Prefetch further ahead
+            // Prefetch further ahead for the next iteration
             if (j + 8 < num_this_batch) {
-                __builtin_prefetch(&cube_indices[base_offset + 2 * (j + 8)], 0, 1);
+                __builtin_prefetch(&cube_indices[base_offset + j + 8], 0, 1);
             }
         }
 
         p += num_this_batch;
+
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
         pb_end(p);
     }

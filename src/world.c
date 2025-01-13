@@ -27,8 +27,9 @@ u32 num_chunks_pooled = 0;
 f32_v3 *chunk_vertices;
 f32_v2 *chunk_tex_coords;
 u32    *chunk_indices;
-u32 vertex_i, tex_coords_i;
-
+u32 *offset_vertices;
+u32 *offset_indices;
+u32 *num_faces_type;
 
 face_stored *faces_pool;
 u32 num_faces_pooled = 0;
@@ -43,9 +44,16 @@ void init_world(void) {
     chunk_vertices   = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     chunk_tex_coords = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
+
+    offset_vertices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
+    offset_indices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
+    num_faces_type = malloc(sizeof(u32) * FACE_TYPE_AMOUNT);
+
 }
 
 void destroy_world(void) {
+    free(offset_vertices);
+    free(offset_indices);
     free(loaded_chunks);
     free(faces_pool);
     free(chunk_offsets);
@@ -248,6 +256,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
                 } else {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
+                chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
             }
         }
     }
@@ -465,11 +474,10 @@ void load_chunks(void) {
     // }
     generate_chunk(0, 0, 0);
 
-    vertex_i = 0;
-    tex_coords_i = 0;
     int chunk_i = 0, chunk_i_cmp = 0;
 
-    face *types_faces = malloc(num_faces_pooled * 256 * sizeof(face));
+    u16 *types_sizes = calloc(FACE_TYPE_AMOUNT, sizeof(u16));
+    face *types_faces = calloc(num_faces_pooled * FACE_TYPE_AMOUNT, sizeof(face));
 
     for (int i = 0; i < num_faces_pooled; i++) {
         if (chunk_i_cmp >= chunk_offsets[chunk_i]) {
@@ -478,54 +486,51 @@ void load_chunks(void) {
         }
         chunk_i_cmp++;
         f32 pos_offset[3] = {(f32) (loaded_chunks[chunk_i].x * BLOCK_SIZE * CHUNK_SIZE), 
-                             (f32) (loaded_chunks[chunk_i].y * BLOCK_SIZE * CHUNK_SIZE), 
-                             (f32) (loaded_chunks[chunk_i].z * BLOCK_SIZE * CHUNK_SIZE)};
+            (f32) (loaded_chunks[chunk_i].y * BLOCK_SIZE * CHUNK_SIZE), 
+            (f32) (loaded_chunks[chunk_i].z * BLOCK_SIZE * CHUNK_SIZE)};
 
         face_stored fs = faces_pool[i];
         face f = {0};
         convert_face_vertices(&f, pos_offset, fs);
-        types_faces[num_faces_pooled * GET_FACE_STORED(fs, FACE_STORED_INFO_TYPE)] = f;
+        u32 pos = convert_block_to_face_type(
+                GET_FACE_STORED(fs, FACE_STORED_INFO_TYPE), 
+                GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION)
+                );
+        types_faces[(num_faces_pooled * pos) + types_sizes[pos]] = f;
+        types_sizes[pos] += 1;
+    }
 
-        u16 index_nums[4];
+    u32 vertex_i = 0, indices = 0;
+    for (int n = 0; n < FACE_TYPE_AMOUNT; n++) {
+        num_faces_type[n] = types_sizes[n];
+        u32 this_vertex_i = 0, this_indices = 0;
 
-        for (int v = 0; v < 4; v++) {
-            // TODO finnes vertex fra før? pek mot den i tilfelle.
-            chunk_vertices[vertex_i] = f.vertices[v];
-            index_nums[v] = vertex_i; // FIXME this assumes we render everything in every chunk!
-            vertex_i++;
+        for (int fi = 0; fi < types_sizes[n]; fi++) {
+            u16 index_nums[4];
+            face f = types_faces[(num_faces_pooled * n) + fi];
 
-            chunk_tex_coords[tex_coords_i] = f.tex_coords[v];
-            tex_coords_i++;
-            // TODO finnes vertex fra før? pek mot den i tilfelle.
-            // bool found = false;
-            // for (int other_i = 0; other_i < vertex_i; other_i++) {
-            //     if (chunk_vertices[other_i].x == f.vertices[v].x && 
-            //         chunk_vertices[other_i].y == f.vertices[v].y &&
-            //         chunk_vertices[other_i].z == f.vertices[v].z) {
-            //         found = true;
-            //         index_nums[v] = other_i;
-            //         break;
-            //     }
-            // }
-            // if (!found) {
-            //     chunk_vertices[vertex_i] = f.vertices[v];
-            //     index_nums[v] = vertex_i; // FIXME this assumes we render everything in every chunk!
-            //     vertex_i++;
-            // } 
+            for (int v = 0; v < 4; v++) {
+                chunk_vertices[vertex_i] = f.vertices[v];
+                index_nums[v] = this_vertex_i; // FIXME this assumes we render everything in every chunk!
 
+                chunk_tex_coords[vertex_i] = f.tex_coords[v];
+                vertex_i++;
+                this_vertex_i++;
+            }
 
+            for (int index = 0; index < 6; index += 2) {
+                chunk_indices[indices] = ((u32) index_nums[f.indices[index]])
+                    | ((u32)index_nums[f.indices[index + 1]] << 16);
+                indices++;
+                this_indices++;
+            }
         }
-
-        for (int index = 0; index < 6; index += 2) {
-            chunk_indices[i*6 + index] = ((u32) index_nums[f.indices[index]])
-                                         | ((u32)index_nums[f.indices[index + 1]] << 16);
+        if (n < FACE_TYPE_AMOUNT - 1) {
+            offset_vertices[n] = this_vertex_i;
+            offset_indices[n] = this_indices;
         }
+    }
 
-
-
-        // memcpy(&chunk_vertices[i], , );
-        // memcpy(&chunk_tex_coords[i], , );
-        // memcpy(&chunk_indices[i], , );
-        // memcpy(&faces_calculated_pool[i], &f, sizeof(face));
-   }
+    free(types_sizes);
+    free(types_faces);
 }

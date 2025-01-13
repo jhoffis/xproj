@@ -11,10 +11,11 @@
 #define FACE_TEXTURE_ATLAS_HEIGHT 2
 
 
-#define FACE_TYPE_COBBLESTONE 0
-#define FACE_TYPE_GRASS_TOP 1
-#define FACE_TYPE_GRASS_SIDE 2
-#define FACE_TYPE_DIRT 3
+#define FACE_TYPE_GRASS_TOP 0
+#define FACE_TYPE_GRASS_SIDE 1
+#define FACE_TYPE_DIRT 2
+#define FACE_TYPE_COBBLESTONE 3
+#define FACE_TYPE_AMOUNT 4
 
 
 #define FACE_DIRECTION_DOWN 0  // -y
@@ -31,9 +32,6 @@
  * don't use unnecessary amounts of ram on this.
  */
 typedef struct {
-    u32 offset_vertices;
-    u32 offset_tex_coords;
-    u32 offset_indices;
     i32 x, y, z;
     cube_entity cubes[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE]; // XYZ
 } chunk_data;
@@ -73,10 +71,13 @@ extern u32 num_chunks_pooled;
 extern f32_v3 *chunk_vertices;
 extern f32_v2 *chunk_tex_coords;
 extern u32    *chunk_indices;
-extern u32    vertex_i, tex_coords_i;
+extern u32 *offset_vertices;
+extern u32 *offset_indices;
+extern u32 *num_faces_type;
 
 extern face_stored *faces_pool;
 extern u32 num_faces_pooled;
+
 
 void init_world(void);
 void destroy_world(void);

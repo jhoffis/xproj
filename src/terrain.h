@@ -57,20 +57,20 @@ static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
     return false;
 }
 
-static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
+static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
     QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
     QueryPerformanceCounter(&win_clock_start);      // Record start time
-    f32_v4 v_obj_pos = {0,0,0,1}; 
-    f32_v4 v_obj_rot = {0,0,0,1}; 
+    f32_v4 v_obj_pos   = {0,0,0,1}; 
+    f32_v4 v_obj_rot   = {0,0,0,1}; 
     f32_v4 v_obj_scale = {1,1,1,1}; 
-    v_obj_pos.x = x;
+    v_obj_pos.x = 0;
     v_obj_pos.y = 0;
-    v_obj_pos.z = y;
+    v_obj_pos.z = 0;
 
     /* Tilt and rotate the object a bit */
-    v_obj_rot.x = rotX;
-    v_obj_rot.y = rotY;
+    v_obj_rot.x = 0;
+    v_obj_rot.y = 0;
 
     f32_v3 camera_position = {v_cam_loc.x, v_cam_loc.y, v_cam_loc.z};
 
@@ -183,7 +183,6 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     timer_stamp_print("after setup vertex", &win_clock_start);
 
-    int n = 0;
     // for (int i = 0; i < num; i++) {
     //     
     //     u8 direction = faces_calculated_pool[i].info;
@@ -211,11 +210,10 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     //     // }
     //     n++;
     // }
-    n = num_faces_pooled;
     // n = 16000;
     // memcpy(&cube_vertices[0], chunk_vertices, n * sizeof(f32) * 4 * 3);
     // timer_stamp_print("copy test", &win_clock_start);
-    pb_print("rendered faces: %d, vi %d\n", n, vertex_i);
+    // pb_print("rendered faces: %d, vi %d\n", n, vertex_i);
 
     // u32 real_size_of_verts = sizeof(f32) * 4 * n * 3;
     // u32 *allocated_verts = MmAllocateContiguousMemoryEx(4*num*3 * sizeof(f32), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
@@ -225,7 +223,7 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     // memcpy(allocated_texs, chunk_tex_coords, real_size_of_texs);
     /* Set vertex position attribute */
     set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(float) * 3, chunk_vertices);
+            3, sizeof(float) * 3, &chunk_vertices[vertex_offset]);
     
 
     f32_v4 *colors = malloc(n * sizeof(f32_v4));
@@ -241,12 +239,12 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            2, sizeof(float) * 2, chunk_tex_coords);
+            2, sizeof(float) * 2, &chunk_tex_coords[vertex_offset]);
 
     timer_stamp_print("calculate vertices", &win_clock_start);
 
     /* Begin drawing triangles */
-    draw_indexed(n*6, chunk_indices);
+    draw_indexed(n*3, &chunk_indices[index_offset]);
     // draw_arrays(g_render_method, 0, n);
     // MmFreeContiguousMemory(cube_vertices);
     // MmFreeContiguousMemory(allocated_texs);
@@ -257,16 +255,20 @@ static void render_cube(f32 x, f32 y, f32 rotX, f32 rotY) {
     timer_stamp_print("after drawn", &win_clock_start);
 }
 
-inline static void render_terrain(image_data img) {
+inline static void render_terrain() {
     init_shader(1);
-    {
+    for (int n = 0; n < FACE_TYPE_AMOUNT; n++) {
+
+        if (num_faces_type[n] == 0) continue;
+        
+        image_data *img = get_cube_texture(n);
+
+        u8 u = fast_log2(img->w);
+        u8 v = fast_log2(img->h);
+
         /*
          * Setup texture stages
          */
-
-        u8 u = fast_log2(img.w);
-        u8 v = fast_log2(img.h);
-
         int channels = 2;
         DWORD format = ((channels & NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA) |
                        (NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE_COLOR * NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE)) | // 0x0000000F
@@ -288,9 +290,9 @@ inline static void render_terrain(image_data img) {
         /* FIXME: Use constants instead of the hardcoded values below */
         u32 *p = pb_begin();
         // Retain the lower 26 bits of the address
-        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img.addr26bits, format); //set stage 0 texture address & format
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img.pitch<<16); //set stage 0 texture pitch (pitch<<16)
-        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img.w<<16)|img.h); //set stage 0 texture width & height ((witdh<<16)|height)
+        p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img->addr26bits, format); //set stage 0 texture address & format
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img->pitch<<16); //set stage 0 texture pitch (pitch<<16)
+        p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0),(img->w<<16)|img->h); //set stage 0 texture width & height ((witdh<<16)|height)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_WRAP(0),  0x00010101); //set stage 0 texture modes (0x0W0V0U wrapping: 1=wrap 2=mirror 3=clamp 4=border 5=clamp to edge)
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0), control_enable); //set stage 0 texture enable flags
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(0), filter); //set stage 0 texture filters (AA!)
@@ -310,7 +312,8 @@ inline static void render_terrain(image_data img) {
         pb_end(p);
 
         f32 dist = 50;
-        render_cube(0, 0, 0, 0);
+        if (n == 0) render_cube(num_faces_type[n], 0, 0);
+        else render_cube(num_faces_type[n], offset_vertices[n-1], offset_indices[n-1]);
         // render_cube(0, 0, 0, 0);
         // render_cube(0, 0, 0, 0);
         // render_cube(0, 0, 0, 0);

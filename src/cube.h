@@ -20,5 +20,5 @@ typedef struct {
 
 void init_cubes(void);
 void destroy_cubes(void);
-image_data *get_cube_texture(u32 type, u8 direction);
-
+u32 convert_block_to_face_type(u32 type, u8 direction);
+image_data *get_cube_texture(u32 type);

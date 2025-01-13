@@ -342,7 +342,7 @@ int main(void)
         }
         pb_print("faces: %d\n", num_faces_pooled);
 
-        render_terrain(*get_cube_texture(BLOCK_TYPE_GRASS, FACE_DIRECTION_DOWN));
+        render_terrain();
 
         QueryPerformanceCounter(&win_clock_end); // Record end time
         double elapsed = (double)(win_clock_end.QuadPart - win_clock_start.QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds

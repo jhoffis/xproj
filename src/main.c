@@ -4,6 +4,7 @@
 
 #include <hal/debug.h>
 #include <hal/video.h>
+#include <stdalign.h>
 #include <windows.h>
 
 #include "timer_util.h"
@@ -95,6 +96,49 @@ void testSound(i16* sound_buffer, size_t sample_count) {
     }
     *audio_buffer_data->cursor = cursor;
 }
+#include <xmmintrin.h>
+static short simd_add_example() {
+    // Example arrays (must be 16-byte aligned for optimal performance)
+    alignas(16) float a[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+    alignas(16) float b[4] = {5.0f, 6.0f, 7.0f, 8.0f};
+    alignas(16) float result[4]; // Output array
+
+    // Load the arrays into SSE registers
+    __m128 vec_a = _mm_load_ps(a); // Load 4 floats from array `a`
+    __m128 vec_b = _mm_load_ps(b); // Load 4 floats from array `b`
+
+    // Perform the addition
+    __m128 vec_result = _mm_add_ps(vec_a, vec_b);
+
+    // Store the result back to the result array
+    _mm_store_ps(result, vec_result);
+    _mm_empty();
+    return vec_result[0];
+}
+
+
+#include <mmintrin.h> // For MMX (integer SIMD)
+
+static short mmx_add_example() {
+    // Example arrays (4 integers, 16-bit each, aligned for MMX)
+    alignas(8) short a[4] = {1, 2, 3, 4};
+    alignas(8) short b[4] = {5, 6, 7, 8};
+    alignas(8) short result[4]; // Output array
+
+    // Load the arrays into MMX registers using pointer casting
+    __m64 vec_a = *(__m64 *)a; // Treat the first 8 bytes of `a` as an MMX register
+    __m64 vec_b = *(__m64 *)b; // Treat the first 8 bytes of `b` as an MMX register
+
+    // Perform the addition
+    __m64 vec_result = _mm_add_pi16(vec_a, vec_b);
+
+    // Store the result back to the result array
+    *(__m64 *)result = vec_result; // Store the 8-byte result back into memory
+
+    // Clear MMX state to prevent FPU conflicts
+    _mm_empty();
+    return result[1];
+}
 
 int main(void)
 {
@@ -134,6 +178,8 @@ int main(void)
     *music_current = 1;
     // audio_buffer_data = create_wav_entity(music_strs[*music_current]);
     // xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
+    short simd_test = simd_add_example();
+    short simd_test2 = mmx_add_example();
 
     init_cubes();
     init_world();
@@ -340,6 +386,7 @@ int main(void)
             pb_print("FPS: %d\n", fps);
             // pb_print("DELTA: %d\n", (u64) (1000000 * timer_delta()));
         }
+        pb_print("simd: %d, mmx %d\n", (int) simd_test, simd_test2);
         pb_print("faces: %d\n", num_faces_pooled);
 
         render_terrain();

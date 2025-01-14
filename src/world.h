@@ -4,7 +4,7 @@
 
 
 #define CHUNK_SIZE 16
-#define CHUNK_VIEW_DISTANCE 4
+#define CHUNK_VIEW_DISTANCE 3
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 4*32*1024
 #define FACE_TEXTURE_ATLAS_WIDTH 4

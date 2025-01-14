@@ -1,6 +1,7 @@
 #include "shader.h"
 #include <stdlib.h>
 #include <string.h>
+#include <xmmintrin.h> // For SSE (128-bit SIMD)
 #include <strings.h> // for ffs()
 #define MASK(mask, val) (((val) << (ffs(mask)-1)) & (mask))
 
@@ -117,15 +118,19 @@ void pack_u16_list(u32 * out, u16 *list, u32 size) {
         out[i / 2] = pack_u16_to_u32(list[i], list[i + 1]);
     }
 }
+
 /*
- *  First draw the demo and then try to get a model from the disk. 
- *  But draw a cube instead - just so it's easier to see what it's doing.
+ * Writes the indices to memory and pushes it for the GPU to load.
  */
 void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
     #define MIN(a, b) ((a) < (b) ? (a) : (b))
     #define MAX_BATCH 120
 
-    u32 *p;
+__m128 indices1;
+__m128 indices2;
+__m128 indices3;
+__m128 indices4;
+__m128 indices5;
 
     for (u32 i = 0; i < num_cube_indices; i += MAX_BATCH) {
         u32 num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
@@ -134,26 +139,36 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
         pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
-        u32 base_offset = i; // No longer multiplied since each index is a `u32`
+        u32 base_offset = i;
 
-        // Prefetch data to improve cache efficiency
-        __builtin_prefetch(&cube_indices[base_offset + 32], 0, 1);
+        // Prefetch the first chunk
+        __builtin_prefetch(&cube_indices[base_offset + 20], 0, 1);
 
-        // Process indices with loop unrolling for better performance
-        for (u32 j = 0; j < num_this_batch; j += 4) {
-            p[j]     = cube_indices[base_offset + j];
-            p[j + 1] = cube_indices[base_offset + j + 1];
-            p[j + 2] = cube_indices[base_offset + j + 2];
-            p[j + 3] = cube_indices[base_offset + j + 3];
+        u32 j = 0;
 
-            // Prefetch further ahead for the next iteration
-            if (j + 8 < num_this_batch) {
-                __builtin_prefetch(&cube_indices[base_offset + j + 8], 0, 1);
-            }
+        // Process 4 indices at a time with SSE
+        for (; j + 20 <= num_this_batch; j += 20) {
+            __builtin_prefetch(&cube_indices[base_offset + j + 40], 0, 1);
+
+            indices1 = _mm_loadu_ps((float *)&cube_indices[base_offset + j]);
+            indices2 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 4]);
+            indices3 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 8]);
+            indices4 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 12]);
+            indices5 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 16]);
+
+            _mm_storeu_ps((float *)&p[j], indices1);
+            _mm_storeu_ps((float *)&p[j + 4], indices2);
+            _mm_storeu_ps((float *)&p[j + 8], indices3);
+            _mm_storeu_ps((float *)&p[j + 12], indices4);
+            _mm_storeu_ps((float *)&p[j + 16], indices5);
+        }
+
+        // Handle remaining indices (not divisible by 16)
+        for (; j < num_this_batch; ++j) {
+            p[j] = cube_indices[base_offset + j];
         }
 
         p += num_this_batch;
-
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
         pb_end(p);
     }

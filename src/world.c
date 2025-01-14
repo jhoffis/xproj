@@ -43,8 +43,9 @@ void init_world(void) {
 
     chunk_vertices   = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     chunk_tex_coords = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
-
+    // chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
+    chunk_indices = _aligned_malloc(FACE_POOL_SIZE * 6 * sizeof(u16), 16);
+    
     offset_vertices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
     offset_indices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
     num_faces_type = malloc(sizeof(u32) * FACE_TYPE_AMOUNT);
@@ -59,7 +60,7 @@ void destroy_world(void) {
     free(chunk_offsets);
     MmFreeContiguousMemory(chunk_vertices);
     MmFreeContiguousMemory(chunk_tex_coords);
-    MmFreeContiguousMemory(chunk_indices);
+    free(chunk_indices);
 }
 
 static face_stored find_single_face(
@@ -532,7 +533,7 @@ void load_chunks(void) {
         }
         if (n < FACE_TYPE_AMOUNT - 1) {
             offset_vertices[n] = vertex_i;
-            offset_indices[n] = indices;
+            offset_indices[n] = (indices + 3) & ~3; // Align upwards to the next multiple of 4.
         }
     }
 

@@ -1,6 +1,7 @@
 #include "shader.h"
 #include <stdlib.h>
 #include <string.h>
+
 #include <xmmintrin.h> // For SSE (128-bit SIMD)
 #include <strings.h> // for ffs()
 #define MASK(mask, val) (((val) << (ffs(mask)-1)) & (mask))
@@ -119,6 +120,31 @@ void pack_u16_list(u32 * out, u16 *list, u32 size) {
     }
 }
 
+static inline void* align_and_zero(void* ptr) {
+    char* p = (char*)ptr;
+    
+    if (((uintptr_t)p) % 16 == 4) {
+        return p;  // Already aligned correctly
+    }
+
+    // For very small gaps (1-3 bytes), individual stores are fastest
+    if (((uintptr_t)p) % 16 >= 13 || ((uintptr_t)p) % 16 <= 3) {
+        do {
+            *p++ = 0;
+        } while (((uintptr_t)p) % 16 != 4);
+        return p;
+    }
+
+    // For larger gaps, use SSE
+    __m128 zero = _mm_setzero_ps();
+    
+    // Store 16 bytes of zeros
+    _mm_storeu_ps((float*)p, zero);
+    
+    // Advance to next aligned position
+    p += (16 - ((uintptr_t)p % 16 - 4) % 16);
+    return p;
+}
 /*
  * Writes the indices to memory and pushes it for the GPU to load.
  */
@@ -131,11 +157,25 @@ __m128 indices2;
 __m128 indices3;
 __m128 indices4;
 __m128 indices5;
-
+__m128 indices6;
+__m128 indices7;
+__m128 indices8;
+__m128 indices9;
+__m128 indices10;
+u32 *p;
     for (u32 i = 0; i < num_cube_indices; i += MAX_BATCH) {
+/*
+ * Aligns address for faster simd storing using _mm_store_ps,
+ * but this slows it down more than doing it unaligned.
+ * TODO look at this later to see if there's something I can do to make this work.
+        p = pb_begin();
+        while (((uintptr_t)p) % 16 != 4) {
+            *p++ = 0; // Pad with zeros
+        }
+        pb_end(p);
+*/
         u32 num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
-
-        u32 *p = pb_begin();
+        p = pb_begin();
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
         pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
@@ -145,22 +185,35 @@ __m128 indices5;
         __builtin_prefetch(&cube_indices[base_offset + 20], 0, 1);
 
         u32 j = 0;
-
-        // Process 4 indices at a time with SSE
-        for (; j + 20 <= num_this_batch; j += 20) {
+        for (; j + 40 <= num_this_batch; j += 40) {
             __builtin_prefetch(&cube_indices[base_offset + j + 40], 0, 1);
 
-            indices1 = _mm_loadu_ps((float *)&cube_indices[base_offset + j]);
-            indices2 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 4]);
-            indices3 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 8]);
-            indices4 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 12]);
-            indices5 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 16]);
+            indices1  = *((__m128 *)&cube_indices[base_offset + j]);
+            indices2  = *((__m128 *)&cube_indices[base_offset + j + 4]);
+            indices3  = *((__m128 *)&cube_indices[base_offset + j + 8]);
+            indices4  = *((__m128 *)&cube_indices[base_offset + j + 12]);
+            indices5  = *((__m128 *)&cube_indices[base_offset + j + 16]);
+            indices6  = *((__m128 *)&cube_indices[base_offset + j + 20]);
+            indices7  = *((__m128 *)&cube_indices[base_offset + j + 24]);
+            indices8  = *((__m128 *)&cube_indices[base_offset + j + 28]);
+            indices9  = *((__m128 *)&cube_indices[base_offset + j + 32]);
+            indices10 = *((__m128 *)&cube_indices[base_offset + j + 36]);
 
-            _mm_storeu_ps((float *)&p[j], indices1);
-            _mm_storeu_ps((float *)&p[j + 4], indices2);
-            _mm_storeu_ps((float *)&p[j + 8], indices3);
+            _mm_storeu_ps((float *)&p[j],      indices1);
+            _mm_storeu_ps((float *)&p[j + 4],  indices2);
+            _mm_storeu_ps((float *)&p[j + 8],  indices3);
             _mm_storeu_ps((float *)&p[j + 12], indices4);
             _mm_storeu_ps((float *)&p[j + 16], indices5);
+            _mm_storeu_ps((float *)&p[j + 20], indices6);
+            _mm_storeu_ps((float *)&p[j + 24], indices7);
+            _mm_storeu_ps((float *)&p[j + 28], indices8);
+            _mm_storeu_ps((float *)&p[j + 32], indices9);
+            _mm_storeu_ps((float *)&p[j + 36], indices10);
+        }
+
+        for (; j + 4 <= num_this_batch; j += 4) {
+            indices1 = *((__m128 *)&cube_indices[base_offset + j]);
+            _mm_storeu_ps((float *)&p[j], indices1);
         }
 
         // Handle remaining indices (not divisible by 16)

@@ -48,8 +48,8 @@ void init_world(void) {
     
     offset_vertices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
     offset_indices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
-    num_faces_type = malloc(sizeof(u32) * FACE_TYPE_AMOUNT);
 
+    num_faces_type = calloc(FACE_TYPE_AMOUNT, sizeof(u32));
 }
 
 void destroy_world(void) {
@@ -349,7 +349,7 @@ static void fill_face_indices(u16 indices[], u8 direction) {
 }
 
 static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored face) {
-    out->info = GET_FACE_STORED(face, FACE_STORED_INFO); 
+    // out->info = GET_FACE_STORED(face, FACE_STORED_INFO); 
     int a0 = GET_FACE_STORED(face, FACE_STORED_A0) * (int)BLOCK_SIZE;
     int a1 = (1 + GET_FACE_STORED(face, FACE_STORED_A1)) * (int)BLOCK_SIZE;
     int b0 = GET_FACE_STORED(face, FACE_STORED_B0) * (int)BLOCK_SIZE;
@@ -461,6 +461,9 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
  *      Kalkuler også chunk-endepunkter på mellom chunks og sambind flater.
  *      Endepunkter skal ikke bare blindt lage faces.
  *      Gjør også de lenger unna gradvis mer og mer lod.
+ *
+ *
+ *      Sort types within every chunk, and then seperate the chunks into hashmap.
  */
 void load_chunks(void) {
 
@@ -469,37 +472,49 @@ void load_chunks(void) {
     int current_chunk_y = (int)(floorf(v_cam_loc.y / (CHUNK_SIZE * BLOCK_SIZE)));
     int current_chunk_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
 
-    for (int x = current_chunk_x - CHUNK_VIEW_DISTANCE; x < current_chunk_x + CHUNK_VIEW_DISTANCE; x++) {
-        for (int z = current_chunk_z - CHUNK_VIEW_DISTANCE; z < current_chunk_z + CHUNK_VIEW_DISTANCE; z++) {
+    const int view_dist = CHUNK_VIEW_DISTANCE / 2;
+
+    const u32 chunks_amount = CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE*1;
+    for (int x = current_chunk_x - view_dist; x < current_chunk_x + view_dist; x++) {
+        for (int z = current_chunk_z - view_dist; z < current_chunk_z + view_dist; z++) {
             generate_chunk(x, 0, z);
         }
     }
     // generate_chunk(0, 0, 0);
+    // generate_chunk(1, 0, 0);
+    // const u32 chunks_amount = 2;
 
+
+    const u32 num_max_type = num_faces_pooled;
+    const int whole_chunk_size = num_max_type * FACE_TYPE_AMOUNT;
+    u16 *types_sizes = calloc(chunks_amount * FACE_TYPE_AMOUNT, sizeof(u16));
+    face *types_faces = calloc(chunks_amount * num_max_type * FACE_TYPE_AMOUNT, sizeof(face));
+
+    f32 pos_offset[3] = {(f32) (loaded_chunks[0].x * BLOCK_SIZE * CHUNK_SIZE), 
+                         (f32) (loaded_chunks[0].y * BLOCK_SIZE * CHUNK_SIZE), 
+                         (f32) (loaded_chunks[0].z * BLOCK_SIZE * CHUNK_SIZE)};
     int chunk_i = 0, chunk_i_cmp = 0;
-
-    u16 *types_sizes = calloc(FACE_TYPE_AMOUNT, sizeof(u16));
-    face *types_faces = calloc(num_faces_pooled * FACE_TYPE_AMOUNT, sizeof(face));
-
     for (int i = 0; i < num_faces_pooled; i++) {
         if (chunk_i_cmp >= chunk_offsets[chunk_i]) {
             chunk_i++;
             chunk_i_cmp = 0;
+            pos_offset[0] = (f32) (loaded_chunks[chunk_i].x * BLOCK_SIZE * CHUNK_SIZE); 
+            pos_offset[1] = (f32) (loaded_chunks[chunk_i].y * BLOCK_SIZE * CHUNK_SIZE); 
+            pos_offset[2] = (f32) (loaded_chunks[chunk_i].z * BLOCK_SIZE * CHUNK_SIZE);
         }
         chunk_i_cmp++;
-        f32 pos_offset[3] = {(f32) (loaded_chunks[chunk_i].x * BLOCK_SIZE * CHUNK_SIZE), 
-            (f32) (loaded_chunks[chunk_i].y * BLOCK_SIZE * CHUNK_SIZE), 
-            (f32) (loaded_chunks[chunk_i].z * BLOCK_SIZE * CHUNK_SIZE)};
 
         face_stored fs = faces_pool[i];
         face f = {0};
         convert_face_vertices(&f, pos_offset, fs);
-        u32 pos = convert_block_to_face_type(
+        u32 face_type = convert_block_to_face_type(
                 GET_FACE_STORED(fs, FACE_STORED_INFO_TYPE), 
                 GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION)
                 );
-        types_faces[(num_faces_pooled * pos) + types_sizes[pos]] = f;
-        types_sizes[pos] += 1;
+        const int type_size_i = (chunk_i * FACE_TYPE_AMOUNT) + face_type;
+        const u32 real_fi = (chunk_i * whole_chunk_size) + (num_max_type * face_type) + types_sizes[type_size_i];
+        types_faces[real_fi] = f;
+        types_sizes[type_size_i] += 1;
     }
 
     /*
@@ -507,33 +522,40 @@ void load_chunks(void) {
      *  and texture atlas does not work with repeating textures.
      */
     u32 vertex_i = 0, indices = 0;
-    for (int n = 0; n < FACE_TYPE_AMOUNT; n++) {
-        num_faces_type[n] = types_sizes[n];
+    for (int ftype = 0; ftype < FACE_TYPE_AMOUNT; ftype++) {
         u32 this_vertex_i = 0;
+        for (int c = 0; c < chunks_amount; c++) {
+            const u32 type_size_i = (c * FACE_TYPE_AMOUNT) + ftype;
+            const u32 type_size = types_sizes[type_size_i];
+            if (type_size == 0) continue;
 
-        for (int fi = 0; fi < types_sizes[n]; fi++) {
-            u16 index_nums[4];
-            face f = types_faces[(num_faces_pooled * n) + fi];
+            num_faces_type[ftype] += type_size; // TODO reset and move num_faces_type whenever we reload
 
-            for (int v = 0; v < 4; v++) {
-                chunk_vertices[vertex_i] = f.vertices[v];
-                index_nums[v] = this_vertex_i; // FIXME this assumes we render everything in every chunk!
+            for (int fi = 0; fi < type_size; fi++) {
+                u16 index_nums[4];
+                const u32 real_fi = (c * whole_chunk_size) + (num_max_type * ftype) + fi;
+                face f = types_faces[real_fi];
 
-                chunk_tex_coords[vertex_i] = f.tex_coords[v];
-                vertex_i++;
-                this_vertex_i++;
-            }
+                for (int v = 0; v < 4; v++) {
+                    chunk_vertices[vertex_i] = f.vertices[v];
+                    chunk_tex_coords[vertex_i] = f.tex_coords[v];
+                    vertex_i++;
 
-            for (int index = 0; index < 6; index += 2) {
-                // transfering data takes 32 bits divided into two parts.
-                chunk_indices[indices] = ((u32) index_nums[f.indices[index]])
-                    | ((u32)index_nums[f.indices[index + 1]] << 16);
-                indices++;
+                    index_nums[v] = this_vertex_i; // FIXME this assumes we render everything in every chunk!
+                    this_vertex_i++;
+                }
+
+                for (int index = 0; index < 6; index += 2) {
+                    // transfering data takes 32 bits divided into two parts.
+                    chunk_indices[indices] = ((u32) index_nums[f.indices[index]]) | ((u32)index_nums[f.indices[index + 1]] << 16);
+                    indices++;
+                }
             }
         }
-        if (n < FACE_TYPE_AMOUNT - 1) {
-            offset_vertices[n] = vertex_i;
-            offset_indices[n] = (indices + 3) & ~3; // Align upwards to the next multiple of 4.
+        if (ftype < FACE_TYPE_AMOUNT - 1) {
+            offset_vertices[ftype] = vertex_i;
+            indices = (indices + 3) & ~3; // Align upwards to the next multiple of 4.
+            offset_indices[ftype] = indices;
         }
     }
 

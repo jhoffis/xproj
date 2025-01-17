@@ -323,12 +323,16 @@ int main(void)
             }
             int chunk_pos_x = (int)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE))); 
             int chunk_pos_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
+
+            // f32_v2 snap = snap45(cam_rotationX, cam_rotationY);
+
                 pb_print(
                     "- Lstick: x=%d, y=%d\n"
                     "- Rstick: x=%d, y=%d\n"
                     "- Ltrig: %d\n"
                     "- Rtrig: %d\n"
                     "- rot: x=%d, y=%d\n"
+                    // "- snaprot: x=%d, y=%d\n"
                     "- pos: x=%d, y=%d, z=%d\n"
                     "- chunk: x=%d, z=%d\n"
                     // "Buttons:\n"
@@ -349,6 +353,8 @@ int main(void)
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT),
                     (i16)(100 * cam_rotationX),
                     (i16)(100 * cam_rotationY),
+                    // (i16)(100 * snap.x),
+                    // (i16)(100 * snap.y),
                     (i16)v_cam_loc.x,
                     (i16)v_cam_loc.y,
                     (i16)v_cam_loc.z,

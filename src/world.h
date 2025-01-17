@@ -4,7 +4,8 @@
 
 
 #define CHUNK_SIZE 16
-#define CHUNK_VIEW_DISTANCE 3
+#define CHUNK_VIEW_DISTANCE 2
+_Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole number!");
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 4*32*1024
 #define FACE_TEXTURE_ATLAS_WIDTH 4
@@ -44,7 +45,7 @@ typedef struct {
     f32_v3 vertices[4];
     f32_v2 tex_coords[4];
     u16 indices[6];
-    u16 info;
+    // u16 info;
 } face; // Kan ha 326 tusen faces i 30MB, så disse burde lagres! Burde ha at man laster inn de nermeste 9 chunks i disse.
 
 /*

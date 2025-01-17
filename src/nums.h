@@ -1,6 +1,7 @@
 #ifndef MY_NUMS
 #define MY_NUMS
 
+#include <math.h>
 #ifndef M_PI
 #define M_PI    3.14159265358979323846264338327950288   /**< pi */
 #endif
@@ -81,6 +82,23 @@ static inline u8 fast_log2(u16 x) {
         return 0; // log2(0) is undefined, return 0 or handle as an error
     }
     return 15 - __builtin_clz(x); // 16-bit width: 15 - leading zeros
+}
+
+// https://www.shadertoy.com/view/M3ycWd
+// Function to snap a vector to the nearest 45-degree angle or axis
+#define SQRT2 1.41421356f
+#define SQRT0_5 0.70710678f
+
+static inline f32_v2 snap45(f32 x, f32 y) {
+    // Scale vector to align with 45-degree grid using pre-calculated square root
+    
+    x = roundf(x * SQRT2);
+    y = roundf(y * SQRT2);
+
+    float sum_abs = (x >= 0 ? x : -x) + (y >= 0 ? y : -y);
+    float scale = (sum_abs > 1.5f) ? SQRT0_5 : 1.0f;
+
+    return (f32_v2){x * scale, y * scale};
 }
 
 // // Define the structure for a 16-bit float

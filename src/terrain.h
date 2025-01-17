@@ -260,7 +260,8 @@ inline static void render_terrain() {
     for (int n = 0; n < FACE_TYPE_AMOUNT; n++) {
 
         if (num_faces_type[n] == 0) continue;
-        
+        pb_print("faces: %d, %d\n", num_faces_type[n], n);
+ 
         image_data *img = get_cube_texture(n);
 
         u8 u = fast_log2(img->w);

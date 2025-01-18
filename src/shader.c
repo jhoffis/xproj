@@ -168,12 +168,14 @@ u32 *p;
  * Aligns address for faster simd storing using _mm_store_ps,
  * but this slows it down more than doing it unaligned.
  * TODO look at this later to see if there's something I can do to make this work.
-        p = pb_begin();
-        while (((uintptr_t)p) % 16 != 4) {
-            *p++ = 0; // Pad with zeros
-        }
-        pb_end(p);
 */
+            // p = pb_begin();
+            // while (((uintptr_t)p) % 16 != 4) {
+            //     *p++ = 0; // Pad with zeros
+            // }
+            // pb_end(p);
+
+        pb_align();
         u32 num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
         p = pb_begin();
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
@@ -199,21 +201,21 @@ u32 *p;
             indices9  = *((__m128 *)&cube_indices[base_offset + j + 32]);
             indices10 = *((__m128 *)&cube_indices[base_offset + j + 36]);
 
-            _mm_storeu_ps((float *)&p[j],      indices1);
-            _mm_storeu_ps((float *)&p[j + 4],  indices2);
-            _mm_storeu_ps((float *)&p[j + 8],  indices3);
-            _mm_storeu_ps((float *)&p[j + 12], indices4);
-            _mm_storeu_ps((float *)&p[j + 16], indices5);
-            _mm_storeu_ps((float *)&p[j + 20], indices6);
-            _mm_storeu_ps((float *)&p[j + 24], indices7);
-            _mm_storeu_ps((float *)&p[j + 28], indices8);
-            _mm_storeu_ps((float *)&p[j + 32], indices9);
-            _mm_storeu_ps((float *)&p[j + 36], indices10);
+            _mm_store_ps((float *)&p[j],      indices1);
+            _mm_store_ps((float *)&p[j + 4],  indices2);
+            _mm_store_ps((float *)&p[j + 8],  indices3);
+            _mm_store_ps((float *)&p[j + 12], indices4);
+            _mm_store_ps((float *)&p[j + 16], indices5);
+            _mm_store_ps((float *)&p[j + 20], indices6);
+            _mm_store_ps((float *)&p[j + 24], indices7);
+            _mm_store_ps((float *)&p[j + 28], indices8);
+            _mm_store_ps((float *)&p[j + 32], indices9);
+            _mm_store_ps((float *)&p[j + 36], indices10);
         }
 
         for (; j + 4 <= num_this_batch; j += 4) {
             indices1 = *((__m128 *)&cube_indices[base_offset + j]);
-            _mm_storeu_ps((float *)&p[j], indices1);
+            _mm_store_ps((float *)&p[j], indices1);
         }
 
         // Handle remaining indices (not divisible by 16)

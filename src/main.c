@@ -2,10 +2,16 @@
 //     #define DBG 1
 // #endif
 
+#define SDL_JOYSTICK_XINPUT
+#define SDL_JOYSTICK_DINPUT
+// #define ENABLE_USBH_XID_DEBUG
+
 #include <hal/debug.h>
 #include <hal/video.h>
 #include <stdalign.h>
 #include <windows.h>
+
+#include "usb.h"
 
 #include "timer_util.h"
 #include "SDL_gamecontroller.h"
@@ -168,7 +174,7 @@ int main(void)
 
     pb_show_front_screen();
 
-    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER) == 0;
+    sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK) == 0;
     if (!sdl_init) {
         debugPrint("SDL_Init failed: %s\n", SDL_GetError());
         wait_then_cleanup();
@@ -201,9 +207,11 @@ int main(void)
     f32 obj_rotationY = 0;
     f32 cam_rotationX = 0;
     f32 cam_rotationY = 0;
-    f32 cam_posX = -3;
-    f32 cam_posY = 30;
-    f32 cam_posZ = 8;
+    f32 cam_posX = 0;
+    f32 cam_posY = 0;
+    f32 cam_posZ = 0;
+    bool polled = false;
+    u32 last_poll_event = 0;
     for (;;) {
 
         pb_wait_for_vbl();
@@ -212,7 +220,6 @@ int main(void)
         pb_erase_depth_stencil_buffer(0, 0, screen_width, screen_height);
         pb_fill(0, 0, screen_width, screen_height, 0xff0E060C);
         pb_erase_text_screen();
-
 
 
         v_cam_rot.x = cam_rotationX;
@@ -231,13 +238,22 @@ int main(void)
         create_world_view(m_view, v_cam_loc, v_cam_rot);
 
         while (pb_busy()) {}
-        
+
         QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
         QueryPerformanceCounter(&win_clock_start);      // Record start time
 
+        pb_print("polled: %d, %d\n", polled, 123);
+        pb_print("num mappings: %d\n", SDL_GameControllerNumMappings());
+        pb_print("num joysticks: %d\n", SDL_NumJoysticks());
+        // pb_print(SDL_GameControllerNameForIndex(0));
+
+
         while (SDL_PollEvent(&e)) {
+            last_poll_event = e.type;
             if (e.type == SDL_CONTROLLERDEVICEADDED) {
                 SDL_GameController *new_pad = SDL_GameControllerOpen(e.cdevice.which);
+                SDL_GameControllerGetProduct(new_pad);
+                polled = true;
                 if (pad == NULL) {
                     pad = new_pad;
                 }

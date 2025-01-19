@@ -145,36 +145,135 @@ static inline void* align_and_zero(void* ptr) {
     p += (16 - ((uintptr_t)p % 16 - 4) % 16);
     return p;
 }
+
+#define MAX_BATCH 120
+
+static u32 draw_indexed_full(u32 *p, u32 num_cube_indices, u32 *cube_indices) {
+    // Handle remaining indices in one final batch if any
+    const u32 remaining = num_cube_indices % MAX_BATCH;
+    // Calculate full batches at start
+    u32 full_batches = (num_cube_indices - remaining) / MAX_BATCH;
+    u32 p_offset = 0;
+    u32 base_offset = 0;
+    __m128 indices1, indices2, indices3, indices4, indices5;
+    __m128 indices6, indices7, indices8, indices9, indices10;
+
+    // Process full batches - no size checking needed
+    while (full_batches--) {
+        pb_align();
+        p = pb_begin();
+        p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
+        pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, MAX_BATCH);
+
+        // Process 3 blocks of 40 without any size checks
+        __builtin_prefetch(&cube_indices[base_offset + 40], 0, 1);
+        // First block of 40
+        indices1  = *((__m128 *)&cube_indices[base_offset]);
+        indices2  = *((__m128 *)&cube_indices[base_offset + 4]);
+        indices3  = *((__m128 *)&cube_indices[base_offset + 8]);
+        indices4  = *((__m128 *)&cube_indices[base_offset + 12]);
+        indices5  = *((__m128 *)&cube_indices[base_offset + 16]);
+        indices6  = *((__m128 *)&cube_indices[base_offset + 20]);
+        indices7  = *((__m128 *)&cube_indices[base_offset + 24]);
+        indices8  = *((__m128 *)&cube_indices[base_offset + 28]);
+        indices9  = *((__m128 *)&cube_indices[base_offset + 32]);
+        indices10 = *((__m128 *)&cube_indices[base_offset + 36]);
+
+        _mm_store_ps((float *)&p[0],  indices1);
+        _mm_store_ps((float *)&p[4],  indices2);
+        _mm_store_ps((float *)&p[8],  indices3);
+        _mm_store_ps((float *)&p[12], indices4);
+        _mm_store_ps((float *)&p[16], indices5);
+        _mm_store_ps((float *)&p[20], indices6);
+        _mm_store_ps((float *)&p[24], indices7);
+        _mm_store_ps((float *)&p[28], indices8);
+        _mm_store_ps((float *)&p[32], indices9);
+        _mm_store_ps((float *)&p[36], indices10);
+
+        __builtin_prefetch(&cube_indices[base_offset + 80], 0, 1);
+        // Second block of 40
+        indices1  = *((__m128 *)&cube_indices[base_offset + 40]);
+        indices2  = *((__m128 *)&cube_indices[base_offset + 44]);
+        indices3  = *((__m128 *)&cube_indices[base_offset + 48]);
+        indices4  = *((__m128 *)&cube_indices[base_offset + 52]);
+        indices5  = *((__m128 *)&cube_indices[base_offset + 56]);
+        indices6  = *((__m128 *)&cube_indices[base_offset + 60]);
+        indices7  = *((__m128 *)&cube_indices[base_offset + 64]);
+        indices8  = *((__m128 *)&cube_indices[base_offset + 68]);
+        indices9  = *((__m128 *)&cube_indices[base_offset + 72]);
+        indices10 = *((__m128 *)&cube_indices[base_offset + 76]);
+
+        _mm_store_ps((float *)&p[40], indices1);
+        _mm_store_ps((float *)&p[44], indices2);
+        _mm_store_ps((float *)&p[48], indices3);
+        _mm_store_ps((float *)&p[52], indices4);
+        _mm_store_ps((float *)&p[56], indices5);
+        _mm_store_ps((float *)&p[60], indices6);
+        _mm_store_ps((float *)&p[64], indices7);
+        _mm_store_ps((float *)&p[68], indices8);
+        _mm_store_ps((float *)&p[72], indices9);
+        _mm_store_ps((float *)&p[76], indices10);
+
+        __builtin_prefetch(&cube_indices[base_offset + 120], 0, 1);
+        // Third block of 40
+        indices1  = *((__m128 *)&cube_indices[base_offset + 80]);
+        indices2  = *((__m128 *)&cube_indices[base_offset + 84]);
+        indices3  = *((__m128 *)&cube_indices[base_offset + 88]);
+        indices4  = *((__m128 *)&cube_indices[base_offset + 92]);
+        indices5  = *((__m128 *)&cube_indices[base_offset + 96]);
+        indices6  = *((__m128 *)&cube_indices[base_offset + 100]);
+        indices7  = *((__m128 *)&cube_indices[base_offset + 104]);
+        indices8  = *((__m128 *)&cube_indices[base_offset + 108]);
+        indices9  = *((__m128 *)&cube_indices[base_offset + 112]);
+        indices10 = *((__m128 *)&cube_indices[base_offset + 116]);
+
+        _mm_store_ps((float *)&p[80],  indices1);
+        _mm_store_ps((float *)&p[84],  indices2);
+        _mm_store_ps((float *)&p[88],  indices3);
+        _mm_store_ps((float *)&p[92],  indices4);
+        _mm_store_ps((float *)&p[96],  indices5);
+        _mm_store_ps((float *)&p[100], indices6);
+        _mm_store_ps((float *)&p[104], indices7);
+        _mm_store_ps((float *)&p[108], indices8);
+        _mm_store_ps((float *)&p[112], indices9);
+        _mm_store_ps((float *)&p[116], indices10);
+
+        p += MAX_BATCH;
+        p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
+        pb_end(p);
+        
+        base_offset += MAX_BATCH;
+    }
+
+    return remaining;
+}
+
+
 /*
  * Writes the indices to memory and pushes it for the GPU to load.
  */
 void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
-    #define MIN(a, b) ((a) < (b) ? (a) : (b))
-    #define MAX_BATCH 120
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX_BATCH 120
 
-__m128 indices1;
-__m128 indices2;
-__m128 indices3;
-__m128 indices4;
-__m128 indices5;
-__m128 indices6;
-__m128 indices7;
-__m128 indices8;
-__m128 indices9;
-__m128 indices10;
-u32 *p;
+    __m128 indices1;
+    __m128 indices2;
+    __m128 indices3;
+    __m128 indices4;
+    __m128 indices5;
+    __m128 indices6;
+    __m128 indices7;
+    __m128 indices8;
+    __m128 indices9;
+    __m128 indices10;
+    u32 *p;
+    num_cube_indices = draw_indexed_full(p, num_cube_indices, cube_indices);
     for (u32 i = 0; i < num_cube_indices; i += MAX_BATCH) {
-/*
- * Aligns address for faster simd storing using _mm_store_ps,
- * but this slows it down more than doing it unaligned.
- * TODO look at this later to see if there's something I can do to make this work.
-*/
-            // p = pb_begin();
-            // while (((uintptr_t)p) % 16 != 4) {
-            //     *p++ = 0; // Pad with zeros
-            // }
-            // pb_end(p);
-
+        /*
+         * Aligns address for faster simd storing using _mm_store_ps,
+         * but this slows it down more than doing it unaligned.
+         * TODO look at this later to see if there's something I can do to make this work.
+         */
         pb_align();
         u32 num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
         p = pb_begin();

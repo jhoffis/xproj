@@ -2,6 +2,7 @@
 #include "cube.h"
 
 #define MAX_VERTICES 65536
+#define MAX_RENDERED_FACES 36864 // appearently
 
 #define CHUNK_SIZE 16
 #define CHUNK_VIEW_DISTANCE 8

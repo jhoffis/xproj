@@ -326,19 +326,30 @@ inline static void render_terrain() {
         }
 
         const u32 max_faces = 16384;
-        int times = 0;
+        u32 times = 0;
         do {
             if (num > max_faces) {
                 num_batch = max_faces;
             } else  {
-                num_batch = num; // + 8*3;
+                num_batch = num + 8*3;
+                if (num_batch + times > MAX_RENDERED_FACES) num_batch = MAX_RENDERED_FACES - times;
             }
+            // if (i == 2) {
+            //     num_batch = 10000;
+            // }
             render_cube(num_batch, offset_v, offset_i);
-
+            // if (i == 2) {
+            //     break;
+            // }
+            times += num_batch;
+            if (times >= MAX_RENDERED_FACES) {
+                break;
+            } else continue;
             num -= max_faces;
             offset_v += MAX_VERTICES;
             offset_i += 49152; // Align to next multiple of 4 because of how shader.c works
         } while (num > 0);
+        break;
     }
 }
 

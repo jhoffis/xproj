@@ -134,6 +134,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     }
     pb_end(p);
 
+    // debugPrint("spot1\n");
     // timer_stamp_print("setup pb", &win_clock_start);
     /*
      * Setup vertex attributes
@@ -241,6 +242,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
             2, sizeof(float) * 2, &chunk_tex_coords[vertex_offset]);
 
+    // debugPrint("spot2\n");
     // timer_stamp_print("calculate vertices", &win_clock_start);
 
     /* Begin drawing triangles */
@@ -257,12 +259,12 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
 
 inline static void render_terrain() {
     init_shader(1);
-    for (int n = 0; n < FACE_TYPE_AMOUNT; n++) {
+    for (int i = 0; i < FACE_TYPE_AMOUNT; i++) {
 
-        if (num_faces_type[n] == 0) continue;
-        pb_print("faces: %d, %d\n", num_faces_type[n], n);
+        if (num_faces_type[i] == 0) continue;
+        pb_print("faces: %d, %d\n", num_faces_type[i], i);
  
-        image_data *img = get_cube_texture(n);
+        image_data *img = get_cube_texture(i);
 
         u8 u = fast_log2(img->w);
         u8 v = fast_log2(img->h);
@@ -312,12 +314,31 @@ inline static void render_terrain() {
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_FILTER(3), 0x02022000);//set stage 3 texture filters (no AA, stage not even used)
         pb_end(p);
 
-        f32 dist = 50;
-        if (n == 0) render_cube(num_faces_type[n], 0, 0);
-        else render_cube(num_faces_type[n], offset_vertices[n-1], offset_indices[n-1]);
-        // render_cube(0, 0, 0, 0);
-        // render_cube(0, 0, 0, 0);
-        // render_cube(0, 0, 0, 0);
+
+        u32 num_batch;
+        i32 num = num_faces_type[i];
+        u32 offset_v = 0;
+        u32 offset_i = 0;
+        
+        if (i != 0) {
+            offset_v = offset_vertices[i-1];
+            offset_i = offset_indices[i-1];
+        }
+
+        const u32 max_faces = 16384;
+        int times = 0;
+        do {
+            if (num > max_faces) {
+                num_batch = max_faces;
+            } else  {
+                num_batch = num; // + 8*3;
+            }
+            render_cube(num_batch, offset_v, offset_i);
+
+            num -= max_faces;
+            offset_v += MAX_VERTICES;
+            offset_i += 49152; // Align to next multiple of 4 because of how shader.c works
+        } while (num > 0);
     }
 }
 

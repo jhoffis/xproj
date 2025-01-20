@@ -1,10 +1,10 @@
 #pragma once
 #include "cube.h"
 
-
+#define MAX_VERTICES 65536
 
 #define CHUNK_SIZE 16
-#define CHUNK_VIEW_DISTANCE 6
+#define CHUNK_VIEW_DISTANCE 8
 #define CHUNK_AMOUNT CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE
 _Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole number!");
 // it can render up to 1024 faces per draw call
@@ -74,6 +74,7 @@ extern f32_v2 *chunk_tex_coords;
 extern u32    *chunk_indices;
 extern u32 *offset_vertices;
 extern u32 *offset_indices;
+extern u8  *num_indices_batches;
 extern u32 *num_faces_type;
 
 extern face_stored *faces_pool;

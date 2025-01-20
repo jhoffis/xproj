@@ -1,5 +1,4 @@
 #include "world.h"
-#include "random.h"
 #include "mvp.h"
 #include <stdlib.h>
 #include <string.h>
@@ -46,21 +45,21 @@ void init_world(void) {
     // chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
     chunk_indices = _aligned_malloc(FACE_POOL_SIZE * 6 * sizeof(u16), 16);
     
-    offset_vertices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
-    offset_indices = malloc(sizeof(u32) * FACE_TYPE_AMOUNT - 1);
+    offset_vertices = malloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
+    offset_indices = malloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
 
     num_faces_type = calloc(FACE_TYPE_AMOUNT, sizeof(u32));
 }
 
 void destroy_world(void) {
-    free(offset_vertices);
     free(offset_indices);
+    free(offset_vertices);
     free(loaded_chunks);
     free(faces_pool);
     free(chunk_offsets);
     MmFreeContiguousMemory(chunk_vertices);
     MmFreeContiguousMemory(chunk_tex_coords);
-    free(chunk_indices);
+    _aligned_free(chunk_indices);
 }
 
 static face_stored find_single_face(
@@ -545,7 +544,7 @@ void load_chunks(void) {
     u32 vertex_i = 0, indices = 0;
     for (int ftype = 0; ftype < FACE_TYPE_AMOUNT; ftype++) {
         u32 this_vertex_i = 0;
-
+        u32 temp_faces = 0;
         for (int c = 0; c < CHUNK_AMOUNT; c++) {
             const int chunk_face_idx = c * FACE_TYPE_AMOUNT + ftype;
             const u32 type_size = types_sizes[chunk_face_idx];
@@ -556,13 +555,22 @@ void load_chunks(void) {
             for (int fi = 0; fi < type_size; fi++) {
                 u16 index_nums[4];
                 face f = types_faces[chunk_face_idx][fi];
+                temp_faces++;
 
+                if (this_vertex_i >= MAX_VERTICES) {
+                    // Indices are 16 bit on the GPU.
+                    // this tells the renderer that we have multiple batches of U16_MAX!
+                    this_vertex_i = 0;
+                    // indices = (indices + 3) & ~3; // Align to next multiple of 4 because of how shader.c works
+                }
+                
                 for (int v = 0; v < 4; v++) {
                     chunk_vertices[vertex_i] = f.vertices[v];
                     chunk_tex_coords[vertex_i] = f.tex_coords[v];
                     vertex_i++;
 
-                    index_nums[v] = this_vertex_i++;
+                    index_nums[v] = this_vertex_i;
+                    this_vertex_i++;
                 }
 
                 for (int index = 0; index < 6; index += 2) {
@@ -577,7 +585,7 @@ void load_chunks(void) {
 
         if (ftype < FACE_TYPE_AMOUNT - 1) {
             offset_vertices[ftype] = vertex_i;
-            indices = (indices + 3) & ~3; // Align to next multiple of 4
+            indices = (indices + 3) & ~3; // Align to next multiple of 4 because of how shader.c works
             offset_indices[ftype] = indices;
         }
     }

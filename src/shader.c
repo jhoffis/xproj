@@ -146,9 +146,9 @@ static inline void* align_and_zero(void* ptr) {
     return p;
 }
 
-#define MAX_BATCH 120
 
 static u32 draw_indexed_full(u32 *p, u32 num_cube_indices, u32 *cube_indices) {
+    #define MAX_BATCH 120
     // Handle remaining indices in one final batch if any
     const u32 remaining = num_cube_indices % MAX_BATCH;
     // Calculate full batches at start
@@ -158,6 +158,7 @@ static u32 draw_indexed_full(u32 *p, u32 num_cube_indices, u32 *cube_indices) {
     __m128 indices1, indices2, indices3, indices4, indices5;
     __m128 indices6, indices7, indices8, indices9, indices10;
 
+    // debugPrint("spot3\n");
     // Process full batches - no size checking needed
     while (full_batches--) {
         pb_align();
@@ -299,6 +300,16 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
             indices8  = *((__m128 *)&cube_indices[base_offset + j + 28]);
             indices9  = *((__m128 *)&cube_indices[base_offset + j + 32]);
             indices10 = *((__m128 *)&cube_indices[base_offset + j + 36]);
+            // indices1 = _mm_loadu_ps((float *)&cube_indices[base_offset + j]);
+            // indices2 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 4]);
+            // indices3 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 8]);
+            // indices4 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 12]);
+            // indices5 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 16]);
+            // indices6 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 20]);
+            // indices7 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 24]);
+            // indices8 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 28]);
+            // indices9 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 32]);
+            // indices10 = _mm_loadu_ps((float *)&cube_indices[base_offset + j+ 36]);
 
             _mm_store_ps((float *)&p[j],      indices1);
             _mm_store_ps((float *)&p[j + 4],  indices2);
@@ -326,4 +337,6 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
         pb_end(p);
     }
+    
+    // debugPrint("spot5\n");
 }

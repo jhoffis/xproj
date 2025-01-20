@@ -9,6 +9,7 @@
 // 0, 0x3ffb000 means anywhere in the memory that is less than 64 mb.
 // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
 #define MAX_MEM_64 0x3ffb000
+#define U16_MAX 65535
 
 #include <stdbool.h>
 
@@ -40,17 +41,17 @@ typedef union {
     } parts;
 } f16;
 
-_Static_assert(sizeof(f16) == 2, "Must be 2 bytes");
-_Static_assert(sizeof(f32) == 4, "Must be 4 bytes");
-_Static_assert(sizeof(f64) == 8, "Must be 8 bytes");
-_Static_assert(sizeof(u8) == 1, "Must be 1 byte");
-_Static_assert(sizeof(i8) == 1, "Must be 1 byte");
-_Static_assert(sizeof(u16) == 2, "Must be 2 bytes");
-_Static_assert(sizeof(i16) == 2, "Must be 2 bytes");
-_Static_assert(sizeof(u32) == 4, "Must be 4 bytes");
-_Static_assert(sizeof(i32) == 4, "Must be 4 bytes");
-_Static_assert(sizeof(u64) == 8, "Must be 8 bytes");
-_Static_assert(sizeof(i64) == 8, "Must be 8 bytes");
+_Static_assert(sizeof(f16)  == 2,  "Must be 2 bytes");
+_Static_assert(sizeof(f32)  == 4,  "Must be 4 bytes");
+_Static_assert(sizeof(f64)  == 8,  "Must be 8 bytes");
+_Static_assert(sizeof(u8)   == 1,  "Must be 1 byte");
+_Static_assert(sizeof(i8)   == 1,  "Must be 1 byte");
+_Static_assert(sizeof(u16)  == 2,  "Must be 2 bytes");
+_Static_assert(sizeof(i16)  == 2,  "Must be 2 bytes");
+_Static_assert(sizeof(u32)  == 4,  "Must be 4 bytes");
+_Static_assert(sizeof(i32)  == 4,  "Must be 4 bytes");
+_Static_assert(sizeof(u64)  == 8,  "Must be 8 bytes");
+_Static_assert(sizeof(i64)  == 8,  "Must be 8 bytes");
 _Static_assert(sizeof(u128) == 16, "Must be 16 bytes");
 
 typedef struct {

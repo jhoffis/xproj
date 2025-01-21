@@ -1,2 +1,2 @@
 #!/bin/bash
-eval "$(../nxdk/bin/activate -s)"
+eval "$(nxdk-xproj/bin/activate -s)"

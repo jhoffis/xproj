@@ -1,5 +1,5 @@
 #include "shader.h"
-#include "hal/debug.h"
+// #include "hal/debug.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -270,7 +270,7 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
     __m128 indices10;
     u32 *p;
     p = pb_begin();
-    debugPrint("Software Put0=%08lx\n",(DWORD) p);
+    // debugPrint("Software Put0=%08lx\n",(DWORD) p);
     num_cube_indices = draw_indexed_full(p, num_cube_indices, cube_indices);
     for (u32 i = 0; i < num_cube_indices; i += MAX_BATCH) {
         /*

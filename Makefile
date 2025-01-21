@@ -1,7 +1,7 @@
 XBE_TITLE = xproj
 OUTPUT_DIR = out
 SRCS = $(shell find $(CURDIR)/src -name '*.c')
-NXDK_DIR ?= $(CURDIR)/../nxdk
+NXDK_DIR ?= $(CURDIR)/nxdk-xproj
 NXDK_SDL = y
 SHADER_OBJS = src/ps.inl src/vs.inl src/ps2.inl src/vs2.inl
 DEBUG = y

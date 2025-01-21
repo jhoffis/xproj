@@ -3,6 +3,7 @@
 /.cache/
 /.vs/
 /.vscode/
+/nxdk-xproj/
 *.iso
 *.exe
 *.obj

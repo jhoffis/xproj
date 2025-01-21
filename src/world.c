@@ -36,9 +36,8 @@ u32 num_faces_pooled = 0;
 
 void init_world(void) {
     faces_pool = malloc(FACE_POOL_SIZE * sizeof(face_stored));
-    u16 chunk_size = CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE;
-    loaded_chunks = calloc(chunk_size, sizeof(chunk_data));
-    chunk_offsets = calloc(chunk_size, sizeof(u32));
+    loaded_chunks = calloc(CHUNK_AMOUNT, sizeof(chunk_data));
+    chunk_offsets = calloc(CHUNK_AMOUNT, sizeof(u32));
 
     chunk_vertices   = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     chunk_tex_coords = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
@@ -240,25 +239,35 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
     chunk->x = chunk_x;
     chunk->y = chunk_y;
     chunk->z = chunk_z;
+
+
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
-                if (y < 5 && x % 2 != 0 && z % 2 != 0) {                    
-                    if (y == 4)
-                        chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
-                    else 
-                        chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
-                } else if (y < 3 && x+z != 2) {
-                    if (y == 2)
-                        chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
-                    else 
-                        chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
-                // } else if (x % 2 == 0) {
-                    // chunk->cubes[x][y][z].type = BLOCK_TYPE_COBBLESTONE;
+                if (chunk_y == 0) {
+                    if (y < 5 && x % 2 != 0 && z % 2 != 0) {                    
+                        if (y == 4)
+                            chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                        else 
+                            chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
+                    } else if (y < 3 && x+z != 2) {
+                        if (y == 2)
+                            chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                        else 
+                            chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
+                        // } else if (x % 2 == 0) {
+                        // chunk->cubes[x][y][z].type = BLOCK_TYPE_COBBLESTONE;
                 } else {
                     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                 }
                 // chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
+                } else {
+                    if (x == 0 && z == 0) {
+                        chunk->cubes[x][y][z].type = BLOCK_TYPE_COBBLESTONE;
+                    } else {
+                        chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
+                    }
+                }
             }
         }
     }
@@ -484,8 +493,10 @@ void load_chunks(void) {
 
     // Load chunks in the view distance
     for (int x = current_chunk_x - view_dist; x < current_chunk_x + view_dist; x++) {
-        for (int z = current_chunk_z - view_dist; z < current_chunk_z + view_dist; z++) {
-            generate_chunk(x, 0, z);
+        for (int y = current_chunk_y - view_dist; y < current_chunk_y + view_dist; y++) {
+            for (int z = current_chunk_z - view_dist; z < current_chunk_z + view_dist; z++) {
+                generate_chunk(x, y, z);
+            }
         }
     }
 

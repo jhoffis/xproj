@@ -6,7 +6,7 @@
 
 #define CHUNK_SIZE 16
 #define CHUNK_VIEW_DISTANCE 6
-#define CHUNK_AMOUNT CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE
+#define CHUNK_AMOUNT CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE
 _Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole number!");
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 4*32*1024

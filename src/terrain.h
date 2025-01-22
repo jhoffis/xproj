@@ -1,4 +1,5 @@
 #pragma once
+#include "allocator.h"
 #include "pbkit/pbkit.h"
 #include "png_loader.h"
 #include "nums.h"
@@ -227,7 +228,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
             3, sizeof(float) * 3, &chunk_vertices[vertex_offset]);
     
 
-    f32_v4 *colors = malloc(n * sizeof(f32_v4));
+    f32_v4 *colors = xmalloc(n * sizeof(f32_v4));
     memset(colors, 3, n * sizeof(f32_v4));
     for (int a = 0; a < n; a++) {
         colors[a].x = 0.5;
@@ -252,7 +253,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     // MmFreeContiguousMemory(allocated_texs);
     // free(cube_vertices);
     // free(tex_coors);
-    free(colors);
+    xfree(colors);
 
     // timer_stamp_print("after drawn", &win_clock_start);
 }

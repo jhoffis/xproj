@@ -1,11 +1,11 @@
 #include "cube.h"
+#include "allocator.h"
 #include "world.h"
-#include <stdlib.h>
 
 static image_data *block_textures;
 
 void init_cubes(void) {
-    block_textures = calloc(FACE_TYPE_AMOUNT, sizeof(image_data));
+    block_textures = xcalloc(FACE_TYPE_AMOUNT, sizeof(image_data));
     block_textures[FACE_TYPE_GRASS_TOP] = load_image("grass");
     block_textures[FACE_TYPE_GRASS_SIDE] = load_image("grass_side");
     block_textures[FACE_TYPE_DIRT] = load_image("dirt");
@@ -13,7 +13,9 @@ void init_cubes(void) {
 }
 
 void destroy_cubes(void) {
-    free(block_textures);
+    for (int i = 0; i < FACE_TYPE_AMOUNT; i++)
+        xfree(block_textures->image);
+    xfree(block_textures);
 }
 
 u32 convert_block_to_face_type(u32 type, u8 direction) {

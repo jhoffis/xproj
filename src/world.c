@@ -37,18 +37,18 @@ u32 num_faces_pooled = 0;
 
 void init_world(void) {
     faces_pool = xmalloc(FACE_POOL_SIZE * sizeof(face_stored));
-    loaded_chunks = calloc(CHUNK_AMOUNT, sizeof(chunk_data));
-    chunk_offsets = calloc(CHUNK_AMOUNT, sizeof(u32));
+    loaded_chunks = xcalloc(CHUNK_AMOUNT, sizeof(chunk_data));
+    chunk_offsets = xcalloc(CHUNK_AMOUNT, sizeof(u32));
 
-    chunk_vertices   = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    chunk_tex_coords = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    chunk_vertices   = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    chunk_tex_coords = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     // chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
-    chunk_indices = _aligned_malloc(FACE_POOL_SIZE * 6 * sizeof(u16), 16);
+    chunk_indices = x_aligned_malloc(FACE_POOL_SIZE * 6 * sizeof(u16), 16);
     
     offset_vertices = xmalloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
     offset_indices = xmalloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
 
-    num_faces_type = calloc(FACE_TYPE_AMOUNT, sizeof(u32));
+    num_faces_type = xcalloc(FACE_TYPE_AMOUNT, sizeof(u32));
 }
 
 void destroy_world(void) {
@@ -502,9 +502,9 @@ void load_chunks(void) {
     }
 
     // Allocate dynamic storage for face types
-    u16 *types_sizes = calloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(u16));
-    u16 *types_capacities = calloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(u16));
-    face **types_faces = calloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(face*));
+    u16 *types_sizes = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(u16));
+    u16 *types_capacities = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(u16));
+    face **types_faces = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(face*));
 
     const f32 BLOCK_CHUNK_SCALE = BLOCK_SIZE * CHUNK_SIZE;
 
@@ -530,21 +530,23 @@ void load_chunks(void) {
         u32 face_type = convert_block_to_face_type(
             GET_FACE_STORED(fs, FACE_STORED_INFO_TYPE),
             GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION)
-        );
+            );
 
         const int chunk_face_idx = chunk_i * FACE_TYPE_AMOUNT + face_type;
 
         // Check and grow capacity if needed
         if (types_sizes[chunk_face_idx] >= types_capacities[chunk_face_idx]) {
             int new_capacity = (types_capacities[chunk_face_idx] == 0) ? 16 : types_capacities[chunk_face_idx] * 2;
-            types_faces[chunk_face_idx] = realloc(types_faces[chunk_face_idx], new_capacity * sizeof(face));
-            if (!types_faces[chunk_face_idx]) {
+
+            void *temp_ptr = xrealloc(types_faces[chunk_face_idx], new_capacity * sizeof(face));
+            if (!temp_ptr) {
                 perror("Failed to reallocate types_faces");
-                free(types_sizes);
-                free(types_capacities);
-                free(types_faces);
+                xfree(types_sizes);
+                xfree(types_capacities);
+                xfree(types_faces);
                 return;
             }
+            types_faces[chunk_face_idx] = temp_ptr;
             types_capacities[chunk_face_idx] = new_capacity;
         }
 
@@ -604,9 +606,9 @@ void load_chunks(void) {
 
     // Free dynamic memory
     for (int i = 0; i < CHUNK_AMOUNT * FACE_TYPE_AMOUNT; i++) {
-        free(types_faces[i]);
+        xfree(types_faces[i]);
     }
-    free(types_faces);
-    free(types_sizes);
-    free(types_capacities);
+    xfree(types_faces);
+    xfree(types_sizes);
+    xfree(types_capacities);
 }

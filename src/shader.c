@@ -1,4 +1,5 @@
 #include "shader.h"
+#include "allocator.h"
 // #include "hal/debug.h"
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +22,7 @@ void init_shader(i32 which) {
                 #include "vs.inl"
             };
             shader_size = sizeof(temp);
-            vs_program = (u32 *)malloc(shader_size);
+            vs_program = (u32 *)xmalloc(shader_size);
             if (vs_program) {
                 memcpy(vs_program, temp, shader_size); // Copy shader data
             }
@@ -31,7 +32,7 @@ void init_shader(i32 which) {
                 #include "vs2.inl"
             };
             shader_size = sizeof(temp2);
-            vs_program = (u32 *)malloc(shader_size);
+            vs_program = (u32 *)xmalloc(shader_size);
             if (vs_program) {
                 memcpy(vs_program, temp2, shader_size); // Copy shader data
             }
@@ -82,7 +83,7 @@ void init_shader(i32 which) {
     pb_end(p);
 
     if (vs_program) {
-        free(vs_program);
+        xfree(vs_program);
     }
 }
 

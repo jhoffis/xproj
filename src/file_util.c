@@ -1,4 +1,5 @@
 #include "file_util.h"
+#include "allocator.h"
 #include "nums.h"
 #include "str_util.h"
 #include "xboxkrnl/xboxkrnl.h"
@@ -27,7 +28,7 @@ char* path_name(const char *name, const char* suffix) {
         }
         return NULL;
     }
-    char *path = malloc(name_len + suffix_len + 4 + 1); // "D:\\" + suffix + null terminator
+    char *path = xmalloc(name_len + suffix_len + 4 + 1); // "D:\\" + suffix + null terminator
     if (!path) return NULL; // check for allocation failure
 
     // Construct the path

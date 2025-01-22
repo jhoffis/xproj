@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 typedef enum {
-    standard, aligned, mm
+    none, standard, aligned, mm
 } free_method;
 
 static size_t num_allocations = 0;
@@ -58,7 +58,11 @@ void mem_tracker_cleanup(void) {
 
 // Function to print how much memory is currently allocated
 void print_num_mem_allocated(void) {
-    pb_print("Mem: %zu bytes\n", num_real_mem);
+    if (num_real_mem > 100000) {
+        pb_print("Mem: %zu kb\n", num_real_mem / 1000);
+    } else {
+        pb_print("Mem: %zu bytes\n", num_real_mem);
+    }
     // pb_print("Total tracking memory used: %zu bytes\n", num_dbg_tracking_mem);
     // pb_print("Total memory used (user + tracking): %zu bytes\n", num_real_mem + num_dbg_tracking_mem);
 }
@@ -116,42 +120,53 @@ static bool track_allocation(void* ptr, size_t size, const char *file, int line)
     return true;
 }
 
+
 static void untrack_and_free(void* ptr, free_method method) {
-    if (ptr == NULL) return;
+    if (ptr == NULL) return;  // Do nothing for NULL pointers
 
     bool found = false;
-    for (size_t i = 0; i < num_allocations; i++) {
-        if (found) {
-            alloc_ptrs[i - 1] = alloc_ptrs[i];
-            alloc_names[i - 1] = alloc_names[i];
-            alloc_sizes[i - 1] = alloc_sizes[i];
-            continue;
-        }
-
+    size_t i = 0;  // Iterator for allocations
+    for (; i < num_allocations; i++) {
         if (alloc_ptrs[i] == ptr) {
             found = true;
-            switch (method) {
-                case standard:
-                    free(ptr);
-                    break;
-                case aligned:
-                    _aligned_free(ptr);
-                    break;
-                case mm:
-                    MmFreeContiguousMemory(ptr);
-                    break;
-            }
-            free(alloc_names[i]);
-
-            num_allocations--;
-            num_real_mem -= alloc_sizes[i];
+            break;  // Exit loop when allocation is found
         }
     }
-    
+
     if (!found) {
         debugPrint("Attempt to free unmanaged memory or double free\n");
+        return;
     }
+
+    // Free the memory based on the method
+    switch (method) {
+        case none:
+            break;
+        case standard:
+            free(ptr);
+            break;
+        case aligned:
+            _aligned_free(ptr);
+            break;
+        case mm:
+            MmFreeContiguousMemory(ptr);
+            break;
+    }
+
+    // Remove the allocation from the tracker
+    free(alloc_names[i]);  // Free the associated name
+    num_real_mem -= alloc_sizes[i];  // Update memory tracking
+
+    // Shift remaining elements in the tracker to fill the gap
+    for (size_t j = i; j < num_allocations - 1; j++) {
+        alloc_ptrs[j] = alloc_ptrs[j + 1];
+        alloc_names[j] = alloc_names[j + 1];
+        alloc_sizes[j] = alloc_sizes[j + 1];
+    }
+
+    num_allocations--;  // Decrement the count of tracked allocations
 }
+
 
 /*
  * =====================================
@@ -188,17 +203,25 @@ void *_priv_xcalloc(size_t nmemb, size_t size, const char *file, int line) {
 }
 
 void *_priv_xrealloc(void *old_ptr, size_t size, const char *file, int line) {
-    // First untrack the old allocation
-    if (old_ptr) {
-        untrack_and_free(old_ptr, standard);
-    }
-    
-    void* ptr = realloc(old_ptr, size);
-    if (!track_allocation(ptr, size, file, line)) {
-        free(ptr);
+    // Attempt reallocation first
+    void *new_ptr = realloc(old_ptr, size);
+    if (!new_ptr) {
+        // Realloc failed; retain the old pointer
         return NULL;
     }
-    return ptr;
+
+    // Reallocation successful; track new allocation
+    if (!track_allocation(new_ptr, size, file, line)) {
+        free(new_ptr);  // Free newly allocated memory if tracking fails
+        return NULL;
+    }
+
+    // Untrack old allocation only after new allocation is successful
+    if (old_ptr) {
+        untrack_and_free(old_ptr, none);
+    }
+
+    return new_ptr;
 }
 
 PVOID _priv_xMmAllocateContiguousMemoryEx(SIZE_T NumberOfBytes, ULONG_PTR LowestAcceptableAddress, ULONG_PTR HighestAcceptableAddress, ULONG_PTR Alignment, ULONG Protect, const char *file, int line) {

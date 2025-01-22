@@ -49,7 +49,7 @@ void cleanup() {
 
     destroy_cubes();
     destroy_world();
-    free(music_current);
+    xfree(music_current);
 
     if (pbk_init) {
         pb_kill();
@@ -184,7 +184,7 @@ int main(void)
         wait_then_cleanup();
         return 0;
     }
-    music_current = malloc(sizeof(music_current));
+    music_current = xmalloc(sizeof(music_current));
     *music_current = 1;
     // audio_buffer_data = create_wav_entity(music_strs[*music_current]);
     // xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);

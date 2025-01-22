@@ -1,4 +1,5 @@
 #include "png_loader.h"
+#include "allocator.h"
 #include "file_util.h"
 #include "xboxkrnl/xboxkrnl.h"
 #include <stdio.h>
@@ -1616,7 +1617,7 @@ image_data load_image(const char *name) {
     image_data img = {0};
     char *fixed_name = path_name(name, ".png");
     FILE* file = fopen(fixed_name, "rb"); // requires a persistent char* appearently
-    free(fixed_name);
+    xfree(fixed_name);
     if (!file) {
         // FIXME! debugPrint("failed at finding image!\n");
         // wait_then_cleanup();
@@ -1638,7 +1639,7 @@ image_data load_image(const char *name) {
         img.image[i + 2] = r;
     }
 
-    void *textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    void *textureAddr = xMmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     swizzle_rect(img.image, img.w, img.h, textureAddr, img.pitch, 4);
 
     img.addr26bits = (u32) textureAddr & 0x03ffffff; // Retain the lower 26 bits of the address

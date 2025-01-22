@@ -1,4 +1,5 @@
 #include "str_util.h"
+#include "allocator.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -13,7 +14,7 @@ char* strcat_u32(char* dest, u32 value) {
     }
 
     // Allocate space for the integer as a string (plus null terminator)
-    char* num_str = malloc(len + 1);
+    char* num_str = xmalloc(len + 1);
     if (num_str == NULL) return NULL;
 
     // Convert integer to string manually
@@ -32,9 +33,9 @@ char* strcat_u32(char* dest, u32 value) {
     size_t dest_len = strlen(dest);
 
     // Allocate new memory for combined string
-    char* result = realloc(dest, dest_len + len + 1);
+    char* result = xrealloc(dest, dest_len + len + 1);
     if (result == NULL) {
-        free(num_str);
+        xfree(num_str);
         return NULL;
     }
 
@@ -42,7 +43,7 @@ char* strcat_u32(char* dest, u32 value) {
     strcpy(result + dest_len, num_str);
 
     // Free the temporary string
-    free(num_str);
+    xfree(num_str);
 
     return result;
 }

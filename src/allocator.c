@@ -80,6 +80,15 @@ void print_num_mem_allocated(void) {
     // pb_print("Total memory used (user + tracking): %zu bytes\n", num_real_mem + num_dbg_tracking_mem);
 }
 
+static void debug_print_all_allocated(size_t size, const char *file, int line) {
+    pb_show_debug_screen();
+    debugPrint("Attempted to allocate %d b, which more than the max!\nFile: %s, Line: %d\n", size, file, line);
+    for (int i = 0; i < num_allocations; i++) {
+        debugPrint("%zu b: %s\n", alloc_sizes[i], alloc_names[i]);
+    }
+    while (1) {}
+}
+
 /*
  * ==================================
  * ============ TRACKING ============  
@@ -212,9 +221,7 @@ static void untrack_and_free(void* ptr, free_method method, const char *file, in
 
 void *_priv_xmalloc(size_t size, const char *file, int line) {
     if (size + num_real_mem >= MAX_MEM_64) {
-        pb_show_debug_screen();
-        debugPrint("Attempted to allocate more than the max!\nFile: %s, Line: %d\n", file, line);
-        while (1) {}
+        debug_print_all_allocated(size, file, line);
     }
     void* ptr = malloc(size);
     if (!track_allocation(ptr, size, standard, file, line)) {
@@ -226,9 +233,7 @@ void *_priv_xmalloc(size_t size, const char *file, int line) {
 
 void *_priv_x_aligned_malloc(size_t size, size_t alignment, const char *file, int line) {
     if (size + num_real_mem >= MAX_MEM_64) {
-        pb_show_debug_screen();
-        debugPrint("Attempted to allocate more than the max!\nFile: %s, Line: %d\n", file, line);
-        while (1) {}
+        debug_print_all_allocated(size, file, line);
     }
     void* ptr = _aligned_malloc(size, alignment);
     if (!track_allocation(ptr, size, aligned, file, line)) {
@@ -240,9 +245,7 @@ void *_priv_x_aligned_malloc(size_t size, size_t alignment, const char *file, in
 
 void *_priv_xcalloc(size_t nmemb, size_t size, const char *file, int line) {
     if (nmemb*size + num_real_mem >= MAX_MEM_64) {
-        pb_show_debug_screen();
-        debugPrint("Attempted to allocate more than the max!\nFile: %s, Line: %d\n", file, line);
-        while (1) {}
+        debug_print_all_allocated(nmemb*size, file, line);
     }
     void* ptr = calloc(nmemb, size);
     size_t total_size = nmemb * size;
@@ -262,9 +265,7 @@ void *_priv_xrealloc(void *old_ptr, size_t size, const char *file, int line) {
         }
     }
     if (size - old_size + num_real_mem >= MAX_MEM_64) {
-        pb_show_debug_screen();
-        debugPrint("Attempted to allocate more than the max!\nFile: %s, Line: %d\n", file, line);
-        while (1) {}
+        debug_print_all_allocated(size - old_size, file, line);
     }
 
     // Attempt reallocation first
@@ -290,9 +291,7 @@ void *_priv_xrealloc(void *old_ptr, size_t size, const char *file, int line) {
 
 PVOID _priv_xMmAllocateContiguousMemoryEx(SIZE_T NumberOfBytes, ULONG_PTR Alignment, ULONG Protect, const char *file, int line) {
     if (NumberOfBytes + num_real_mem >= MAX_MEM_64) {
-        pb_show_debug_screen();
-        debugPrint("Attempted to allocate more than the max!\nFile: %s, Line: %d\n", file, line);
-        while (1) {}
+        debug_print_all_allocated(NumberOfBytes, file, line);
     }
     PVOID ptr = MmAllocateContiguousMemoryEx(NumberOfBytes, 0, MAX_MEM_64, Alignment, Protect);
     if (!track_allocation(ptr, NumberOfBytes, mm, file, line)) {

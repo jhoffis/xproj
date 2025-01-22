@@ -52,6 +52,7 @@ void init_world(void) {
 }
 
 void destroy_world(void) {
+    xfree(num_faces_type);
     xfree(offset_indices);
     xfree(offset_vertices);
     xfree(loaded_chunks);

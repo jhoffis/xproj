@@ -43,11 +43,20 @@ fail:
     alloc_ptrs = NULL;
     alloc_names = NULL;
     alloc_sizes = NULL;
+    pb_show_debug_screen();
     debugPrint("Failed to initialize memory tracker\n");
-    exit(1);  // Or handle error differently
+    while (1) {}  // Or handle error differently
 }
 
 void mem_tracker_cleanup(void) {
+    if (num_allocations > 0) {
+        pb_show_debug_screen();
+        debugPrint("Not all memory is freed!\n");
+        for (int i = 0; i < num_allocations; i++) {
+            debugPrint("%s\n", alloc_names[i]);
+        }
+        while (1) {}
+    }
     free(alloc_sizes);
     for (int i = 0; i < num_allocations; i++) {
         free(alloc_names[i]);
@@ -59,9 +68,9 @@ void mem_tracker_cleanup(void) {
 // Function to print how much memory is currently allocated
 void print_num_mem_allocated(void) {
     if (num_real_mem > 100000) {
-        pb_print("Mem: %zu kb\n", num_real_mem / 1000);
+        pb_print("Mem: %zu kb (n=%d)\n", num_real_mem / 1000, num_allocations);
     } else {
-        pb_print("Mem: %zu bytes\n", num_real_mem);
+        pb_print("Mem: %zu bytes (n=%d)\n", num_real_mem, num_allocations);
     }
     // pb_print("Total tracking memory used: %zu bytes\n", num_dbg_tracking_mem);
     // pb_print("Total memory used (user + tracking): %zu bytes\n", num_real_mem + num_dbg_tracking_mem);
@@ -106,12 +115,18 @@ static bool track_allocation(void* ptr, size_t size, const char *file, int line)
         return false;
     }
 
-    size_t name_size = strlen(file) + 50;
+    // Find the last '/' in the file path
+    const char* last_slash = strrchr(file, '/');
+    const char* filename = last_slash ? last_slash + 1 : file; // If no slash, use entire string
+
+    size_t name_size = strlen(filename) + 50;
     char *name = malloc(name_size);
     if (!name) {
         return false;
     }
-    snprintf(name, name_size, "File: %s, Line: %d", file, line);
+
+    // Use only the filename in the string format
+    snprintf(name, name_size, "File: %s, Line: %d", filename, line);
 
     num_real_mem += size;
     alloc_ptrs[num_allocations - 1] = ptr;
@@ -120,25 +135,24 @@ static bool track_allocation(void* ptr, size_t size, const char *file, int line)
     return true;
 }
 
-
 static void untrack_and_free(void* ptr, free_method method) {
-    if (ptr == NULL) return;  // Do nothing for NULL pointers
+    if (ptr == NULL) return;
 
     bool found = false;
-    size_t i = 0;  // Iterator for allocations
+    size_t i = 0;
     for (; i < num_allocations; i++) {
         if (alloc_ptrs[i] == ptr) {
             found = true;
-            break;  // Exit loop when allocation is found
+            break;
         }
     }
 
     if (!found) {
-        debugPrint("Attempt to free unmanaged memory or double free\n");
-        return;
+        pb_show_debug_screen();
+        debugPrint("Attempted to free unmanaged memory or free more than once\n");
+        while (1) {}
     }
 
-    // Free the memory based on the method
     switch (method) {
         case none:
             break;
@@ -154,8 +168,8 @@ static void untrack_and_free(void* ptr, free_method method) {
     }
 
     // Remove the allocation from the tracker
-    free(alloc_names[i]);  // Free the associated name
-    num_real_mem -= alloc_sizes[i];  // Update memory tracking
+    free(alloc_names[i]);
+    num_real_mem -= alloc_sizes[i];
 
     // Shift remaining elements in the tracker to fill the gap
     for (size_t j = i; j < num_allocations - 1; j++) {
@@ -164,7 +178,7 @@ static void untrack_and_free(void* ptr, free_method method) {
         alloc_sizes[j] = alloc_sizes[j + 1];
     }
 
-    num_allocations--;  // Decrement the count of tracked allocations
+    num_allocations--;
 }
 
 

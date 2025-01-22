@@ -51,6 +51,8 @@ void cleanup() {
     destroy_world();
     xfree(music_current);
 
+    mem_tracker_cleanup();
+
     if (pbk_init) {
         pb_kill();
     }
@@ -60,7 +62,6 @@ void cleanup() {
     if (sdl_init) {
         SDL_Quit();
     }
-    mem_tracker_cleanup();
 }
 
 void wait_then_cleanup() {
@@ -414,6 +415,7 @@ int main(void)
             pb_print("FPS: %d\n", fps);
             // pb_print("DELTA: %d\n", (u64) (1000000 * timer_delta()));
         }
+
         pb_print("simd: %d, mmx %d\n", (int) simd_test, simd_test2);
         pb_print("faces: %d\n", num_faces_pooled);
         print_num_mem_allocated();

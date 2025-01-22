@@ -1,10 +1,10 @@
 #pragma once
+#include <stdlib.h>
 
 #define MEM_TRACK_DBG
 #ifdef MEM_TRACK_DBG 
 #include "xboxkrnl/xboxdef.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 void mem_tracker_init(void);

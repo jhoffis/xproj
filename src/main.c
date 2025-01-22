@@ -29,8 +29,6 @@
 #include "nxdk_wav.h"
 
 
-
-
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 
@@ -419,6 +417,7 @@ int main(void)
         pb_print("simd: %d, mmx %d\n", (int) simd_test, simd_test2);
         pb_print("faces: %d\n", num_faces_pooled);
         print_num_mem_allocated();
+
         render_terrain();
 
         QueryPerformanceCounter(&win_clock_end); // Record end time

@@ -13,8 +13,9 @@ void init_cubes(void) {
 }
 
 void destroy_cubes(void) {
-    for (int i = 0; i < FACE_TYPE_AMOUNT; i++)
+    for (int i = 0; i < FACE_TYPE_AMOUNT; i++) {
         xMmFreeContiguousMemory(block_textures[i].image);
+    }
     xfree(block_textures);
 }
 

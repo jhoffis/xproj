@@ -1639,7 +1639,7 @@ image_data load_image(const char *name) {
         img.image[i + 2] = r;
     }
 
-    void *textureAddr = xMmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    void *textureAddr = xMmAllocateContiguousMemoryEx(img.pitch * img.h, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     swizzle_rect(img.image, img.w, img.h, textureAddr, img.pitch, 4);
 
     img.addr26bits = (u32) textureAddr & 0x03ffffff; // Retain the lower 26 bits of the address

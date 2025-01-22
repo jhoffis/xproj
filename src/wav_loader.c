@@ -50,7 +50,7 @@ static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_s
         alloc_size = header.subchunk2_size - start_index;
     }
 
-    void* audio_data = xMmAllocateContiguousMemoryEx(alloc_size, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    void* audio_data = xMmAllocateContiguousMemoryEx(alloc_size, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     if (!audio_data) {
         perror("Memory allocation failed");
         fclose(file);

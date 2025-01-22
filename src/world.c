@@ -40,8 +40,8 @@ void init_world(void) {
     loaded_chunks = xcalloc(CHUNK_AMOUNT, sizeof(chunk_data));
     chunk_offsets = xcalloc(CHUNK_AMOUNT, sizeof(u32));
 
-    chunk_vertices   = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    chunk_tex_coords = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    chunk_vertices   = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    chunk_tex_coords = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     // chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
     chunk_indices = x_aligned_malloc(FACE_POOL_SIZE * 6 * sizeof(u16), 16);
     

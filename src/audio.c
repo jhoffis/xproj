@@ -62,7 +62,7 @@ bool xaudio_init(sound_callback sound_cb, size_t sample_count) {
     l_sleep_count = sample_count/(48*3);
     l_sound_callback = sound_cb;
     l_sample_count = sample_count;
-    l_buffers = xMmAllocateContiguousMemoryEx(BUFFER_COUNT*sample_count*2, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    l_buffers = xMmAllocateContiguousMemoryEx(BUFFER_COUNT*sample_count*2, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     memset(l_buffers, 0, BUFFER_COUNT*sample_count*2);
     l_next_buffer = 0;
     XAudioInit(16, 2, NULL, NULL);

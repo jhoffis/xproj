@@ -171,6 +171,7 @@ int main(void)
 
     pbk_init = pb_init() == 0;
     if (!pbk_init) {
+        pb_show_debug_screen();
         debugPrint("pbkit init failed\n");
         wait_then_cleanup();
         return 0;
@@ -180,6 +181,7 @@ int main(void)
 
     sdl_init = SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK) == 0;
     if (!sdl_init) {
+        pb_show_debug_screen();
         debugPrint("SDL_Init failed: %s\n", SDL_GetError());
         wait_then_cleanup();
         return 0;

@@ -2,6 +2,7 @@
 //     #define DBG 1
 // #endif
 
+#include "allocator.h"
 #define SDL_JOYSTICK_XINPUT
 #define SDL_JOYSTICK_DINPUT
 // #define ENABLE_USBH_XID_DEBUG
@@ -59,6 +60,7 @@ void cleanup() {
     if (sdl_init) {
         SDL_Quit();
     }
+    mem_tracker_cleanup();
 }
 
 void wait_then_cleanup() {
@@ -156,6 +158,8 @@ int main(void)
     frames = fps = 0;
     int f3key = 0;
     LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
+
+    mem_tracker_init();
 
     timer_init();
 
@@ -410,7 +414,7 @@ int main(void)
         }
         pb_print("simd: %d, mmx %d\n", (int) simd_test, simd_test2);
         pb_print("faces: %d\n", num_faces_pooled);
-
+        print_num_mem_allocated();
         render_terrain();
 
         QueryPerformanceCounter(&win_clock_end); // Record end time

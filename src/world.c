@@ -1,4 +1,5 @@
 #include "world.h"
+#include "allocator.h"
 #include "mvp.h"
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +36,7 @@ u32 num_faces_pooled = 0;
 
 
 void init_world(void) {
-    faces_pool = malloc(FACE_POOL_SIZE * sizeof(face_stored));
+    faces_pool = xmalloc(FACE_POOL_SIZE * sizeof(face_stored));
     loaded_chunks = calloc(CHUNK_AMOUNT, sizeof(chunk_data));
     chunk_offsets = calloc(CHUNK_AMOUNT, sizeof(u32));
 
@@ -44,21 +45,21 @@ void init_world(void) {
     // chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
     chunk_indices = _aligned_malloc(FACE_POOL_SIZE * 6 * sizeof(u16), 16);
     
-    offset_vertices = malloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
-    offset_indices = malloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
+    offset_vertices = xmalloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
+    offset_indices = xmalloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
 
     num_faces_type = calloc(FACE_TYPE_AMOUNT, sizeof(u32));
 }
 
 void destroy_world(void) {
-    free(offset_indices);
-    free(offset_vertices);
-    free(loaded_chunks);
-    free(faces_pool);
-    free(chunk_offsets);
-    MmFreeContiguousMemory(chunk_vertices);
-    MmFreeContiguousMemory(chunk_tex_coords);
-    _aligned_free(chunk_indices);
+    xfree(offset_indices);
+    xfree(offset_vertices);
+    xfree(loaded_chunks);
+    xfree(faces_pool);
+    xfree(chunk_offsets);
+    xMmFreeContiguousMemory(chunk_vertices);
+    xMmFreeContiguousMemory(chunk_tex_coords);
+    x_aligned_free(chunk_indices);
 }
 
 static face_stored find_single_face(
@@ -273,7 +274,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
     }
 
     size_t covered_size = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * FACE_DIRECTION_TOTAL * sizeof(u8);
-    u8 *covered = (u8 *)malloc(covered_size);
+    u8 *covered = xmalloc(covered_size);
     if (!covered) {
         exit(EXIT_FAILURE);
     }
@@ -325,7 +326,7 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
 
     u32 num_found;
     find_faces_of_chunk(chunk, &num_found, covered);
-    free(covered);
+    xfree(covered);
 
     chunk_offsets[num_chunks_pooled] = num_found;
     num_chunks_pooled++;

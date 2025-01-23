@@ -4,5 +4,5 @@ struct vOut {
 
 float4 main(vOut I) : COLOR
 {
-	return I.color;
+	return float4(1,0,0,1);
 }

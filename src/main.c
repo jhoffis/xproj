@@ -35,8 +35,8 @@ bool pbk_init = false, sdl_init = false;
 #define MUSIC_AMOUNT 5
 static u8 *music_current;
 static const char *music_strs[MUSIC_AMOUNT] = {
-    "test",
-    // "Crocodile Skins",
+    // "test",
+    "Crocodile Skins",
     // "Never Let Go (Of Me)",
     // "ONEGAI KOREA Wzxrdo",
     // "Moon over the Dunes",
@@ -98,7 +98,7 @@ void testSound(i16* sound_buffer, size_t sample_count) {
                 audio_buffer_data = create_wav_entity(music_strs[*music_current]);
             }
         }
-        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor] * 0.;
+        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor] * 0.5;
         cursor++;
     }
     *audio_buffer_data->cursor = cursor;
@@ -185,16 +185,14 @@ int main(void)
         wait_then_cleanup();
         return 0;
     }
-    music_current = xmalloc(sizeof(music_current));
-    *music_current = 1;
+
+    // music_current = xmalloc(sizeof(music_current));
+    // *music_current = 0;
     // audio_buffer_data = create_wav_entity(music_strs[*music_current]);
     // xaudio_init(testSound, 24*1024); // nxdk_wav_h_bin_len);
+
     short simd_test = simd_add_example();
     short simd_test2 = mmx_add_example();
-
-    init_cubes();
-    init_world();
-    load_chunks();
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)screen_width/(float)screen_height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 30000.0f);
@@ -205,6 +203,13 @@ int main(void)
 
     // default surface color anyway but...
     pb_set_color_format(NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8, false);
+
+
+    init_cubes();
+    init_world();
+    load_chunks();
+    select_chunks();
+
 
     f32 move_speed = 5;
     i32 sw = 0;
@@ -237,7 +242,9 @@ int main(void)
         // Forward and backwards + side to side
         v_cam_loc.x += (x * cam_posZ) + (z * cam_posX);
         v_cam_loc.z += (z * cam_posZ) - (x * cam_posX);
-
+        current_chunk_x = (int)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE)));
+        current_chunk_y = (int)(floorf(v_cam_loc.y / (CHUNK_SIZE * BLOCK_SIZE)));
+        current_chunk_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
 
         /* Create view matrix (our camera is static) */
         create_world_view(m_view, v_cam_loc, v_cam_rot);
@@ -247,9 +254,9 @@ int main(void)
         QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
         QueryPerformanceCounter(&win_clock_start);      // Record start time
 
-        pb_print("polled: %d, %d\n", polled, 123);
-        pb_print("num mappings: %d\n", SDL_GameControllerNumMappings());
-        pb_print("num joysticks: %d\n", SDL_NumJoysticks());
+        // pb_print("polled: %d, %d\n", polled, 123);
+        // pb_print("num mappings: %d\n", SDL_GameControllerNumMappings());
+        // pb_print("num joysticks: %d\n", SDL_NumJoysticks());
         // pb_print(SDL_GameControllerNameForIndex(0));
 
 

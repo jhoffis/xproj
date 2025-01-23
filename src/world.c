@@ -1,8 +1,10 @@
 #include "world.h"
 #include "allocator.h"
+#include "math3d.h"
 #include "mvp.h"
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 
 // Helper macro to index into the 1D covered array
 #define COVERED(covered_ptr, x, y, z, dir) ((covered_ptr)[((x) * CHUNK_SIZE * CHUNK_SIZE * FACE_DIRECTION_TOTAL) + \
@@ -24,6 +26,9 @@ chunk_data *loaded_chunks;
 u32 *chunk_offsets;
 u32 num_chunks_pooled = 0;
 
+u16 *types_sizes;
+face **types_faces;
+
 f32_v3 *chunk_vertices;
 f32_v2 *chunk_tex_coords;
 u32    *chunk_indices;
@@ -42,7 +47,6 @@ void init_world(void) {
 
     chunk_vertices   = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     chunk_tex_coords = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    // chunk_indices    = MmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 6 * sizeof(u16), 0, MAX_MEM_64, 0, PAGE_READWRITE);
     chunk_indices = x_aligned_malloc(FACE_POOL_SIZE * 6 * sizeof(u16), 16);
     
     offset_vertices = xmalloc(sizeof(u32) * (FACE_TYPE_AMOUNT - 1));
@@ -476,6 +480,24 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
         out->tex_coords[3].y = tex_a;
 }
 
+static void pos_chunk_offset(f32 pos_offset[3], u32 chunk_i) {
+    pos_offset[0] = loaded_chunks[chunk_i].x * BLOCK_CHUNK_SCALE;
+    pos_offset[1] = loaded_chunks[chunk_i].y * BLOCK_CHUNK_SCALE;
+    pos_offset[2] = loaded_chunks[chunk_i].z * BLOCK_CHUNK_SCALE;
+} 
+
+static i32 get_index_from_xyz(i32 x, i32 y, i32 z) {
+    // Note: x and z are flipped in the loop order
+    int shifted_z = z + (CHUNK_VIEW_DISTANCE / 2);
+    int shifted_y = y + (CHUNK_VIEW_DISTANCE / 2);
+    int shifted_x = x + (CHUNK_VIEW_DISTANCE / 2);
+    
+    // Calculate 1D index with z being the most significant dimension now
+    return (shifted_x * CHUNK_VIEW_DISTANCE * CHUNK_VIEW_DISTANCE) + 
+           (shifted_y * CHUNK_VIEW_DISTANCE) + 
+           shifted_z;
+}
+
 /*
  * TODO skal laste inn chunks basert på hvor spilleren er.
  *      Kalkuler også chunk-endepunkter på mellom chunks og sambind flater.
@@ -487,9 +509,6 @@ static void convert_face_vertices(face *out, f32 chunk_offset[3], face_stored fa
  */
 
 void load_chunks(void) {
-    int current_chunk_x = (int)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE)));
-    int current_chunk_y = (int)(floorf(v_cam_loc.y / (CHUNK_SIZE * BLOCK_SIZE)));
-    int current_chunk_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
 
     const int view_dist = CHUNK_VIEW_DISTANCE / 2;
 
@@ -502,25 +521,27 @@ void load_chunks(void) {
         }
     }
 
+    // // Free dynamic memory
+    // TODO for (int i = 0; i < CHUNK_AMOUNT * FACE_TYPE_AMOUNT; i++) {
+    //     xfree(types_faces[i]);
+    // }
+    // xfree(types_faces);
+    // xfree(types_sizes);
+
     // Allocate dynamic storage for face types
-    u16 *types_sizes = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(u16));
     u16 *types_capacities = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(u16));
-    face **types_faces = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(face*));
+    types_sizes = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(u16));
+    types_faces = xcalloc(CHUNK_AMOUNT * FACE_TYPE_AMOUNT, sizeof(face*));
 
-    const f32 BLOCK_CHUNK_SCALE = BLOCK_SIZE * CHUNK_SIZE;
 
-    f32 pos_offset[3] = {(f32) (loaded_chunks[0].x * BLOCK_CHUNK_SCALE), 
-                         (f32) (loaded_chunks[0].y * BLOCK_CHUNK_SCALE), 
-                         (f32) (loaded_chunks[0].z * BLOCK_CHUNK_SCALE)};
+    f32 pos_offset[3];
+    pos_chunk_offset(pos_offset, 0);
     int chunk_i = 0, chunk_i_cmp = 0;
     for (int i = 0; i < num_faces_pooled; i++) {
         if (chunk_i_cmp >= chunk_offsets[chunk_i]) {
             chunk_i++;
             chunk_i_cmp = 0;
-
-            pos_offset[0] = loaded_chunks[chunk_i].x * BLOCK_CHUNK_SCALE;
-            pos_offset[1] = loaded_chunks[chunk_i].y * BLOCK_CHUNK_SCALE;
-            pos_offset[2] = loaded_chunks[chunk_i].z * BLOCK_CHUNK_SCALE;
+            pos_chunk_offset(pos_offset, chunk_i);
         }
         chunk_i_cmp++;
 
@@ -554,13 +575,109 @@ void load_chunks(void) {
         // Add face to the array
         types_faces[chunk_face_idx][types_sizes[chunk_face_idx]++] = f;
     }
+    xfree(types_capacities);
+}
 
-    // Prepare vertices and indices
-    u32 vertex_i = 0, indices = 0;
-    for (int ftype = 0; ftype < FACE_TYPE_AMOUNT; ftype++) {
-        u32 this_vertex_i = 0;
-        u32 temp_faces = 0;
-        for (int c = 0; c < CHUNK_AMOUNT; c++) {
+/*
+ * https://bruop.github.io/improved_frustum_culling/ 
+ */
+static bool is_point_in_frustum(f32_v3 point, f32_m4x4 viewproj) {
+
+    f32_v4 cs;
+    
+    // Direct calculation avoiding loops and temporary array
+    cs.w =  1.0f / (point.x * viewproj[3] + point.y * viewproj[7] + point.z * viewproj[11] + viewproj[15]);
+    cs.x =         (point.x * viewproj[0] + point.y * viewproj[4] + point.z * viewproj[8]  + viewproj[12]) *  cs.w;
+    if (!(cs.x >= 0 && cs.x <= screen_width)) return false;
+    cs.y =         (point.x * viewproj[1] + point.y * viewproj[5] + point.z * viewproj[9]  + viewproj[13]) *  cs.w;
+    if (!(cs.y >= 0 && cs.y <= screen_height)) return false;
+    cs.z =         (point.x * viewproj[2] + point.y * viewproj[6] + point.z * viewproj[10] + viewproj[14]) * -cs.w;
+    // if (!(cs.z >= -1 && cs.z <= 1)) return false;
+    return true;
+
+    // Check if point is inside the frustum in NDC space
+    // pb_print("cp x%d y%d z%d w%d IN %d\n", (i32) cs[0], 
+    //                                        (i32) cs[1], 
+    //                                        (i32) cs[2], 
+    //                                        (i32) cs[3], 
+    //                                        (i32) inside_view_frustum);
+    // return cs.x >= 0   && 
+    //        cs.x <= 640 &&
+    //        cs.y >= 0   &&
+    //        cs.y <= 480 &&
+    //        cs.z >= 0   &&
+    //        cs.z <= 65536;
+}
+
+static bool is_in_frustum(f32_v3 corners[8], f32_m4x4 viewproj) {
+    // TODO check if right point is to the left and if left point is to the right>?
+    //      and if bottom is above top
+    if (is_point_in_frustum(corners[0], viewproj)) return true;
+    if (is_point_in_frustum(corners[1], viewproj)) return true;
+    if (is_point_in_frustum(corners[2], viewproj)) return true;
+    if (is_point_in_frustum(corners[3], viewproj)) return true;
+    if (is_point_in_frustum(corners[4], viewproj)) return true;
+    if (is_point_in_frustum(corners[5], viewproj)) return true;
+    if (is_point_in_frustum(corners[6], viewproj)) return true;
+    if (is_point_in_frustum(corners[7], viewproj)) return true;
+
+    return false;
+}
+
+static DWORD select_chunks_thread_id;
+
+static DWORD __stdcall select_chunks_thread(LPVOID parameter) {
+    (void)parameter;
+    for (;;) {
+        Sleep(100);
+
+        // v_cam_rot
+
+        f32_v3 bounding_box_cmin;
+        f32_v3 bounding_box_cmax;
+        // f32_m4x4 mvp;
+        // matrix_multiply(mvp, m_view, m_proj); 
+
+        // Prepare vertices and indices
+        u32 vertex_i = 0, indices = 0;
+        for (int ftype = 0; ftype < FACE_TYPE_AMOUNT; ftype++) {
+            u32 this_vertex_i = 0;
+            u32 temp_faces = 0;
+            num_faces_type[ftype] = 0; // Reset or move `num_faces_type` on reload
+                                       // for (int c = 0; c < CHUNK_AMOUNT; c++) {
+
+            i32 c = get_index_from_xyz(current_chunk_x, current_chunk_y, current_chunk_z); 
+            // pb_print("chunk index %d %d\n", c, current_chunk_x);
+            // f32 pos_offset[3];
+            // pos_chunk_offset(pos_offset, c);
+            // f32_v3 corners[8];
+            // corners[0].x = pos_offset[0];
+            // corners[0].y = pos_offset[1];
+            // corners[0].z = pos_offset[2];
+            // corners[1].x = pos_offset[0] + BLOCK_CHUNK_SCALE;
+            // corners[1].y = pos_offset[1];
+            // corners[1].z = pos_offset[2];
+            // corners[2].x = pos_offset[0];
+            // corners[2].y = pos_offset[1];
+            // corners[2].z = pos_offset[2] + BLOCK_CHUNK_SCALE;
+            // corners[3].x = pos_offset[0] + BLOCK_CHUNK_SCALE;
+            // corners[3].y = pos_offset[1];
+            // corners[3].z = pos_offset[2] + BLOCK_CHUNK_SCALE;
+            //
+            // corners[4].x = pos_offset[0];
+            // corners[4].y = pos_offset[1] + BLOCK_CHUNK_SCALE;
+            // corners[4].z = pos_offset[2];
+            // corners[5].x = pos_offset[0] + BLOCK_CHUNK_SCALE;
+            // corners[5].y = pos_offset[1] + BLOCK_CHUNK_SCALE;
+            // corners[5].z = pos_offset[2];
+            // corners[6].x = pos_offset[0];
+            // corners[6].y = pos_offset[1] + BLOCK_CHUNK_SCALE;
+            // corners[6].z = pos_offset[2] + BLOCK_CHUNK_SCALE;
+            // corners[7].x = pos_offset[0] + BLOCK_CHUNK_SCALE;
+            // corners[7].y = pos_offset[1] + BLOCK_CHUNK_SCALE;
+            // corners[7].z = pos_offset[2] + BLOCK_CHUNK_SCALE;
+            // if (!is_in_frustum(corners, mvp)) continue;
+
             const int chunk_face_idx = c * FACE_TYPE_AMOUNT + ftype;
             const u32 type_size = types_sizes[chunk_face_idx];
             if (type_size == 0) continue;
@@ -576,9 +693,8 @@ void load_chunks(void) {
                     // Indices are 16 bit on the GPU.
                     // this tells the renderer that we have multiple batches of U16_MAX!
                     this_vertex_i = 0;
-                    // indices = (indices + 3) & ~3; // Align to next multiple of 4 because of how shader.c works
                 }
-                
+
                 for (int v = 0; v < 4; v++) {
                     chunk_vertices[vertex_i] = f.vertices[v];
                     chunk_tex_coords[vertex_i] = f.tex_coords[v];
@@ -592,24 +708,23 @@ void load_chunks(void) {
                     u16 findices[6];
                     fill_face_indices(findices, f.indices_type);
                     chunk_indices[indices] = ((u32)index_nums[findices[index]]) |
-                                             ((u32)index_nums[findices[index + 1]] << 16);
+                        ((u32)index_nums[findices[index + 1]] << 16);
                     indices++;
                 }
             }
-        }
 
-        if (ftype < FACE_TYPE_AMOUNT - 1) {
-            offset_vertices[ftype] = vertex_i;
-            indices = (indices + 3) & ~3; // Align to next multiple of 4 because of how shader.c works
-            offset_indices[ftype] = indices;
+            if (ftype < FACE_TYPE_AMOUNT - 1) {
+                offset_vertices[ftype] = vertex_i;
+                indices = (indices + 3) & ~3; // Align to next multiple of 4 because of how shader.c works
+                offset_indices[ftype] = indices;
+            }
         }
     }
+}
 
-    // Free dynamic memory
-    for (int i = 0; i < CHUNK_AMOUNT * FACE_TYPE_AMOUNT; i++) {
-        xfree(types_faces[i]);
-    }
-    xfree(types_faces);
-    xfree(types_sizes);
-    xfree(types_capacities);
+
+
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/overview-rasterization-algorithm.html
+void select_chunks(void) {
+    SetThreadPriority(CreateThread(NULL, 1024, select_chunks_thread, NULL, 0, &select_chunks_thread_id), THREAD_PRIORITY_TIME_CRITICAL);
 }

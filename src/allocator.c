@@ -75,6 +75,9 @@ void print_num_mem_allocated(void) {
     } else {
         pb_print("Mem: %zu b (n=%d, r=%zu b)\n", num_real_mem, num_allocations, num_record_real_mem);
     }
+    // for (int i = 0; i < num_allocations; i++) {
+    //     pb_print("%zu b: %s\n", alloc_sizes[i], alloc_names[i]);
+    // }
     // pb_print("Mem record at %s\n", record_name);
     // pb_print("Total tracking memory used: %zu bytes\n", num_dbg_tracking_mem);
     // pb_print("Total memory used (user + tracking): %zu bytes\n", num_real_mem + num_dbg_tracking_mem);

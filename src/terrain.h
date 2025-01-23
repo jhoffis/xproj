@@ -1,5 +1,6 @@
 #pragma once
 #include "allocator.h"
+#include "math3d.h"
 #include "pbkit/pbkit.h"
 #include "png_loader.h"
 #include "nums.h"

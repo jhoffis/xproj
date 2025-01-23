@@ -17,21 +17,24 @@ static const u32 ALLOC_SIZE = 64 * 1024;
 static void free_wav_file(wav_file *file);
 
 static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_size) {
+    if (filename == NULL) return NULL;
+    
     char *fixed_name = path_name(filename, ".wav");
     if (fixed_name == NULL) return NULL;
+
     FILE* file = fopen(fixed_name, "rb");
     if (!file) {
         perror("Error opening file");
         xfree(fixed_name); // Assuming path_name allocates memory
         return NULL;
     } 
+    xfree(fixed_name);
     wav_header header = {0};
 
     // Read the WAV header
     if (fread(&header, sizeof(wav_header), 1, file) != 1) {
         perror("Error reading header");
         fclose(file);
-        xfree(fixed_name);
         return NULL; 
     }
 
@@ -40,7 +43,6 @@ static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_s
             header.subchunk1_id != FMT_ID || header.subchunk2_id != DATA_ID) {
         fprintf(stderr, "Invalid WAV file\n");
         fclose(file);
-        xfree(fixed_name);
         return NULL; 
     }
 
@@ -54,7 +56,6 @@ static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_s
     if (!audio_data) {
         perror("Memory allocation failed");
         fclose(file);
-        xfree(fixed_name);
         return NULL; 
     }
 
@@ -63,7 +64,6 @@ static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_s
         perror("Error seeking in file");
         xMmFreeContiguousMemory(audio_data);
         fclose(file);
-        xfree(fixed_name);
         return NULL; 
     }
 
@@ -72,7 +72,6 @@ static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_s
         perror("Error reading audio data");
         xMmFreeContiguousMemory(audio_data);
         fclose(file);
-        xfree(fixed_name);
         return NULL; 
     }
 
@@ -81,7 +80,6 @@ static wav_file* load_wav(const char* filename, u32 start_index, u32 max_alloc_s
     if (!wav) {
         perror("Memory allocation for wav_file failed");
         xMmFreeContiguousMemory(audio_data);
-        xfree(fixed_name);
         return NULL;
     }
     *wav = (wav_file){header, filename, audio_data, alloc_size};

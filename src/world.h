@@ -8,6 +8,9 @@
 #define CHUNK_VIEW_DISTANCE 6
 #define CHUNK_AMOUNT CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE
 _Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole number!");
+
+#define BLOCK_CHUNK_SCALE BLOCK_SIZE * CHUNK_SIZE
+
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 4*32*1024
 #define FACE_TEXTURE_ATLAS_WIDTH 4
@@ -86,3 +89,4 @@ void init_world(void);
 void destroy_world(void);
 void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z);
 void load_chunks(void);
+void select_chunks(void);

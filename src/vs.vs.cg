@@ -1,5 +1,5 @@
 struct vIn {
-	float4 color    : DIFFUSE;
+	float4 color    : COLOR;
 	float4 position : POSITION;
 };
 
@@ -10,18 +10,20 @@ struct vOut {
 
 vOut main(
 	vIn              I,
-	uniform float4x4 m_viewport
+	uniform float4x4 m_model,
+	uniform float4x4 m_view,
+	uniform float4x4 m_proj
 	)
 {
 	vOut   result;
-	float4 position;
-	float4 color;
 
-	position = mul(float4(I.position.xyz, 1.0f), m_viewport);
-	position.xyz = position.xyz / position.w;
+	float4 pos;
+	pos = mul(float4(I.position.xyz, 1.0), m_model);
+	pos = mul(pos, m_view);
+	pos = mul(pos, m_proj);
+	pos.xyz = pos.xyz / pos.w;
 
-//	result.col = I.color;
-    result.col = float4(position.w, 0.0f, 0.0f, 1.0f);
-	result.pos = position;
+	result.col = I.color;
+	result.pos = pos;
 	return result;
 }

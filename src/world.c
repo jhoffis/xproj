@@ -268,10 +268,10 @@ void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
                 }
                 // chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
                 } else {
-                    if (x == 0 && z == 0) {
+                    if ((x  & z) == 0) {
                         chunk->cubes[x][y][z].type = BLOCK_TYPE_COBBLESTONE;
-                    } else {
-                        chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
+                    // } else {
+                    //     chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
                     }
                 }
             }
@@ -487,15 +487,14 @@ static void pos_chunk_offset(f32 pos_offset[3], u32 chunk_i) {
 } 
 
 static i32 get_index_from_xyz(i32 x, i32 y, i32 z) {
-    // Note: x and z are flipped in the loop order
-    int shifted_z = z + (CHUNK_VIEW_DISTANCE / 2);
-    int shifted_y = y + (CHUNK_VIEW_DISTANCE / 2);
     int shifted_x = x + (CHUNK_VIEW_DISTANCE / 2);
+    int shifted_y = y + (CHUNK_VIEW_DISTANCE / 2);
+    int shifted_z = z + (CHUNK_VIEW_DISTANCE / 2);
     
-    // Calculate 1D index with z being the most significant dimension now
-    return (shifted_x * CHUNK_VIEW_DISTANCE * CHUNK_VIEW_DISTANCE) + 
+    // Correct 1D index calculation
+    return shifted_z + 
            (shifted_y * CHUNK_VIEW_DISTANCE) + 
-           shifted_z;
+           (shifted_x * CHUNK_VIEW_DISTANCE * CHUNK_VIEW_DISTANCE);
 }
 
 /*
@@ -638,6 +637,8 @@ static DWORD __stdcall select_chunks_thread(LPVOID parameter) {
         // f32_m4x4 mvp;
         // matrix_multiply(mvp, m_view, m_proj); 
 
+        i32 c = get_index_from_xyz(current_chunk_x, current_chunk_y, current_chunk_z); 
+
         // Prepare vertices and indices
         u32 vertex_i = 0, indices = 0;
         for (int ftype = 0; ftype < FACE_TYPE_AMOUNT; ftype++) {
@@ -646,7 +647,7 @@ static DWORD __stdcall select_chunks_thread(LPVOID parameter) {
             num_faces_type[ftype] = 0; // Reset or move `num_faces_type` on reload
                                        // for (int c = 0; c < CHUNK_AMOUNT; c++) {
 
-            i32 c = get_index_from_xyz(current_chunk_x, current_chunk_y, current_chunk_z); 
+        for (int c = 0; c < CHUNK_AMOUNT; c++) {
             // pb_print("chunk index %d %d\n", c, current_chunk_x);
             // f32 pos_offset[3];
             // pos_chunk_offset(pos_offset, c);
@@ -718,6 +719,7 @@ static DWORD __stdcall select_chunks_thread(LPVOID parameter) {
                 indices = (indices + 3) & ~3; // Align to next multiple of 4 because of how shader.c works
                 offset_indices[ftype] = indices;
             }
+        }
         }
     }
 }

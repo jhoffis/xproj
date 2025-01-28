@@ -12,17 +12,12 @@ struct vOut {
 
 vOut main(
 	vIn              I,
-	uniform float4x4 m_model,
-	uniform float4x4 m_view,
-	uniform float4x4 m_proj
-    )
+	uniform float4x4 m_mvp
+)
 {
 	vOut   result;
 	float4 pos;
-	pos = mul(float4(I.pos.xyz, 1.0), m_model);
-
-	pos = mul(pos, m_view);
-	pos = mul(pos, m_proj);
+	pos = mul(float4(I.pos.xyz, 1.0), m_mvp);
 	pos.xyz = pos.xyz / pos.w;
 
 	result.pos = pos;

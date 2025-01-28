@@ -106,20 +106,23 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
     // memcpy(p, m_viewport, 16*4); p+=16;
 
+    f32_m4x4 mvp;
+    matrix_multiply(mvp, m_view, m_proj);
+
     /* Send the model matrix */
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_model, 16*4); 
+    memcpy(p, mvp, 16*4); 
     p += 16;
 
-    /* Send the view matrix */
-    pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_view, 16*4); 
-    p += 16;
-
-    /* Send the projection matrix */
-    pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_proj, 16*4); 
-    p += 16;
+    // /* Send the view matrix */
+    // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+    // memcpy(p, m_view, 16*4); 
+    // p += 16;
+    //
+    // /* Send the projection matrix */
+    // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
+    // memcpy(p, m_proj, 16*4); 
+    // p += 16;
 
     /* Send camera position */
     // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
@@ -152,8 +155,6 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     // timer_stamp_print("setup vertex", &win_clock_start);
     // MATRIX vm;
     // matrix_multiply(vm, m_view, m_model);
-    f32_m4x4 mvp;
-    matrix_multiply(mvp, m_view, m_proj);
 
     f32_v3 face_normals[FACE_DIRECTION_TOTAL];
     bool remove_directions[FACE_DIRECTION_TOTAL];

@@ -1,5 +1,8 @@
 #include "terrain.h"
 
+// Shared vertex color stream (see terrain.h)
+f32_v4 *g_terrain_vertex_colors = NULL;
+
 void init_terrain() {
     // img = load_image("grass");
     // // u8 imggg[] = {
@@ -18,6 +21,12 @@ void init_terrain() {
     // textureAddr = MmAllocateContiguousMemoryEx(img.pitch * img.h, 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     // memcpy(textureAddr, img.image, img.pitch * img.h); // TODO use img.length (whatever that is...)
     //
-    // alloc_vertices_cube = MmAllocateContiguousMemoryEx(sizeof(cube_vertices), 0, MAX_MEM_64, 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    // memcpy(alloc_vertices_cube, cube_vertices, sizeof(cube_vertices));
+    // Allocate a reusable per-vertex color stream (one batch = MAX_VERTICES verts).
+    // This replaces the old per-draw malloc/free in render_cube().
+    if (!g_terrain_vertex_colors) {
+        g_terrain_vertex_colors = xmalloc(MAX_VERTICES * sizeof(f32_v4));
+        for (u32 i = 0; i < MAX_VERTICES; i++) {
+            g_terrain_vertex_colors[i] = (f32_v4){ 1.0f, 1.0f, 1.0f, 1.0f };
+        }
+    }
 }

@@ -15,6 +15,12 @@
 #include "world.h"
 #include "timer_util.h"
 
+// One-time allocated vertex color stream reused across all terrain draw calls.
+// (Avoids per-batch malloc/free in the hot render loop.)
+extern f32_v4 *g_terrain_vertex_colors;
+
+void init_terrain();
+
 
 /*
  * https://bruop.github.io/improved_frustum_culling/ 
@@ -58,89 +64,38 @@ static bool is_face_in_frustum(face f, f32_m4x4 viewproj) {
     return false;
 }
 
-static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
-    // LARGE_INTEGER win_clock_frequency, win_clock_start, win_clock_end;
-    // QueryPerformanceFrequency(&win_clock_frequency); // Get the frequency of the counter
-    // QueryPerformanceCounter(&win_clock_start);      // Record start time
-    f32_v4 v_obj_pos   = {0,0,0,1}; 
-    f32_v4 v_obj_rot   = {0,0,0,1}; 
-    f32_v4 v_obj_scale = {1,1,1,1}; 
-    v_obj_pos.x = 0;
-    v_obj_pos.y = 0;
-    v_obj_pos.z = 0;
-
-    /* Tilt and rotate the object a bit */
-    v_obj_rot.x = 0;
-    v_obj_rot.y = 0;
-
-    f32_v3 camera_position = {v_cam_loc.x, v_cam_loc.y, v_cam_loc.z};
-
-    // Forward vector in view space
-    f32_v3 forward_vector_view = {0.0f, 0.0f, -1.0f};
-
-    // Compute the rotation matrix
-    f32_m3x3 rotation_matrix;
-    mat3x3_euler_to_rotation_matrix(rotation_matrix, v_cam_rot.x, v_cam_rot.y, v_cam_rot.z);
-
-    // Transform the forward vector to world space
-    f32_v3 camera_normal_world = vec3_multiply_mat3x3(rotation_matrix, forward_vector_view);
-
-    // Normalize the resulting vector
-    camera_normal_world = vec3_normalize(camera_normal_world);
-    // pb_print("normal x%d y%d z%d \n", (i32) (1000 * camera_normal_world.x), 
-    //                                   (i32) (1000 * camera_normal_world.y), 
-    //                                   (i32) (1000 * camera_normal_world.z));
-
-    /* Create local->world matrix given our updated object */
+// Draw one indexed batch.
+// - face_count: number of quads (faces)
+// - vertex_offset: offset in f32_v3/f32_v2 arrays (in vertices)
+// - index_offset_u32: offset in chunk_indices (in u32 words; 3 words per face)
+// Push per-frame constants/state once before drawing terrain batches.
+static inline void terrain_prepare_draw_state(void) {
     matrix_unit(m_model);
-    // matrix_rotate(m_model, m_model, v_obj_rot);
-    // matrix_scale(m_model, m_model, v_obj_scale);
-    // matrix_translate(m_model, m_model, v_obj_pos);
-
     u32 *p = pb_begin();
-    /* Set shader constants cursor at C0 */
     p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
 
-    /* Send the transformation matrix */
-    // pb_push(p++, NV097_SET_TRANSFORM_CONSTANT, 16);
-    // memcpy(p, m_viewport, 16*4); p+=16;
-
-    /* Send the model matrix */
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_model, 16*4); 
+    memcpy(p, m_model, 16 * 4);
     p += 16;
 
-    /* Send the view matrix */
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_view, 16*4); 
+    memcpy(p, m_view, 16 * 4);
     p += 16;
 
-    /* Send the projection matrix */
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 16);
-    memcpy(p, m_proj, 16*4); 
+    memcpy(p, m_proj, 16 * 4);
     p += 16;
 
-    /* Send camera position */
-    // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
-    // memcpy(p, v_cam_loc, 4*4); p+=4;
-
-    // float constants_0[2] = {0, 1,};
-    // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 8);
-    // memcpy(p, constants_0, 8); p+=8;
-
-    /* Clear all attributes */
-    pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
-    for(u8 i = 0; i < 16; i++) {
+    // Clear all attributes (we only enable what we bind for terrain)
+    pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT, 16);
+    for (u8 i = 0; i < 16; i++) {
         *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
     }
     pb_end(p);
+}
 
-    // debugPrint("spot1\n");
-    // timer_stamp_print("setup pb", &win_clock_start);
-    /*
-     * Setup vertex attributes
-     */
-    int num = num_faces_pooled < FACE_POOL_SIZE ? num_faces_pooled : FACE_POOL_SIZE;
+static void render_cube(u32 face_count, u32 vertex_offset, u32 index_offset_u32) {
+    (void)num_faces_pooled;
     // face_stored temp_faces[num];
     // memcpy(temp_faces, faces_pool, num * sizeof(face_stored));
     // u16 *cube_indices = malloc(6 * num * sizeof(u16)); // TODO maybe add these at the end? Isn't this just saying which to render first? well yeah because we know that every 4 verticies is a face. Instead just store direction and distance from camera.
@@ -151,37 +106,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     // timer_stamp_print("setup vertex", &win_clock_start);
     // MATRIX vm;
     // matrix_multiply(vm, m_view, m_model);
-    f32_m4x4 mvp;
-    matrix_multiply(mvp, m_view, m_proj);
-
-    f32_v3 face_normals[FACE_DIRECTION_TOTAL];
-    bool remove_directions[FACE_DIRECTION_TOTAL];
-    for (int d = 0; d < FACE_DIRECTION_TOTAL; d++) { // TODO check if the object is more than 1 distance away and has the same direction because then it should not be visible.
-                                  // basically, if object has same direction and is ahead by 1 then remove.
-        f32_v3 face_normal = {0};
-        switch (d) {
-            case FACE_DIRECTION_UP:
-                face_normal.y = 1;
-                break;
-            case FACE_DIRECTION_DOWN:
-                face_normal.y = -1;
-                break;
-            case FACE_DIRECTION_EAST:
-                face_normal.x = 1;
-                break;
-            case FACE_DIRECTION_WEST:
-                face_normal.x = -1;
-                break;
-            case FACE_DIRECTION_NORTH:
-                face_normal.z = 1;
-                break;
-            case FACE_DIRECTION_SOUTH:
-                face_normal.z = -1;
-                break;
-        }
-        remove_directions[d] = vec3_is_same_direction(camera_normal_world, face_normal, 0.7f);
-        face_normals[d] = face_normal;
-    }
+    // (Per-face culling/frustum tests removed from the hot draw path; do it at chunk/mesh build time.)
 
     // timer_stamp_print("after setup vertex", &win_clock_start);
 
@@ -228,16 +153,9 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
             3, sizeof(float) * 3, &chunk_vertices[vertex_offset]);
     
 
-    f32_v4 *colors = xmalloc(n * sizeof(f32_v4));
-    memset(colors, 3, n * sizeof(f32_v4));
-    for (int a = 0; a < n; a++) {
-        colors[a].x = 0.5;
-        colors[a].y = 0.5;
-    }
-
-    /* Set vertex diffuse color attribute */
+    /* Set vertex diffuse color attribute (shared static buffer) */
     set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(f32_v4), colors);
+            3, sizeof(f32_v4), g_terrain_vertex_colors);
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
@@ -247,26 +165,29 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
     // timer_stamp_print("calculate vertices", &win_clock_start);
 
     /* Begin drawing triangles */
-    draw_indexed(n*3, &chunk_indices[index_offset]);
+    draw_indexed(face_count * 3u, &chunk_indices[index_offset_u32]);
     // draw_arrays(g_render_method, 0, n);
     // MmFreeContiguousMemory(cube_vertices);
     // MmFreeContiguousMemory(allocated_texs);
     // free(cube_vertices);
     // free(tex_coors);
-    xfree(colors);
+    // g_terrain_vertex_colors is reused; no free here.
 
     // timer_stamp_print("after drawn", &win_clock_start);
 }
 
 inline static void render_terrain() {
     init_shader(SHADER_TERRAIN);
+    // Safety: allow render_terrain() even if init_terrain() wasn't called.
+    if (!g_terrain_vertex_colors) {
+        init_terrain();
+    }
+    terrain_prepare_draw_state();
     for (int i = 0; i < FACE_TYPE_AMOUNT; i++) {
         image_data *img;
         u8 u, v;
         int channels;
         DWORD format, filter, control_enable;
-        u32 num_batch, offset_v, offset_i, max_faces, times;
-        s32 num;
         u32 *p;
 
         if (num_faces_type[i] == 0) continue;
@@ -323,33 +244,13 @@ inline static void render_terrain() {
         pb_end(p);
 
 
-        offset_v = 0;
-        offset_i = 0;
-        num = num_faces_type[i];
-
-        if (i != 0) {
-            offset_v = offset_vertices[i-1];
-            offset_i = offset_indices[i-1];
+        // Use the batching info generated by world.c (correct for 16-bit index limits)
+        for (u32 b = 0; b < (u32)num_face_batches[i]; b++) {
+            const face_batch *fb = &face_batches[i][b];
+            const u32 faces_in_batch = fb->vertex_count / 4u;
+            if (faces_in_batch == 0) continue;
+            render_cube(faces_in_batch, fb->first_vertex, fb->first_index_u32);
         }
-
-        max_faces = 16384;
-        times = 0;
-        do {
-            if (num > max_faces) {
-                num_batch = max_faces;
-            } else  {
-                num_batch = num + 8*3;
-                // if (num_batch + times > MAX_RENDERED_FACES) num_batch = MAX_RENDERED_FACES - times;
-            }
-
-            render_cube(num_batch, offset_v, offset_i);
-
-            num -= max_faces;
-            offset_v += MAX_VERTICES;
-            offset_i += 49152; // Align to next multiple of 4 because of how shader.c works
-        } while (num > 0);
         // break;
     }
 }
-
-void init_terrain();

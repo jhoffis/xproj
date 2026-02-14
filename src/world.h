@@ -2,6 +2,8 @@
 #include "cube.h"
 
 #define MAX_VERTICES 65536
+#define MAX_FACES 16384 // MAX_VERTICES / 4
+#define INDEX_ALIGNMENT 49152 // MAX_VERTICES - MAX_FACES
 #define MAX_RENDERED_FACES 40000 // 36864 // appearently
 
 #define CHUNK_SIZE 16
@@ -63,22 +65,43 @@ typedef u32 face_stored; // Use to store basic info of the face, so that you can
 #define FACE_STORED_INFO_EXPANSION  0x00000800 
 #define FACE_STORED_INFO_TYPE       0x000007F8 // 256 types
 #define FACE_STORED_INFO_DIRECTION  0x00000007
-#define SET_FACE_STORED(value, input, mask) (value) = ((value) & ~(mask)) | (((input & 0xF) << __builtin_ctz(mask)))
-#define GET_FACE_STORED(value, mask) ((value & mask) >> __builtin_ctz(mask))
+// Bitfield helpers (works for any mask width, not just 4-bit fields)
+#define SET_FACE_STORED(value, input, mask) do { \
+    const u32 _shift = (u32)__builtin_ctz((u32)(mask)); \
+    const u32 _field = ((u32)(mask)) >> _shift; \
+    (value) = ((u32)(value) & ~((u32)(mask))) | ((((u32)(input)) & _field) << _shift); \
+} while (0)
 
-extern chunk_data *loaded_chunks;
-extern u32 *chunk_offsets;
+#define GET_FACE_STORED(value, mask) (((u32)(value) & (u32)(mask)) >> (u32)__builtin_ctz((u32)(mask)))
+
+// Rendering batches (16-bit index limit)
+#define MAX_FACES_PER_BATCH (MAX_VERTICES / 4u)
+#define MAX_BATCHES_PER_TYPE ((FACE_POOL_SIZE + MAX_FACES_PER_BATCH - 1u) / MAX_FACES_PER_BATCH)
+
+typedef struct {
+    // Offsets into the global arrays
+    u32 first_vertex;
+    u32 vertex_count;
+    // Index buffer stores packed pairs of u16 in u32 words.
+    u32 first_index_u32;
+    u32 index_count_u32;
+} face_batch;
+
+extern chunk_data loaded_chunks[CHUNK_AMOUNT];
+extern u32 chunk_offsets[CHUNK_AMOUNT];
 extern u32 num_chunks_pooled;
 
 extern f32_v3 *chunk_vertices;
 extern f32_v2 *chunk_tex_coords;
 extern u32    *chunk_indices;
-extern u32 *offset_vertices;
-extern u32 *offset_indices;
-extern u8  *num_indices_batches;
-extern u32 *num_faces_type;
+extern u32 offset_vertices[FACE_TYPE_AMOUNT - 1];
+extern u32 offset_indices[FACE_TYPE_AMOUNT - 1];
+extern u32 num_faces_type[FACE_TYPE_AMOUNT];
 
-extern face_stored *faces_pool;
+extern face_batch face_batches[FACE_TYPE_AMOUNT][MAX_BATCHES_PER_TYPE];
+extern u8 num_face_batches[FACE_TYPE_AMOUNT];
+
+extern face_stored faces_pool[FACE_POOL_SIZE];
 extern u32 num_faces_pooled;
 
 

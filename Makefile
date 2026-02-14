@@ -22,13 +22,22 @@ else
 
 XBE_TITLE = xproj
 OUTPUT_DIR = out
-SRCS = $(shell find $(CURDIR)/src -name '*.c')
+SRC_DIR = $(CURDIR)/src
+SRC_OUT_DIR = $(CURDIR)/src_out
+SRCS = $(sort $(shell find $(SRC_DIR) -type f \( -name '*.c' -o -name '*.cpp' -o -name '*.s' \)))
+SHADER_SRCS = $(sort $(shell find $(SRC_DIR) -type f \( -name '*.vs.cg' -o -name '*.ps.cg' \)))
+SHADER_OBJS = $(patsubst $(SRC_DIR)/%.vs.cg,$(SRC_OUT_DIR)/%.inl,$(filter %.vs.cg,$(SHADER_SRCS)))
+SHADER_OBJS += $(patsubst $(SRC_DIR)/%.ps.cg,$(SRC_OUT_DIR)/%.inl,$(filter %.ps.cg,$(SHADER_SRCS)))
+SHADER_DRIVER_OBJ = $(SRC_OUT_DIR)/shader.obj
 NXDK_SDL = y
-SHADER_OBJS = src/ps.inl src/vs.inl src/ps2.inl src/vs2.inl
 DEBUG = y
 NXDK_CFLAGS += -O0
+NXDK_CFLAGS += -I$(SRC_OUT_DIR)
+NXDK_CFLAGS += -I$(CURDIR)
 
 include $(NXDK_DIR)/Makefile
+
+$(SHADER_DRIVER_OBJ): $(SHADER_OBJS)
 
 .PHONY: win ch run
 
@@ -37,8 +46,11 @@ win:
 	./tools/xemu.exe -dvd_path "xproj.iso" -s
 
 ch: # clean here
-	rm -f src/*.obj
-	rm -f src/*.c.d
+	rm -rf $(SRC_OUT_DIR)
+	rm -f $(SRC_DIR)/*.obj
+	rm -f $(SRC_DIR)/*.c.d
+	rm -f $(SRC_DIR)/*.cpp.d
+	rm -f $(SRC_DIR)/*.inl
 
 run:
 	./tools/xdvdfs pack out/ xproj.iso

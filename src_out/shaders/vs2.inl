@@ -1,6 +1,6 @@
 // cgc version 3.1.0013, build date Apr 24 2012
 // command line args: -profile vp20
-// source file: src/vs2.vs.cg
+// source file: /home/hovedrigg/dev/xproj/src/shaders/vs2.vs.cg
 //vendor NVIDIA Corporation
 //version 3.1.0.13
 //profile vp20

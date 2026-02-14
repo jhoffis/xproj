@@ -259,7 +259,7 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
 }
 
 inline static void render_terrain() {
-    init_shader(1);
+    init_shader(SHADER_TERRAIN);
     for (int i = 0; i < FACE_TYPE_AMOUNT; i++) {
 
         if (num_faces_type[i] == 0) continue;

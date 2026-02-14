@@ -7,40 +7,72 @@
 #include <xmmintrin.h> // For SSE (128-bit SIMD)
 #include <strings.h> // for ffs()
 #define MASK(mask, val) (((val) << (ffs(mask)-1)) & (mask))
+#define SHADER_OUTPUT_DIR shaders
+#define STRINGIFY_(x) #x
+#define STRINGIFY(x) STRINGIFY_(x)
+#define SHADER_INL_PATH(name) STRINGIFY(SHADER_OUTPUT_DIR/name.inl)
 
 u8 g_render_method = TRIANGLES;
 
-void init_shader(i32 which) {
+static const u32 g_vs_program_vs[] = {
+    #include SHADER_INL_PATH(vs)
+};
+
+static const u32 g_vs_program_vs2[] = {
+    #include SHADER_INL_PATH(vs2)
+};
+
+typedef void (*fragment_shader_setup_fn)(u32 **pp);
+
+static void setup_fragment_shader_ps(u32 **pp) {
+    u32 *p = *pp;
+    #include SHADER_INL_PATH(ps)
+    *pp = p;
+}
+
+static void setup_fragment_shader_ps2(u32 **pp) {
+    u32 *p = *pp;
+    #include SHADER_INL_PATH(ps2)
+    *pp = p;
+}
+
+typedef struct shader_variant_data {
+    const u32 *vs_program_src;
+    size_t shader_size;
+    fragment_shader_setup_fn setup_fragment_shader;
+} shader_variant_data;
+
+#define SHADER_VARIANT_DATA_ROW(enum_name, vs_name, ps_name) \
+    [enum_name] = { \
+        .vs_program_src = g_vs_program_##vs_name, \
+        .shader_size = sizeof(g_vs_program_##vs_name), \
+        .setup_fragment_shader = setup_fragment_shader_##ps_name, \
+    },
+static const shader_variant_data g_shader_variant_data[SHADER_COUNT] = {
+    SHADER_VARIANT_TABLE(SHADER_VARIANT_DATA_ROW)
+};
+#undef SHADER_VARIANT_DATA_ROW
+
+void init_shader(shader_variant which) {
     u32 *p;
 
     u32 *vs_program = NULL;
-    size_t shader_size;
+    shader_variant_data variant_data;
 
-    switch (which) {
-        case 0: 
-            u32 temp[] = {
-                #include "vs.inl"
-            };
-            shader_size = sizeof(temp);
-            vs_program = (u32 *)xmalloc(shader_size);
-            if (vs_program) {
-                memcpy(vs_program, temp, shader_size); // Copy shader data
-            }
-            break;
-        case 1: 
-            u32 temp2[] = {
-                #include "vs2.inl"
-            };
-            shader_size = sizeof(temp2);
-            vs_program = (u32 *)xmalloc(shader_size);
-            if (vs_program) {
-                memcpy(vs_program, temp2, shader_size); // Copy shader data
-            }
-            break;
-        default:
-            // debugPrint("Invalid shader selection!\n");
-            break;
+    if ((u32)which >= SHADER_COUNT) {
+        return;
     }
+
+    variant_data = g_shader_variant_data[which];
+    if (!variant_data.vs_program_src || variant_data.shader_size == 0 || !variant_data.setup_fragment_shader) {
+        return;
+    }
+
+    vs_program = (u32 *)xmalloc(variant_data.shader_size);
+    if (!vs_program) {
+        return;
+    }
+    memcpy(vs_program, variant_data.vs_program_src, variant_data.shader_size);
 
     p = pb_begin();
     // Set run address of shader
@@ -62,7 +94,7 @@ void init_shader(i32 which) {
     pb_end(p);
 
     /* Copy program instructions (16-bytes each) */
-    for (u32 i = 0; i < shader_size / 16; i++) {
+    for (u32 i = 0; i < variant_data.shader_size / 16; i++) {
         p = pb_begin();
         pb_push(p++, NV097_SET_TRANSFORM_PROGRAM, 4);
         memcpy(p, &vs_program[i*4], 4*4);
@@ -72,14 +104,7 @@ void init_shader(i32 which) {
 
     /* Setup fragment shader */
     p = pb_begin();
-    switch (which) {
-        case 0:
-#include "ps.inl"
-            break;
-        case 1:
-#include "ps2.inl"
-            break;
-    }
+    variant_data.setup_fragment_shader(&p);
     pb_end(p);
 
     if (vs_program) {

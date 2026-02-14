@@ -12,3 +12,4 @@
 *.d
 *.wav
 compile_commands.json
+pbkit demos/nxdk_pgraph_tests/

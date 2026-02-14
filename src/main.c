@@ -167,7 +167,7 @@ int main(void)
         screen_height = 480;
         XVideoSetMode(screen_width, screen_height, 32, REFRESH_DEFAULT);
     }
-
+    debugPrint("test\n");
     pbk_init = pb_init() == 0;
     if (!pbk_init) {
         pb_show_debug_screen();

@@ -4,6 +4,7 @@
 /.vs/
 /.vscode/
 /nxdk-xproj/
+/src_out/
 *.iso
 *.exe
 *.obj

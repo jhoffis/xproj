@@ -35,7 +35,7 @@ _Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole 
  * don't use unnecessary amounts of ram on this.
  */
 typedef struct {
-    i32 x, y, z;
+    s32 x, y, z;
     cube_entity cubes[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE]; // XYZ
 } chunk_data;
 
@@ -84,5 +84,5 @@ extern u32 num_faces_pooled;
 
 void init_world(void);
 void destroy_world(void);
-void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z);
+void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z);
 void load_chunks(void);

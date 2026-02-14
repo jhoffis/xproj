@@ -43,7 +43,7 @@ f32_v3 vec3_multiply_mat3x3(f32_m3x3 matrix, f32_v3 vector);
 f32 vec3_dot_product(f32_v3 a, f32_v3 b);
 
 // Compare the direction of two vectors
-i32 vec3_is_same_direction(f32_v3 a, f32_v3 b, float threshold);
+s32 vec3_is_same_direction(f32_v3 a, f32_v3 b, float threshold);
 
 f32 vec3_distance(f32 *a, f32 *b);
 

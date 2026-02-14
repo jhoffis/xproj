@@ -21,7 +21,7 @@ static volatile u8* l_audio_MMIO = (u8*)0xFEC00000;
 
 static bool l_xaudio_initialized;
 static sound_callback l_sound_callback;
-static i16* l_buffers;
+static s16* l_buffers;
 static size_t l_next_buffer;
 static size_t l_sample_count;
 static DWORD l_sleep_count;

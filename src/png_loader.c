@@ -44,7 +44,7 @@ typedef struct
 typedef struct
 {
    u32 img_x, img_y;
-   i32 img_n, img_out_n;
+   s32 img_n, img_out_n;
 
    io_callbacks io;
    void *io_user_data;
@@ -62,7 +62,7 @@ typedef struct
 {
    context *s;
    u8 *idata, *expanded, *out;
-   i32 depth;
+   s32 depth;
 } Png;
 
 typedef struct
@@ -75,7 +75,7 @@ typedef struct
 {
    u16 fast[1 << ZFAST_BITS];
    u16 firstcode[16];
-   i32 maxcode[17];
+   s32 maxcode[17];
    u16 firstsymbol[16];
    u8  size[ZNSYMS];
    u16 value[ZNSYMS];
@@ -84,14 +84,14 @@ typedef struct
 typedef struct
 {
    u8 *zbuffer, *zbuffer_end;
-   i32 num_bits;
-   i32 hit_zeof_once;
+   s32 num_bits;
+   s32 hit_zeof_once;
    u32 code_buffer;
 
-   i8 *zout;
-   i8 *zout_start;
-   i8 *zout_end;
-   i32   z_expandable;
+   s8 *zout;
+   s8 *zout_start;
+   s8 *zout_end;
+   s32   z_expandable;
 
    zhuffman z_length, z_distance;
 } zbuf;
@@ -1217,7 +1217,7 @@ static u8 compute_y(int r, int g, int b)
    return (u8) (((r*77) + (g*150) +  (29*b)) >> 8);
 }
 
-static u8 *convert_format(u8 *data, i32 img_n, i32 req_comp, u32 x, u32 y)
+static u8 *convert_format(u8 *data, s32 img_n, s32 req_comp, u32 x, u32 y)
 {
    int i,j;
    u8 *good;
@@ -1270,7 +1270,7 @@ static u16 compute_y_16(int r, int g, int b)
    return (u16) (((r*77) + (g*150) +  (29*b)) >> 8);
 }
 
-static u16 *convert_format16(u16 *data, i32 img_n, i32 req_comp, u32 x, u32 y)
+static u16 *convert_format16(u16 *data, s32 img_n, s32 req_comp, u32 x, u32 y)
 {
    int i,j;
    u16 *good;

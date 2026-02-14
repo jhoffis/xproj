@@ -26,9 +26,11 @@ SRC_DIR = $(CURDIR)/src
 SRC_OUT_DIR = $(CURDIR)/src_out
 SRCS = $(sort $(shell find $(SRC_DIR) -type f \( -name '*.c' -o -name '*.cpp' -o -name '*.s' \)))
 SHADER_SRCS = $(sort $(shell find $(SRC_DIR) -type f \( -name '*.vs.cg' -o -name '*.ps.cg' \)))
-SHADER_OBJS = $(patsubst $(SRC_DIR)/%.vs.cg,$(SRC_OUT_DIR)/%.inl,$(filter %.vs.cg,$(SHADER_SRCS)))
-SHADER_OBJS += $(patsubst $(SRC_DIR)/%.ps.cg,$(SRC_OUT_DIR)/%.inl,$(filter %.ps.cg,$(SHADER_SRCS)))
+SHADER_OBJS = $(patsubst $(SRC_DIR)/%.vs.cg,$(SRC_OUT_DIR)/%.vs.inl,$(filter %.vs.cg,$(SHADER_SRCS)))
+SHADER_OBJS += $(patsubst $(SRC_DIR)/%.ps.cg,$(SRC_OUT_DIR)/%.ps.inl,$(filter %.ps.cg,$(SHADER_SRCS)))
 SHADER_DRIVER_OBJ = $(SRC_OUT_DIR)/shader.obj
+SHADER_DATA_GEN = $(SRC_OUT_DIR)/shader_data_gen.inc
+SHADER_STEMS = $(sort $(patsubst $(SRC_DIR)/%.vs.cg,%,$(filter %.vs.cg,$(SHADER_SRCS))))
 NXDK_SDL = y
 DEBUG = y
 NXDK_CFLAGS += -O0
@@ -37,7 +39,35 @@ NXDK_CFLAGS += -I$(CURDIR)
 
 include $(NXDK_DIR)/Makefile
 
-$(SHADER_DRIVER_OBJ): $(SHADER_OBJS)
+.PHONY: shader_data_gen
+shader_data_gen: $(SHADER_OBJS)
+	@mkdir -p '$(dir $(SHADER_DATA_GEN))'
+	@{ \
+	echo '/* Auto-generated from shader .cg sources - do not edit */'; \
+	for stem in $(SHADER_STEMS); do \
+	  name=$$(basename $$stem); \
+	  reldir=$$(dirname $$stem); \
+	  if [ "$$reldir" = "." ]; then inl_prefix=""; else inl_prefix="$$reldir/"; fi; \
+	  echo ""; \
+	  echo "static const u32 g_vs_program_$$name[] = {"; \
+	  echo "#include \"$${inl_prefix}$$name.vs.inl\""; \
+	  echo "};"; \
+	  echo ""; \
+	  echo "static void setup_fragment_shader_$$name(u32 **pp) {"; \
+	  echo "    u32 *p = *pp;"; \
+	  echo "#include \"$${inl_prefix}$$name.ps.inl\""; \
+	  echo "    *pp = p;"; \
+	  echo "}"; \
+	done; \
+	} > '$(SHADER_DATA_GEN).tmp'
+	@if ! cmp -s '$(SHADER_DATA_GEN).tmp' '$(SHADER_DATA_GEN)'; then \
+	  mv '$(SHADER_DATA_GEN).tmp' '$(SHADER_DATA_GEN)'; \
+	  echo "[ SHADERGEN ] $(SHADER_DATA_GEN)"; \
+	else \
+	  rm -f '$(SHADER_DATA_GEN).tmp'; \
+	fi
+
+$(SHADER_DRIVER_OBJ): $(SHADER_DATA_GEN) | shader_data_gen
 
 .PHONY: win ch run
 

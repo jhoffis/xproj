@@ -261,20 +261,27 @@ static void render_cube(u32 n, u32 vertex_offset, u32 index_offset) {
 inline static void render_terrain() {
     init_shader(SHADER_TERRAIN);
     for (int i = 0; i < FACE_TYPE_AMOUNT; i++) {
+        image_data *img;
+        u8 u, v;
+        int channels;
+        DWORD format, filter, control_enable;
+        u32 num_batch, offset_v, offset_i, max_faces, times;
+        s32 num;
+        u32 *p;
 
         if (num_faces_type[i] == 0) continue;
         pb_print("faces: %d, %d\n", num_faces_type[i], i);
  
-        image_data *img = get_cube_texture(i);
+        img = get_cube_texture(i);
 
-        u8 u = fast_log2(img->w);
-        u8 v = fast_log2(img->h);
+        u = fast_log2(img->w);
+        v = fast_log2(img->h);
 
         /*
          * Setup texture stages
          */
-        int channels = 2;
-        DWORD format = ((channels & NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA) |
+        channels = 2;
+        format = ((channels & NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA) |
                        (NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE_COLOR * NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE)) | // 0x0000000F
                        (((2 << 4) & NV097_SET_TEXTURE_FORMAT_DIMENSIONALITY)) | // 0x000000F0
                        ((NV097_SET_TEXTURE_FORMAT_COLOR_SZ_A8R8G8B8 << 8) & NV097_SET_TEXTURE_FORMAT_COLOR) | // 0x0000FF00
@@ -284,15 +291,15 @@ inline static void render_terrain() {
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U               0x00F00000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V               0x0F000000
 // #       define NV097_SET_TEXTURE_FORMAT_BASE_SIZE_P               0xF0000000
-        DWORD filter = ((4 << 24) & NV097_SET_TEXTURE_FILTER_MAG) | 
+        filter = ((4 << 24) & NV097_SET_TEXTURE_FILTER_MAG) | 
                        ((7 << 16) & NV097_SET_TEXTURE_FILTER_MIN) | 
 				       ((4 << 12) & NV097_SET_SURFACE_FORMAT_ANTI_ALIASING); // 0x04074000
         filter = 0x01014000; // nearest neighbor
-		DWORD control_enable = NV097_SET_TEXTURE_CONTROL0_ENABLE | NV097_SET_TEXTURE_CONTROL0_MIN_LOD_CLAMP;
+		control_enable = NV097_SET_TEXTURE_CONTROL0_ENABLE | NV097_SET_TEXTURE_CONTROL0_MIN_LOD_CLAMP;
 
         /* Enable texture stage 0 */
         /* FIXME: Use constants instead of the hardcoded values below */
-        u32 *p = pb_begin();
+        p = pb_begin();
         // Retain the lower 26 bits of the address
         p = pb_push2(p,NV20_TCL_PRIMITIVE_3D_TX_OFFSET(0), img->addr26bits, format); //set stage 0 texture address & format
         p = pb_push1(p,NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0),img->pitch<<16); //set stage 0 texture pitch (pitch<<16)
@@ -316,18 +323,17 @@ inline static void render_terrain() {
         pb_end(p);
 
 
-        u32 num_batch;
-        i32 num = num_faces_type[i];
-        u32 offset_v = 0;
-        u32 offset_i = 0;
-        
+        offset_v = 0;
+        offset_i = 0;
+        num = num_faces_type[i];
+
         if (i != 0) {
             offset_v = offset_vertices[i-1];
             offset_i = offset_indices[i-1];
         }
 
-        const u32 max_faces = 16384;
-        u32 times = 0;
+        max_faces = 16384;
+        times = 0;
         do {
             if (num > max_faces) {
                 num_batch = max_faces;

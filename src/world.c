@@ -236,7 +236,7 @@ static void find_faces_of_chunk(
  * are made!
  */
 // #define CHUNK_TEST 0
-void generate_chunk(i32 chunk_x, i32 chunk_y, i32 chunk_z) {
+void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z) {
     chunk_data *chunk = &loaded_chunks[num_chunks_pooled];
     chunk->x = chunk_x;
     chunk->y = chunk_y;

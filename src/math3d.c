@@ -31,7 +31,7 @@ f32 vec3_dot_product(f32_v3 a, f32_v3 b) {
 }
 
 // Compare the direction of two vectors
-i32 vec3_is_same_direction(f32_v3 a, f32_v3 b, float threshold) {
+s32 vec3_is_same_direction(f32_v3 a, f32_v3 b, float threshold) {
     // Normalize both vectors
     a = vec3_normalize(a);
     b = vec3_normalize(b);

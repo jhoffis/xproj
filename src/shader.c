@@ -7,34 +7,13 @@
 #include <xmmintrin.h> // For SSE (128-bit SIMD)
 #include <strings.h> // for ffs()
 #define MASK(mask, val) (((val) << (ffs(mask)-1)) & (mask))
-#define SHADER_OUTPUT_DIR shaders
-#define STRINGIFY_(x) #x
-#define STRINGIFY(x) STRINGIFY_(x)
-#define SHADER_INL_PATH(name) STRINGIFY(SHADER_OUTPUT_DIR/name.inl)
 
 u8 g_render_method = TRIANGLES;
 
-static const u32 g_vs_program_vs[] = {
-    #include SHADER_INL_PATH(vs)
-};
-
-static const u32 g_vs_program_vs2[] = {
-    #include SHADER_INL_PATH(vs2)
-};
-
 typedef void (*fragment_shader_setup_fn)(u32 **pp);
 
-static void setup_fragment_shader_ps(u32 **pp) {
-    u32 *p = *pp;
-    #include SHADER_INL_PATH(ps)
-    *pp = p;
-}
-
-static void setup_fragment_shader_ps2(u32 **pp) {
-    u32 *p = *pp;
-    #include SHADER_INL_PATH(ps2)
-    *pp = p;
-}
+/* VS blob arrays and PS setup functions are auto-generated at build time */
+#include "shader_data_gen.inc"
 
 typedef struct shader_variant_data {
     const u32 *vs_program_src;
@@ -42,11 +21,11 @@ typedef struct shader_variant_data {
     fragment_shader_setup_fn setup_fragment_shader;
 } shader_variant_data;
 
-#define SHADER_VARIANT_DATA_ROW(enum_name, vs_name, ps_name) \
+#define SHADER_VARIANT_DATA_ROW(enum_name, name) \
     [enum_name] = { \
-        .vs_program_src = g_vs_program_##vs_name, \
-        .shader_size = sizeof(g_vs_program_##vs_name), \
-        .setup_fragment_shader = setup_fragment_shader_##ps_name, \
+        .vs_program_src = g_vs_program_##name, \
+        .shader_size = sizeof(g_vs_program_##name), \
+        .setup_fragment_shader = setup_fragment_shader_##name, \
     },
 static const shader_variant_data g_shader_variant_data[SHADER_COUNT] = {
     SHADER_VARIANT_TABLE(SHADER_VARIANT_DATA_ROW)
@@ -125,7 +104,7 @@ void set_attrib_pointer(u32 index, u32 format, u32 size, u32 stride, const void*
 }
 
 /* Send draw commands for the triangles */
-void draw_arrays(u32 mode, i32 start, i32 count)
+void draw_arrays(u32 mode, s32 start, s32 count)
 {
     uint32_t *p = pb_begin();
     p = pb_push1(p, NV097_SET_BEGIN_END, mode);

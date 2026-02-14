@@ -68,7 +68,7 @@ void wait_then_cleanup() {
 }
 static void matrix_viewport(float out[4][4], float x, float y, float width, float height, float z_min, float z_max);
 
-void testSound(i16* sound_buffer, size_t sample_count) {
+void testSound(s16* sound_buffer, size_t sample_count) {
     // static float phase = 0.0f;     
     // const float frequency = 440.0f;
     // const float sample_rate = 48000.0f;
@@ -84,7 +84,7 @@ void testSound(i16* sound_buffer, size_t sample_count) {
     //     *audio_cursor += 1;
     // }
 
-    memset(sound_buffer, 0, sample_count * sizeof(i16));
+    memset(sound_buffer, 0, sample_count * sizeof(s16));
 
     u32 cursor = *audio_buffer_data->cursor;
 
@@ -98,7 +98,7 @@ void testSound(i16* sound_buffer, size_t sample_count) {
                 audio_buffer_data = create_wav_entity(music_strs[*music_current]);
             }
         }
-        sound_buffer[i] = ((i16*)audio_buffer_data->current_data)[cursor] * 0.;
+        sound_buffer[i] = ((s16*)audio_buffer_data->current_data)[cursor] * 0.;
         cursor++;
     }
     *audio_buffer_data->cursor = cursor;
@@ -151,8 +151,8 @@ int main(void)
 {
     SDL_Event e;
 
-    i32       start, last, now;
-    i32       fps, frames;
+    s32       start, last, now;
+    s32       fps, frames;
     start = now = last = GetTickCount();
     frames = fps = 0;
     int f3key = 0;
@@ -207,7 +207,7 @@ int main(void)
     pb_set_color_format(NV097_SET_SURFACE_FORMAT_COLOR_LE_A8R8G8B8, false);
 
     f32 move_speed = 5;
-    i32 sw = 0;
+    s32 sw = 0;
     f32 obj_rotationX = 0;
     f32 obj_rotationY = 0;
     f32 cam_rotationX = 0;
@@ -291,7 +291,7 @@ int main(void)
             f32 looking_spd = 150;
             const f32 dead_zone = 14000;
             const f64 delta = timer_delta();
-            i16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
+            s16 look_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
             if (look_x_axis > dead_zone || look_x_axis < -dead_zone) {
                 // x is y because rotation ok?!
                 look_x_axis += (look_x_axis > 0 ? -1 : 1) * dead_zone;
@@ -302,7 +302,7 @@ int main(void)
                     cam_rotationY = fmod(cam_rotationY, 2*M_PI);
                 }
             }
-            i16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
+            s16 look_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
             if (look_y_axis > dead_zone || look_y_axis < -dead_zone) {
                 look_y_axis += (look_y_axis > 0 ? -1 : 1) * dead_zone;
                 cam_rotationX -= looking_spd * (float) (look_y_axis) / 1000000.f * delta;
@@ -312,7 +312,7 @@ int main(void)
                     cam_rotationX = fmod(cam_rotationX, 2*M_PI);
                 }
             }
-            i16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+            s16 walk_x_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
             if (walk_x_axis > dead_zone || walk_x_axis < -dead_zone) {
                 // x is y because rotation ok?!
                 walk_x_axis += (walk_x_axis > 0 ? -1 : 1) * dead_zone;
@@ -321,7 +321,7 @@ int main(void)
                 cam_posX = 0;
             }
 
-            i16 walk_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+            s16 walk_y_axis = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
             if (walk_y_axis > dead_zone || walk_y_axis < -dead_zone) {
                 walk_y_axis += (walk_y_axis > 0 ? -1 : 1) * dead_zone;
                 cam_posZ = movement_spd * (float) (walk_y_axis) / 32767.f * delta;
@@ -342,8 +342,8 @@ int main(void)
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)) {
                 g_render_method = g_render_method == TRIANGLES ? LINES : TRIANGLES;    
             }
-            int chunk_pos_x = (int)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE))); 
-            int chunk_pos_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
+            s32 chunk_pos_x = (s32)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE))); 
+            s32 chunk_pos_z = (s32)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
 
             // f32_v2 snap = snap45(cam_rotationX, cam_rotationY);
 
@@ -372,13 +372,13 @@ int main(void)
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT),
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT),
-                    (i16)(100 * cam_rotationX),
-                    (i16)(100 * cam_rotationY),
+                    (s16)(100 * cam_rotationX),
+                    (s16)(100 * cam_rotationY),
                     // (i16)(100 * snap.x),
                     // (i16)(100 * snap.y),
-                    (i16)v_cam_loc.x,
-                    (i16)v_cam_loc.y,
-                    (i16)v_cam_loc.z,
+                    (s16)v_cam_loc.x,
+                    (s16)v_cam_loc.y,
+                    (s16)v_cam_loc.z,
                     chunk_pos_x,
                     chunk_pos_z
 

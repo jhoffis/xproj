@@ -31,6 +31,7 @@
 
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
+static bool x_held = false;
 
 #define MUSIC_AMOUNT 5
 static u8 *music_current;
@@ -340,7 +341,12 @@ int main(void)
             }
 
             if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)) {
-                g_render_method = g_render_method == TRIANGLES ? LINES : TRIANGLES;    
+                if (!x_held) {
+                    g_render_method = g_render_method == TRIANGLES ? LINES : TRIANGLES;    
+                    x_held = true;
+                }
+            } else {
+                x_held = false;
             }
             s32 chunk_pos_x = (s32)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE))); 
             s32 chunk_pos_z = (s32)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));

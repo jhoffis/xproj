@@ -67,7 +67,9 @@ shader_data_gen: $(SHADER_OBJS)
 	  rm -f '$(SHADER_DATA_GEN).tmp'; \
 	fi
 
-$(SHADER_DRIVER_OBJ): $(SHADER_DATA_GEN) | shader_data_gen
+$(SHADER_DATA_GEN): shader_data_gen ;
+
+$(SHADER_DRIVER_OBJ): $(SHADER_DATA_GEN)
 
 .PHONY: win ch run
 

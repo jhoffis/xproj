@@ -195,6 +195,10 @@ int main(void)
         XVideoSetMode(screen_width, screen_height, 32, REFRESH_DEFAULT);
     }
     debugPrint("test\n");
+    // The unrolled SSE index upload path can outpace the default 512 KiB
+    // push buffer at high scene complexity (e.g. larger CHUNK_VIEW_DISTANCE).
+    // Increase headroom to avoid PFIFO command stream overruns.
+    pb_size(4 * 1024 * 1024);
     pbk_init = pb_init() == 0;
     if (!pbk_init) {
         pb_show_debug_screen();

@@ -7,6 +7,7 @@
 #include <xmmintrin.h> // For SSE (128-bit SIMD)
 #include <strings.h> // for ffs()
 #define MASK(mask, val) (((val) << (ffs(mask)-1)) & (mask))
+typedef float f32_may_alias __attribute__((__may_alias__));
 
 u8 g_render_method = TRIANGLES;
 
@@ -152,13 +153,121 @@ static inline void* align_and_zero(void* ptr) {
     return p;
 }
 
+static inline void copy_u32_sse_unrolled_120(u32 *dst, const u32 *src) {
+    __m128 v0, v1, v2, v3, v4, v5, v6, v7, v8, v9;
+    const f32_may_alias *s = (const f32_may_alias *)src;
+    f32_may_alias *d = (f32_may_alias *)dst;
+
+    __builtin_prefetch(&src[40], 0, 1);
+    v0 = _mm_loadu_ps((const float *)&s[0]);
+    v1 = _mm_loadu_ps((const float *)&s[4]);
+    v2 = _mm_loadu_ps((const float *)&s[8]);
+    v3 = _mm_loadu_ps((const float *)&s[12]);
+    v4 = _mm_loadu_ps((const float *)&s[16]);
+    v5 = _mm_loadu_ps((const float *)&s[20]);
+    v6 = _mm_loadu_ps((const float *)&s[24]);
+    v7 = _mm_loadu_ps((const float *)&s[28]);
+    v8 = _mm_loadu_ps((const float *)&s[32]);
+    v9 = _mm_loadu_ps((const float *)&s[36]);
+    _mm_storeu_ps((float *)&d[0], v0);
+    _mm_storeu_ps((float *)&d[4], v1);
+    _mm_storeu_ps((float *)&d[8], v2);
+    _mm_storeu_ps((float *)&d[12], v3);
+    _mm_storeu_ps((float *)&d[16], v4);
+    _mm_storeu_ps((float *)&d[20], v5);
+    _mm_storeu_ps((float *)&d[24], v6);
+    _mm_storeu_ps((float *)&d[28], v7);
+    _mm_storeu_ps((float *)&d[32], v8);
+    _mm_storeu_ps((float *)&d[36], v9);
+
+    __builtin_prefetch(&src[80], 0, 1);
+    v0 = _mm_loadu_ps((const float *)&s[40]);
+    v1 = _mm_loadu_ps((const float *)&s[44]);
+    v2 = _mm_loadu_ps((const float *)&s[48]);
+    v3 = _mm_loadu_ps((const float *)&s[52]);
+    v4 = _mm_loadu_ps((const float *)&s[56]);
+    v5 = _mm_loadu_ps((const float *)&s[60]);
+    v6 = _mm_loadu_ps((const float *)&s[64]);
+    v7 = _mm_loadu_ps((const float *)&s[68]);
+    v8 = _mm_loadu_ps((const float *)&s[72]);
+    v9 = _mm_loadu_ps((const float *)&s[76]);
+    _mm_storeu_ps((float *)&d[40], v0);
+    _mm_storeu_ps((float *)&d[44], v1);
+    _mm_storeu_ps((float *)&d[48], v2);
+    _mm_storeu_ps((float *)&d[52], v3);
+    _mm_storeu_ps((float *)&d[56], v4);
+    _mm_storeu_ps((float *)&d[60], v5);
+    _mm_storeu_ps((float *)&d[64], v6);
+    _mm_storeu_ps((float *)&d[68], v7);
+    _mm_storeu_ps((float *)&d[72], v8);
+    _mm_storeu_ps((float *)&d[76], v9);
+
+    __builtin_prefetch(&src[120], 0, 1);
+    v0 = _mm_loadu_ps((const float *)&s[80]);
+    v1 = _mm_loadu_ps((const float *)&s[84]);
+    v2 = _mm_loadu_ps((const float *)&s[88]);
+    v3 = _mm_loadu_ps((const float *)&s[92]);
+    v4 = _mm_loadu_ps((const float *)&s[96]);
+    v5 = _mm_loadu_ps((const float *)&s[100]);
+    v6 = _mm_loadu_ps((const float *)&s[104]);
+    v7 = _mm_loadu_ps((const float *)&s[108]);
+    v8 = _mm_loadu_ps((const float *)&s[112]);
+    v9 = _mm_loadu_ps((const float *)&s[116]);
+    _mm_storeu_ps((float *)&d[80], v0);
+    _mm_storeu_ps((float *)&d[84], v1);
+    _mm_storeu_ps((float *)&d[88], v2);
+    _mm_storeu_ps((float *)&d[92], v3);
+    _mm_storeu_ps((float *)&d[96], v4);
+    _mm_storeu_ps((float *)&d[100], v5);
+    _mm_storeu_ps((float *)&d[104], v6);
+    _mm_storeu_ps((float *)&d[108], v7);
+    _mm_storeu_ps((float *)&d[112], v8);
+    _mm_storeu_ps((float *)&d[116], v9);
+    _mm_sfence();
+}
+
+static inline void copy_u32_sse(u32 *dst, const u32 *src, u32 count_words) {
+    u32 j = 0;
+    const f32_may_alias *s = (const f32_may_alias *)src;
+    f32_may_alias *d = (f32_may_alias *)dst;
+    for (; j + 40 <= count_words; j += 40) {
+        __m128 v0 = _mm_loadu_ps((const float *)&s[j + 0]);
+        __m128 v1 = _mm_loadu_ps((const float *)&s[j + 4]);
+        __m128 v2 = _mm_loadu_ps((const float *)&s[j + 8]);
+        __m128 v3 = _mm_loadu_ps((const float *)&s[j + 12]);
+        __m128 v4 = _mm_loadu_ps((const float *)&s[j + 16]);
+        __m128 v5 = _mm_loadu_ps((const float *)&s[j + 20]);
+        __m128 v6 = _mm_loadu_ps((const float *)&s[j + 24]);
+        __m128 v7 = _mm_loadu_ps((const float *)&s[j + 28]);
+        __m128 v8 = _mm_loadu_ps((const float *)&s[j + 32]);
+        __m128 v9 = _mm_loadu_ps((const float *)&s[j + 36]);
+
+        _mm_storeu_ps((float *)&d[j + 0], v0);
+        _mm_storeu_ps((float *)&d[j + 4], v1);
+        _mm_storeu_ps((float *)&d[j + 8], v2);
+        _mm_storeu_ps((float *)&d[j + 12], v3);
+        _mm_storeu_ps((float *)&d[j + 16], v4);
+        _mm_storeu_ps((float *)&d[j + 20], v5);
+        _mm_storeu_ps((float *)&d[j + 24], v6);
+        _mm_storeu_ps((float *)&d[j + 28], v7);
+        _mm_storeu_ps((float *)&d[j + 32], v8);
+        _mm_storeu_ps((float *)&d[j + 36], v9);
+    }
+    for (; j + 4 <= count_words; j += 4) {
+        __m128 v = _mm_loadu_ps((const float *)&s[j]);
+        _mm_storeu_ps((float *)&d[j], v);
+    }
+    for (; j < count_words; ++j) {
+        dst[j] = src[j];
+    }
+    _mm_sfence();
+}
+
 
 static u32 draw_indexed_full(u32 num_cube_indices, const u32 *cube_indices) {
 #define MAX_BATCH 120
     const u32 full_words = (num_cube_indices / MAX_BATCH) * MAX_BATCH;
     u32 base_offset = 0;
-    __m128 indices1, indices2, indices3, indices4, indices5;
-    __m128 indices6, indices7, indices8, indices9, indices10;
     u32 *p;
 
     while (base_offset < full_words) {
@@ -166,79 +275,7 @@ static u32 draw_indexed_full(u32 num_cube_indices, const u32 *cube_indices) {
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
         pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, MAX_BATCH);
 
-        __builtin_prefetch(&cube_indices[base_offset + 40], 0, 1);
-
-        indices1  = *((__m128 *)&cube_indices[base_offset + 0]);
-        indices2  = *((__m128 *)&cube_indices[base_offset + 4]);
-        indices3  = *((__m128 *)&cube_indices[base_offset + 8]);
-        indices4  = *((__m128 *)&cube_indices[base_offset + 12]);
-        indices5  = *((__m128 *)&cube_indices[base_offset + 16]);
-        indices6  = *((__m128 *)&cube_indices[base_offset + 20]);
-        indices7  = *((__m128 *)&cube_indices[base_offset + 24]);
-        indices8  = *((__m128 *)&cube_indices[base_offset + 28]);
-        indices9  = *((__m128 *)&cube_indices[base_offset + 32]);
-        indices10 = *((__m128 *)&cube_indices[base_offset + 36]);
-
-        _mm_storeu_ps((float *)&p[0],  indices1);
-        _mm_storeu_ps((float *)&p[4],  indices2);
-        _mm_storeu_ps((float *)&p[8],  indices3);
-        _mm_storeu_ps((float *)&p[12], indices4);
-        _mm_storeu_ps((float *)&p[16], indices5);
-        _mm_storeu_ps((float *)&p[20], indices6);
-        _mm_storeu_ps((float *)&p[24], indices7);
-        _mm_storeu_ps((float *)&p[28], indices8);
-        _mm_storeu_ps((float *)&p[32], indices9);
-        _mm_storeu_ps((float *)&p[36], indices10);
-
-        __builtin_prefetch(&cube_indices[base_offset + 80], 0, 1);
-
-        indices1  = *((__m128 *)&cube_indices[base_offset + 40]);
-        indices2  = *((__m128 *)&cube_indices[base_offset + 44]);
-        indices3  = *((__m128 *)&cube_indices[base_offset + 48]);
-        indices4  = *((__m128 *)&cube_indices[base_offset + 52]);
-        indices5  = *((__m128 *)&cube_indices[base_offset + 56]);
-        indices6  = *((__m128 *)&cube_indices[base_offset + 60]);
-        indices7  = *((__m128 *)&cube_indices[base_offset + 64]);
-        indices8  = *((__m128 *)&cube_indices[base_offset + 68]);
-        indices9  = *((__m128 *)&cube_indices[base_offset + 72]);
-        indices10 = *((__m128 *)&cube_indices[base_offset + 76]);
-
-        _mm_storeu_ps((float *)&p[40], indices1);
-        _mm_storeu_ps((float *)&p[44], indices2);
-        _mm_storeu_ps((float *)&p[48], indices3);
-        _mm_storeu_ps((float *)&p[52], indices4);
-        _mm_storeu_ps((float *)&p[56], indices5);
-        _mm_storeu_ps((float *)&p[60], indices6);
-        _mm_storeu_ps((float *)&p[64], indices7);
-        _mm_storeu_ps((float *)&p[68], indices8);
-        _mm_storeu_ps((float *)&p[72], indices9);
-        _mm_storeu_ps((float *)&p[76], indices10);
-
-        __builtin_prefetch(&cube_indices[base_offset + 120], 0, 1);
-
-        indices1  = *((__m128 *)&cube_indices[base_offset + 80]);
-        indices2  = *((__m128 *)&cube_indices[base_offset + 84]);
-        indices3  = *((__m128 *)&cube_indices[base_offset + 88]);
-        indices4  = *((__m128 *)&cube_indices[base_offset + 92]);
-        indices5  = *((__m128 *)&cube_indices[base_offset + 96]);
-        indices6  = *((__m128 *)&cube_indices[base_offset + 100]);
-        indices7  = *((__m128 *)&cube_indices[base_offset + 104]);
-        indices8  = *((__m128 *)&cube_indices[base_offset + 108]);
-        indices9  = *((__m128 *)&cube_indices[base_offset + 112]);
-        indices10 = *((__m128 *)&cube_indices[base_offset + 116]);
-
-        _mm_storeu_ps((float *)&p[80],  indices1);
-        _mm_storeu_ps((float *)&p[84],  indices2);
-        _mm_storeu_ps((float *)&p[88],  indices3);
-        _mm_storeu_ps((float *)&p[92],  indices4);
-        _mm_storeu_ps((float *)&p[96],  indices5);
-        _mm_storeu_ps((float *)&p[100], indices6);
-        _mm_storeu_ps((float *)&p[104], indices7);
-        _mm_storeu_ps((float *)&p[108], indices8);
-        _mm_storeu_ps((float *)&p[112], indices9);
-        _mm_storeu_ps((float *)&p[116], indices10);
-
-        _mm_sfence();
+        copy_u32_sse_unrolled_120(p, &cube_indices[base_offset]);
 
         p += MAX_BATCH;
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
@@ -255,8 +292,6 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX_BATCH 120
 
-    __m128 indices1, indices2, indices3, indices4, indices5;
-    __m128 indices6, indices7, indices8, indices9, indices10;
     u32 *p;
 
     // draw full blocks, then advance the pointer for the remainder
@@ -270,59 +305,7 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
         pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, num_this_batch);
 
-        u32 base_offset = i;
-
-        // Prefetch the first chunk
-        __builtin_prefetch(&cube_indices[base_offset + 20], 0, 1);
-
-        u32 j = 0;
-        for (; j + 40 <= num_this_batch; j += 40) {
-            __builtin_prefetch(&cube_indices[base_offset + j + 40], 0, 1);
-
-            indices1  = *((__m128 *)&cube_indices[base_offset + j]);
-            indices2  = *((__m128 *)&cube_indices[base_offset + j + 4]);
-            indices3  = *((__m128 *)&cube_indices[base_offset + j + 8]);
-            indices4  = *((__m128 *)&cube_indices[base_offset + j + 12]);
-            indices5  = *((__m128 *)&cube_indices[base_offset + j + 16]);
-            indices6  = *((__m128 *)&cube_indices[base_offset + j + 20]);
-            indices7  = *((__m128 *)&cube_indices[base_offset + j + 24]);
-            indices8  = *((__m128 *)&cube_indices[base_offset + j + 28]);
-            indices9  = *((__m128 *)&cube_indices[base_offset + j + 32]);
-            indices10 = *((__m128 *)&cube_indices[base_offset + j + 36]);
-            // indices1 = _mm_loadu_ps((float *)&cube_indices[base_offset + j]);
-            // indices2 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 4]);
-            // indices3 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 8]);
-            // indices4 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 12]);
-            // indices5 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 16]);
-            // indices6 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 20]);
-            // indices7 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 24]);
-            // indices8 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 28]);
-            // indices9 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 32]);
-            // indices10 = _mm_loadu_ps((float *)&cube_indices[base_offset + j+ 36]);
-
-            _mm_storeu_ps((float *)&p[j],      indices1);
-            _mm_storeu_ps((float *)&p[j + 4],  indices2);
-            _mm_storeu_ps((float *)&p[j + 8],  indices3);
-            _mm_storeu_ps((float *)&p[j + 12], indices4);
-            _mm_storeu_ps((float *)&p[j + 16], indices5);
-            _mm_storeu_ps((float *)&p[j + 20], indices6);
-            _mm_storeu_ps((float *)&p[j + 24], indices7);
-            _mm_storeu_ps((float *)&p[j + 28], indices8);
-            _mm_storeu_ps((float *)&p[j + 32], indices9);
-            _mm_storeu_ps((float *)&p[j + 36], indices10);
-        }
-
-        for (; j + 4 <= num_this_batch; j += 4) {
-            indices1 = *((__m128 *)&cube_indices[base_offset + j]);
-            _mm_storeu_ps((float *)&p[j], indices1);
-        }
-
-        // Handle remaining indices (not divisible by 16)
-        for (; j < num_this_batch; ++j) {
-            p[j] = cube_indices[base_offset + j];
-        }
-
-        _mm_sfence();
+        copy_u32_sse(p, &cube_indices[i], num_this_batch);
 
         p += num_this_batch;
         p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);

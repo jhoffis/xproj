@@ -34,6 +34,7 @@ SRC_OUT_DIR = $(CURDIR)/src_out_release
 DEBUG = n
 NXDK_CFLAGS += -O2
 NXDK_CFLAGS += -DDBG=0
+NXDK_CFLAGS += -fno-strict-aliasing
 endif
 
 SRCS = $(sort $(shell find $(SRC_DIR) -type f \( -name '*.c' -o -name '*.cpp' -o -name '*.s' \)))

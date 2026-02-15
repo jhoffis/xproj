@@ -11,7 +11,8 @@
 #define	_Z					2
 #define	_W					3
 
-//4x4 matrices indices
+//4x4 matrices indices (guarded: pbkit_pushbuffer.h may define these too)
+#ifndef _11
 #define	_11					0
 #define	_12					1
 #define	_13					2
@@ -28,6 +29,7 @@
 #define	_42					13
 #define	_43					14
 #define	_44					15
+#endif
 
 
 //vector functions

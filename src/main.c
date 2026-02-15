@@ -46,6 +46,7 @@ static wav_entity *audio_buffer_data;
 
 void cleanup() {
 
+    cleanup_terrain();
     destroy_cubes();
     destroy_world();
     xfree(music_current);

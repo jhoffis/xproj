@@ -19,7 +19,8 @@
 // (Avoids per-batch malloc/free in the hot render loop.)
 extern f32_v4 *g_terrain_vertex_colors;
 
-void init_terrain();
+void init_terrain(void);
+void cleanup_terrain(void);
 
 
 /*
@@ -154,8 +155,8 @@ static void render_cube(u32 face_count, u32 vertex_offset, u32 index_offset_u32)
     
 
     /* Set vertex diffuse color attribute (shared static buffer) */
-    set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-            3, sizeof(f32_v4), g_terrain_vertex_colors);
+    // set_attrib_pointer(4, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+    //         4, sizeof(f32_v4), g_terrain_vertex_colors);
 
     /* Set texture coordinate attribute */
     set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,

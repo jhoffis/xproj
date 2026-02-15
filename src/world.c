@@ -12,6 +12,9 @@
  * Load the faces you need to the gpu.
  */
 
+face_stored faces_pool[FACE_POOL_SIZE];
+u32 num_faces_pooled = 0;
+
 chunk_data loaded_chunks[CHUNK_AMOUNT];
 u32 chunk_offsets[CHUNK_AMOUNT];
 u32 num_chunks_pooled = 0;
@@ -26,13 +29,10 @@ u32 num_faces_type[FACE_TYPE_AMOUNT];
 face_batch face_batches[FACE_TYPE_AMOUNT][MAX_BATCHES_PER_TYPE];
 u8 num_face_batches[FACE_TYPE_AMOUNT];
 
-face_stored faces_pool[FACE_POOL_SIZE];
-u32 num_faces_pooled = 0;
-
 
 void init_world(void) {
-    chunk_vertices   = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
-    chunk_tex_coords = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    chunk_vertices   = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v3), 0, PAGE_READWRITE);
+    chunk_tex_coords = xMmAllocateContiguousMemoryEx(FACE_POOL_SIZE * 4 * sizeof(f32_v2), 0, PAGE_READWRITE);
     // indices are written sequentially by CPU and read by GPU; keep 16-byte alignment.
     // We store 6x u16 per face, packed as 3x u32 words (2 indices per word).
     chunk_indices = x_aligned_malloc((FACE_POOL_SIZE * 6 * sizeof(u16)) + 64, 16);

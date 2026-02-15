@@ -3,7 +3,7 @@
 // Shared vertex color stream (see terrain.h)
 f32_v4 *g_terrain_vertex_colors = NULL;
 
-void init_terrain() {
+void init_terrain(void) {
     // img = load_image("grass");
     // // u8 imggg[] = {
     // //              0, 255,   0,   0xff, 
@@ -29,4 +29,8 @@ void init_terrain() {
             g_terrain_vertex_colors[i] = (f32_v4){ 1.0f, 1.0f, 1.0f, 1.0f };
         }
     }
+}
+
+void cleanup_terrain(void) {
+    xfree(g_terrain_vertex_colors);
 }

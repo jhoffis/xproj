@@ -1,7 +1,7 @@
 struct vIn {
     float2 tex  : TEXCOORD;
 	float4 color : DIFFUSE;
-	float4 pos  : POSITION;
+	float3 pos  : POSITION;
 };
 
 struct vOut {
@@ -27,7 +27,7 @@ vOut main(
 
 	result.pos = pos;
 //	result.tex0 = float4(I.tex.x, I.tex.y, 0, 0);
-  //  float2 tex = float2(I.color.xy);
+    float2 tex = float2(I.color.xy);
  //   float2 tex2 = tex * float2(1.00001, 1);
     result.tex0 = I.tex;
 //    result.tex0.x *= I.color.x;

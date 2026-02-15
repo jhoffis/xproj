@@ -1,0 +1,49 @@
+LIBCXX_DIR = $(NXDK_DIR)/lib/libcxx
+
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/algorithm.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/any.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/bind.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/charconv.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/chrono.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/condition_variable.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/condition_variable_destructor.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/debug.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/exception.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/functional.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/future.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/hash.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/ios.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/iostream.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/locale.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/memory.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/mutex.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/mutex_destructor.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/new.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/optional.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/random.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/regex.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/shared_mutex.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/stdexcept.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/string.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/strstream.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/system_error.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/thread.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/typeinfo.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/utility.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/valarray.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/variant.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/vector.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/support/win32/support.cpp
+LIBCXX_SRCS += $(LIBCXX_DIR)/src/support/win32/thread_win32.cpp
+LIBCXX_OBJS = $(addsuffix .obj, $(basename $(LIBCXX_SRCS)))
+
+$(NXDK_DIR)/lib/libc++.lib: $(LIBCXX_OBJS)
+
+main.exe: $(NXDK_DIR)/lib/libc++.lib
+
+CLEANRULES += clean-libcxx
+
+.PHONY: clean-libcxx
+clean-libcxx:
+	$(VE)rm -f $(LIBCXX_OBJS) \
+	           $(NXDK_DIR)/lib/libc++.lib

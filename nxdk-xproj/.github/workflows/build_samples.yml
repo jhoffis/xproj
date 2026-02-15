@@ -1,0 +1,62 @@
+name: Build Samples
+
+on: [push, pull_request]
+
+jobs:
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      POWERSHELL_TELEMETRY_OPTOUT: 1
+    steps:
+      - name: Clone Tree
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install MSYS2 & Dependencies
+        run: |
+          echo "Downloading MSYS2 environment..."
+          curl -fLO "https://github.com/XboxDev/nxdk-ci-environment-msys2/releases/latest/download/msys64.7z"
+          echo "Extracting MSYS2 environment..."
+          7z x -y msys64.7z "-oC:\tools\"
+          echo "Updating MSYS2 environment..."
+          C:\tools\msys64\usr\bin\bash.exe -elc "pacman -Syu --noconfirm"
+      - name: Build
+        env:
+          MSYS2_ARCH: x86_64
+          MSYSTEM: MINGW64
+        run: C:\tools\msys64\usr\bin\bash.exe -elc "cd $(cygpath $env:GITHUB_WORKSPACE) && ./.ci_build_samples.sh"
+  macos:
+    name: macOS
+    runs-on: macOS-latest
+    timeout-minutes: 20
+    steps:
+      - name: Clone Tree
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_ANALYTICS: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew install lld llvm coreutils
+      - name: Build
+        run: ./.ci_build_samples.sh
+  ubuntu:
+    name: Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Clone Tree
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install llvm lld
+      - name: Build
+        run: ./.ci_build_samples.sh

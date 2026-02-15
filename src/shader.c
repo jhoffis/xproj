@@ -162,7 +162,6 @@ static u32 draw_indexed_full(u32 num_cube_indices, const u32 *cube_indices) {
     u32 *p;
 
     while (base_offset < full_words) {
-        pb_align();
         p = pb_begin();
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
         pb_push(p++, 0x40000000 | NV20_TCL_PRIMITIVE_3D_INDEX_DATA, MAX_BATCH);
@@ -180,16 +179,16 @@ static u32 draw_indexed_full(u32 num_cube_indices, const u32 *cube_indices) {
         indices9  = *((__m128 *)&cube_indices[base_offset + 32]);
         indices10 = *((__m128 *)&cube_indices[base_offset + 36]);
 
-        _mm_store_ps((float *)&p[0],  indices1);
-        _mm_store_ps((float *)&p[4],  indices2);
-        _mm_store_ps((float *)&p[8],  indices3);
-        _mm_store_ps((float *)&p[12], indices4);
-        _mm_store_ps((float *)&p[16], indices5);
-        _mm_store_ps((float *)&p[20], indices6);
-        _mm_store_ps((float *)&p[24], indices7);
-        _mm_store_ps((float *)&p[28], indices8);
-        _mm_store_ps((float *)&p[32], indices9);
-        _mm_store_ps((float *)&p[36], indices10);
+        _mm_storeu_ps((float *)&p[0],  indices1);
+        _mm_storeu_ps((float *)&p[4],  indices2);
+        _mm_storeu_ps((float *)&p[8],  indices3);
+        _mm_storeu_ps((float *)&p[12], indices4);
+        _mm_storeu_ps((float *)&p[16], indices5);
+        _mm_storeu_ps((float *)&p[20], indices6);
+        _mm_storeu_ps((float *)&p[24], indices7);
+        _mm_storeu_ps((float *)&p[28], indices8);
+        _mm_storeu_ps((float *)&p[32], indices9);
+        _mm_storeu_ps((float *)&p[36], indices10);
 
         __builtin_prefetch(&cube_indices[base_offset + 80], 0, 1);
 
@@ -204,16 +203,16 @@ static u32 draw_indexed_full(u32 num_cube_indices, const u32 *cube_indices) {
         indices9  = *((__m128 *)&cube_indices[base_offset + 72]);
         indices10 = *((__m128 *)&cube_indices[base_offset + 76]);
 
-        _mm_store_ps((float *)&p[40], indices1);
-        _mm_store_ps((float *)&p[44], indices2);
-        _mm_store_ps((float *)&p[48], indices3);
-        _mm_store_ps((float *)&p[52], indices4);
-        _mm_store_ps((float *)&p[56], indices5);
-        _mm_store_ps((float *)&p[60], indices6);
-        _mm_store_ps((float *)&p[64], indices7);
-        _mm_store_ps((float *)&p[68], indices8);
-        _mm_store_ps((float *)&p[72], indices9);
-        _mm_store_ps((float *)&p[76], indices10);
+        _mm_storeu_ps((float *)&p[40], indices1);
+        _mm_storeu_ps((float *)&p[44], indices2);
+        _mm_storeu_ps((float *)&p[48], indices3);
+        _mm_storeu_ps((float *)&p[52], indices4);
+        _mm_storeu_ps((float *)&p[56], indices5);
+        _mm_storeu_ps((float *)&p[60], indices6);
+        _mm_storeu_ps((float *)&p[64], indices7);
+        _mm_storeu_ps((float *)&p[68], indices8);
+        _mm_storeu_ps((float *)&p[72], indices9);
+        _mm_storeu_ps((float *)&p[76], indices10);
 
         __builtin_prefetch(&cube_indices[base_offset + 120], 0, 1);
 
@@ -228,16 +227,16 @@ static u32 draw_indexed_full(u32 num_cube_indices, const u32 *cube_indices) {
         indices9  = *((__m128 *)&cube_indices[base_offset + 112]);
         indices10 = *((__m128 *)&cube_indices[base_offset + 116]);
 
-        _mm_store_ps((float *)&p[80],  indices1);
-        _mm_store_ps((float *)&p[84],  indices2);
-        _mm_store_ps((float *)&p[88],  indices3);
-        _mm_store_ps((float *)&p[92],  indices4);
-        _mm_store_ps((float *)&p[96],  indices5);
-        _mm_store_ps((float *)&p[100], indices6);
-        _mm_store_ps((float *)&p[104], indices7);
-        _mm_store_ps((float *)&p[108], indices8);
-        _mm_store_ps((float *)&p[112], indices9);
-        _mm_store_ps((float *)&p[116], indices10);
+        _mm_storeu_ps((float *)&p[80],  indices1);
+        _mm_storeu_ps((float *)&p[84],  indices2);
+        _mm_storeu_ps((float *)&p[88],  indices3);
+        _mm_storeu_ps((float *)&p[92],  indices4);
+        _mm_storeu_ps((float *)&p[96],  indices5);
+        _mm_storeu_ps((float *)&p[100], indices6);
+        _mm_storeu_ps((float *)&p[104], indices7);
+        _mm_storeu_ps((float *)&p[108], indices8);
+        _mm_storeu_ps((float *)&p[112], indices9);
+        _mm_storeu_ps((float *)&p[116], indices10);
 
         _mm_sfence();
 
@@ -266,7 +265,6 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
     num_cube_indices -= consumed;
 
     for (u32 i = 0; i < num_cube_indices; i += MAX_BATCH) {
-        pb_align();
         u32 num_this_batch = MIN(MAX_BATCH, num_cube_indices - i);
         p = pb_begin();
         p = pb_push1(p, NV097_SET_BEGIN_END, g_render_method);
@@ -302,21 +300,21 @@ void draw_indexed(u32 num_cube_indices, u32 *cube_indices) {
             // indices9 = _mm_loadu_ps((float *)&cube_indices[base_offset + j + 32]);
             // indices10 = _mm_loadu_ps((float *)&cube_indices[base_offset + j+ 36]);
 
-            _mm_store_ps((float *)&p[j],      indices1);
-            _mm_store_ps((float *)&p[j + 4],  indices2);
-            _mm_store_ps((float *)&p[j + 8],  indices3);
-            _mm_store_ps((float *)&p[j + 12], indices4);
-            _mm_store_ps((float *)&p[j + 16], indices5);
-            _mm_store_ps((float *)&p[j + 20], indices6);
-            _mm_store_ps((float *)&p[j + 24], indices7);
-            _mm_store_ps((float *)&p[j + 28], indices8);
-            _mm_store_ps((float *)&p[j + 32], indices9);
-            _mm_store_ps((float *)&p[j + 36], indices10);
+            _mm_storeu_ps((float *)&p[j],      indices1);
+            _mm_storeu_ps((float *)&p[j + 4],  indices2);
+            _mm_storeu_ps((float *)&p[j + 8],  indices3);
+            _mm_storeu_ps((float *)&p[j + 12], indices4);
+            _mm_storeu_ps((float *)&p[j + 16], indices5);
+            _mm_storeu_ps((float *)&p[j + 20], indices6);
+            _mm_storeu_ps((float *)&p[j + 24], indices7);
+            _mm_storeu_ps((float *)&p[j + 28], indices8);
+            _mm_storeu_ps((float *)&p[j + 32], indices9);
+            _mm_storeu_ps((float *)&p[j + 36], indices10);
         }
 
         for (; j + 4 <= num_this_batch; j += 4) {
             indices1 = *((__m128 *)&cube_indices[base_offset + j]);
-            _mm_store_ps((float *)&p[j], indices1);
+            _mm_storeu_ps((float *)&p[j], indices1);
         }
 
         // Handle remaining indices (not divisible by 16)

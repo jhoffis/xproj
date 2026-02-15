@@ -1,7 +1,6 @@
 #include "world.h"
 #include "allocator.h"
 #include "mvp.h"
-#include <stdlib.h>
 #include <string.h>
 
 /*
@@ -59,56 +58,62 @@ static inline int is_air_type(u8 t) {
 static inline void push_face(u8 mask_face_type, u8 dir, u8 a0, u8 b0, u8 a1, u8 b1, u8 c, u32 *faces_found) {
     if (num_faces_pooled >= FACE_POOL_SIZE) return;
     const u8 face_type = (u8)(mask_face_type - 1u);
-    face_stored fs = 0;
-    SET_FACE_STORED(fs, a0, FACE_STORED_A0);
-    SET_FACE_STORED(fs, a1, FACE_STORED_A1);
-    SET_FACE_STORED(fs, b0, FACE_STORED_B0);
-    SET_FACE_STORED(fs, b1, FACE_STORED_B1);
-    SET_FACE_STORED(fs, c,  FACE_STORED_C);
-    SET_FACE_STORED(fs, dir, FACE_STORED_INFO_DIRECTION);
-    SET_FACE_STORED(fs, face_type, FACE_STORED_INFO_TYPE);
+    face_stored fs;
+    fs.a0 = a0;
+    fs.a1 = a1;
+    fs.b0 = b0;
+    fs.b1 = b1;
+    fs.c = c;
+    fs.dir = dir;
+    fs.type = face_type;
+    fs._pad = 0;
     faces_pool[num_faces_pooled++] = fs;
     (*faces_found)++;
 }
 
-// Greedy rectangle extraction on a CHUNK_SIZE x CHUNK_SIZE mask (u8 face_type, 0 = empty)
+// Greedy rectangle extraction on a WxH mask (u8 face_type, 0 = empty)
 static void greedy_from_mask(
     u8 *mask,
+    int width,
+    int height,
     u8 dir,
     u8 c,
-    int a_is_x,
     u32 *faces_found)
 {
-    (void)a_is_x; // mapping is handled by caller via push_face argument order
-
-    for (int b = 0; b < CHUNK_SIZE; b++) {
-        int row = b * CHUNK_SIZE;
-        for (int a = 0; a < CHUNK_SIZE; ) {
+    for (int b = 0; b < height; b++) {
+        int row = b * width;
+        for (int a = 0; a < width; ) {
             const u8 t = mask[row + a];
             if (!t) { a++; continue; }
 
-            int w = 1;
-            while ((a + w) < CHUNK_SIZE && mask[row + a + w] == t) w++;
+            int rect_w = 1;
+            while ((a + rect_w) < width && mask[row + a + rect_w] == t) rect_w++;
 
-            int h = 1;
-            for (; (b + h) < CHUNK_SIZE; h++) {
-                const int row2 = (b + h) * CHUNK_SIZE;
+            int rect_h = 1;
+            for (; (b + rect_h) < height; rect_h++) {
+                const int row2 = (b + rect_h) * width;
                 int k = 0;
-                for (; k < w; k++) {
-                    if (mask[row2 + a + k] != t) break;
+                for (; k < rect_w; k++) {
+                    if (mask[row2 + a + k] != t) {
+                        break;
+                    }
                 }
-                if (k != w) break;
+                if (k != rect_w) {
+                    break;
+                }
             }
 
             // emit and clear
-            push_face(t, dir, (u8)a, (u8)b, (u8)(a + w - 1), (u8)(b + h - 1), c, faces_found);
+            push_face(t, dir, (u8)a, (u8)b, (u8)(a + rect_w - 1), (u8)(b + rect_h - 1), c, faces_found);
 
-            for (int y = 0; y < h; y++) {
-                const int r = (b + y) * CHUNK_SIZE;
-                for (int x = 0; x < w; x++) mask[r + a + x] = 0;
+            for (int y = 0; y < rect_h; y++) {
+                const int r = (b + y) * width;
+                for (int x = 0; x < rect_w; x++) {
+                    mask[r + a + x] = 0;
+                }
             }
 
-            a += w;
+            a += rect_w;
         }
     }
 }
@@ -118,18 +123,18 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
     // TODO: when chunks are adjacent, suppress faces on borders by checking neighbor chunks.
 
     u32 faces_found = 0;
-    u8 mask[CHUNK_SIZE * CHUNK_SIZE];
+    // Max 2D mask used by greedy: max(CHUNK_SIZE*CHUNK_HEIGHT, CHUNK_HEIGHT*CHUNK_SIZE)
+    u8 mask[CHUNK_SIZE * CHUNK_HEIGHT];
 
     // Y planes: UP/DOWN (A=x, B=z, C=y)
-    for (int y = 0; y < CHUNK_SIZE; y++) {
+    for (int y = 0; y < CHUNK_HEIGHT; y++) {
         // UP
-        memset(mask, 0, sizeof(mask));
+        memset(mask, 0, CHUNK_SIZE * CHUNK_SIZE);
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                if (y + 1 == CHUNK_SIZE) continue;
-                const u8 nb = cube_type_at(chunk, x, y + 1, z);
+                const u8 nb = (y + 1 == CHUNK_HEIGHT) ? BLOCK_TYPE_AIR : cube_type_at(chunk, x, y + 1, z);
                 if (is_air_type(nb)) {
                     mask[z * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_UP) + 1u;
                 }
@@ -137,90 +142,85 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
         }
         // greedy expects A and B in [0..15]. Here A=x, B=z.
         // Our push_face stores A=a, B=b, C=c. For Y planes that is correct.
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_UP, (u8)y, 1, &faces_found);
+        greedy_from_mask(mask, CHUNK_SIZE, CHUNK_SIZE, (u8)FACE_DIRECTION_UP, (u8)y, &faces_found);
 
         // DOWN
-        memset(mask, 0, sizeof(mask));
+        memset(mask, 0, CHUNK_SIZE * CHUNK_SIZE);
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                if(y == 0) continue; 
-                const u8 nb = cube_type_at(chunk, x, y - 1, z);
+                const u8 nb = (y == 0) ? BLOCK_TYPE_AIR : cube_type_at(chunk, x, y - 1, z);
                 if (is_air_type(nb)) {
                     mask[z * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_DOWN) + 1u;
                 }
             }
         }
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_DOWN, (u8)y, 1, &faces_found);
+        greedy_from_mask(mask, CHUNK_SIZE, CHUNK_SIZE, (u8)FACE_DIRECTION_DOWN, (u8)y, &faces_found);
     }
 
     // Z planes: NORTH/SOUTH (A=x, B=y, C=z)
     for (int z = 0; z < CHUNK_SIZE; z++) {
         // NORTH (+z)
-        memset(mask, 0, sizeof(mask));
-        for (int y = 0; y < CHUNK_SIZE; y++) {
+        memset(mask, 0, CHUNK_SIZE * CHUNK_HEIGHT);
+        for (int y = 0; y < CHUNK_HEIGHT; y++) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                if (z + 1 == CHUNK_SIZE) continue;
-                const u8 nb = cube_type_at(chunk, x, y, z + 1);
+                const u8 nb = (z + 1 == CHUNK_SIZE) ? BLOCK_TYPE_AIR : cube_type_at(chunk, x, y, z + 1);
                 if (is_air_type(nb)) {
                     mask[y * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_NORTH) + 1u;
                 }
             }
         }
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_NORTH, (u8)z, 1, &faces_found);
+        greedy_from_mask(mask, CHUNK_SIZE, CHUNK_HEIGHT, (u8)FACE_DIRECTION_NORTH, (u8)z, &faces_found);
 
         // SOUTH (-z)
-        memset(mask, 0, sizeof(mask));
-        for (int y = 0; y < CHUNK_SIZE; y++) {
+        memset(mask, 0, CHUNK_SIZE * CHUNK_HEIGHT);
+        for (int y = 0; y < CHUNK_HEIGHT; y++) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                if (z == 0) continue;
-                const u8 nb = cube_type_at(chunk, x, y, z - 1);
+                const u8 nb = (z == 0) ? BLOCK_TYPE_AIR : cube_type_at(chunk, x, y, z - 1);
                 if (is_air_type(nb)) {
                     mask[y * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_SOUTH) + 1u;
                 }
             }
         }
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_SOUTH, (u8)z, 1, &faces_found);
+        greedy_from_mask(mask, CHUNK_SIZE, CHUNK_HEIGHT, (u8)FACE_DIRECTION_SOUTH, (u8)z, &faces_found);
     }
 
     // X planes: EAST/WEST (A=y, B=z, C=x)
     for (int x = 0; x < CHUNK_SIZE; x++) {
         // EAST (+x)
-        memset(mask, 0, sizeof(mask));
+        memset(mask, 0, CHUNK_HEIGHT * CHUNK_SIZE);
         for (int z = 0; z < CHUNK_SIZE; z++) {
-            for (int y = 0; y < CHUNK_SIZE; y++) {
+            for (int y = 0; y < CHUNK_HEIGHT; y++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                if (x + 1 == CHUNK_SIZE) continue;
-                const u8 nb = cube_type_at(chunk, x + 1, y, z);
+                const u8 nb = (x + 1 == CHUNK_SIZE) ? BLOCK_TYPE_AIR : cube_type_at(chunk, x + 1, y, z);
                 if (is_air_type(nb)) {
-                    // NOTE: mask is indexed as B=z rows, A=y columns
-                    mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_EAST) + 1u;
+                    // mask is indexed as B=z rows, A=y columns
+                    mask[z * CHUNK_HEIGHT + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_EAST) + 1u;
                 }
             }
         }
         // greedy emits (A=a, B=b). For X planes we want A=y, B=z.
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_EAST, (u8)x, 0, &faces_found);
+        greedy_from_mask(mask, CHUNK_HEIGHT, CHUNK_SIZE, (u8)FACE_DIRECTION_EAST, (u8)x, &faces_found);
 
         // WEST (-x)
-        memset(mask, 0, sizeof(mask));
+        memset(mask, 0, CHUNK_HEIGHT * CHUNK_SIZE);
         for (int z = 0; z < CHUNK_SIZE; z++) {
-            for (int y = 0; y < CHUNK_SIZE; y++) {
+            for (int y = 0; y < CHUNK_HEIGHT; y++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                if (x == 0) continue;
-                const u8 nb = cube_type_at(chunk, x - 1, y, z);
+                const u8 nb = (x == 0) ? BLOCK_TYPE_AIR : cube_type_at(chunk, x - 1, y, z);
                 if (is_air_type(nb)) {
-                    mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_WEST) + 1u;
+                    mask[z * CHUNK_HEIGHT + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_WEST) + 1u;
                 }
             }
         }
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_WEST, (u8)x, 0, &faces_found);
+        greedy_from_mask(mask, CHUNK_HEIGHT, CHUNK_SIZE, (u8)FACE_DIRECTION_WEST, (u8)x, &faces_found);
     }
 
     *out_faces_found = faces_found;
@@ -237,18 +237,17 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
  * are made!
  */
 // #define CHUNK_TEST 0
-void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z) {
+static void generate_chunk(s32 chunk_x, s32 chunk_z) {
     if (num_chunks_pooled >= CHUNK_AMOUNT) return;
     chunk_data *chunk = &loaded_chunks[num_chunks_pooled];
     chunk->x = chunk_x;
-    chunk->y = chunk_y;
     chunk->z = chunk_z;
 
 
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
-            for (int y = 0; y < CHUNK_SIZE; y++) {
-                if (chunk_y == 0) {
+            for (int y = 0; y < CHUNK_HEIGHT; y++) {
+                if (y < 16) {
                     if (y < 5 && x % 2 != 0 && z % 2 != 0) {                    
                         if (y == 4)
                             chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
@@ -261,9 +260,9 @@ void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z) {
                             chunk->cubes[x][y][z].type = BLOCK_TYPE_DIRT;
                         // } else if (x % 2 == 0) {
                         // chunk->cubes[x][y][z].type = BLOCK_TYPE_COBBLESTONE;
-                } else {
-                    chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
-                }
+                    } else {
+                        chunk->cubes[x][y][z].type = BLOCK_TYPE_AIR;
+                    }
                 // chunk->cubes[x][y][z].type = BLOCK_TYPE_GRASS;
                 } else {
                     if (x == 0 && z == 0) {
@@ -305,16 +304,16 @@ static inline void write_indices_packed(u32 *dst_u32, u16 base, u8 winding) {
 static inline void write_face_to_buffers(
     u32 dst_v,
     u32 dst_i_u32,
-    const f32 chunk_offset[3],
+    const f32 chunk_offset[2],
     face_stored fs,
     u16 base_vertex_in_batch)
 {
-    const u8 a0i = (u8)GET_FACE_STORED(fs, FACE_STORED_A0);
-    const u8 a1i = (u8)GET_FACE_STORED(fs, FACE_STORED_A1);
-    const u8 b0i = (u8)GET_FACE_STORED(fs, FACE_STORED_B0);
-    const u8 b1i = (u8)GET_FACE_STORED(fs, FACE_STORED_B1);
-    const u8 ci  = (u8)GET_FACE_STORED(fs, FACE_STORED_C);
-    const u8 dir = (u8)GET_FACE_STORED(fs, FACE_STORED_INFO_DIRECTION);
+    const u8 a0i = fs.a0;
+    const u8 a1i = fs.a1;
+    const u8 b0i = fs.b0;
+    const u8 b1i = fs.b1;
+    const u8 ci  = fs.c;
+    const u8 dir = fs.dir;
 
     const f32 bs = (f32)BLOCK_SIZE;
 
@@ -335,10 +334,10 @@ static inline void write_face_to_buffers(
         // A=x, B=z, C=y
         if (dir == FACE_DIRECTION_UP) c += bs;
 
-        chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + a0, chunk_offset[1] + c, chunk_offset[2] + b1 };
-        chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + a1, chunk_offset[1] + c, chunk_offset[2] + b1 };
-        chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + a1, chunk_offset[1] + c, chunk_offset[2] + b0 };
-        chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + a0, chunk_offset[1] + c, chunk_offset[2] + b0 };
+        chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + a0, c, chunk_offset[1] + b1 };
+        chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + a1, c, chunk_offset[1] + b1 };
+        chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + a1, c, chunk_offset[1] + b0 };
+        chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + a0, c, chunk_offset[1] + b0 };
 
         chunk_tex_coords[dst_v + 0] = (f32_v2){ 0.0f,  tex_b };
         chunk_tex_coords[dst_v + 1] = (f32_v2){ tex_a, tex_b };
@@ -351,10 +350,10 @@ static inline void write_face_to_buffers(
         // A=x, B=y, C=z
         if (dir == FACE_DIRECTION_NORTH) c += bs;
 
-        chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + a1, chunk_offset[1] + b0, chunk_offset[2] + c };
-        chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + a1, chunk_offset[1] + b1, chunk_offset[2] + c };
-        chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + a0, chunk_offset[1] + b1, chunk_offset[2] + c };
-        chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + a0, chunk_offset[1] + b0, chunk_offset[2] + c };
+        chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + a1, b0, chunk_offset[1] + c };
+        chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + a1, b1, chunk_offset[1] + c };
+        chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + a0, b1, chunk_offset[1] + c };
+        chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + a0, b0, chunk_offset[1] + c };
 
         chunk_tex_coords[dst_v + 0] = (f32_v2){ tex_a, tex_b };
         chunk_tex_coords[dst_v + 1] = (f32_v2){ tex_a, 0.0f };
@@ -366,10 +365,10 @@ static inline void write_face_to_buffers(
     // WEST/EAST: A=y, B=z, C=x
     if (dir == FACE_DIRECTION_EAST) c += bs;
 
-    chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a0, chunk_offset[2] + b1 };
-    chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a1, chunk_offset[2] + b1 };
-    chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a1, chunk_offset[2] + b0 };
-    chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a0, chunk_offset[2] + b0 };
+    chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + c, a0, chunk_offset[1] + b1 };
+    chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + c, a1, chunk_offset[1] + b1 };
+    chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + c, a1, chunk_offset[1] + b0 };
+    chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + c, a0, chunk_offset[1] + b0 };
 
     chunk_tex_coords[dst_v + 0] = (f32_v2){ 0.0f,  tex_a };
     chunk_tex_coords[dst_v + 1] = (f32_v2){ 0.0f,  0.0f };
@@ -389,7 +388,6 @@ static inline void write_face_to_buffers(
 
 void load_chunks(void) {
     int current_chunk_x = (int)(floorf(v_cam_loc.x / (CHUNK_SIZE * BLOCK_SIZE)));
-    int current_chunk_y = (int)(floorf(v_cam_loc.y / (CHUNK_SIZE * BLOCK_SIZE)));
     int current_chunk_z = (int)(floorf(v_cam_loc.z / (CHUNK_SIZE * BLOCK_SIZE)));
 
     const int view_dist = CHUNK_VIEW_DISTANCE / 2;
@@ -404,10 +402,8 @@ void load_chunks(void) {
 
     // Load/generate chunks in the view distance
     for (int x = current_chunk_x - view_dist; x < current_chunk_x + view_dist; x++) {
-        for (int y = current_chunk_y - view_dist; y < current_chunk_y + view_dist; y++) {
-            for (int z = current_chunk_z - view_dist; z < current_chunk_z + view_dist; z++) {
-                generate_chunk(x, y, z);
-            }
+        for (int z = current_chunk_z - view_dist; z < current_chunk_z + view_dist; z++) {
+            generate_chunk(x, z);
         }
     }
 
@@ -422,7 +418,7 @@ void load_chunks(void) {
         const u32 n = chunk_offsets[c];
         for (u32 i = 0; i < n; i++) {
             const face_stored fs = faces_pool[face_cursor++];
-            const u8 ftype = (u8)GET_FACE_STORED(fs, FACE_STORED_INFO_TYPE);
+            const u8 ftype = fs.type;
             chunk_type_counts[c * FACE_TYPE_AMOUNT + ftype]++;
             num_faces_type[ftype]++;
         }
@@ -479,16 +475,15 @@ void load_chunks(void) {
     face_cursor = 0;
     for (u32 c = 0; c < num_chunks_pooled; c++) {
         const chunk_data *ch = &loaded_chunks[c];
-        const f32 pos_offset[3] = {
+        const f32 pos_offset[2] = {
             (f32)ch->x * BLOCK_CHUNK_SCALE,
-            (f32)ch->y * BLOCK_CHUNK_SCALE,
             (f32)ch->z * BLOCK_CHUNK_SCALE,
         };
 
         const u32 n = chunk_offsets[c];
         for (u32 i = 0; i < n; i++) {
             const face_stored fs = faces_pool[face_cursor++];
-            const u8 t = (u8)GET_FACE_STORED(fs, FACE_STORED_INFO_TYPE);
+            const u8 t = fs.type;
 
             const u32 base_in_type = chunk_type_base[c * FACE_TYPE_AMOUNT + t];
             const u32 local_in_chunk = (u32)chunk_type_written[c * FACE_TYPE_AMOUNT + t]++;

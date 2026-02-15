@@ -7,8 +7,9 @@
 #define MAX_RENDERED_FACES 40000 // 36864 // appearently
 
 #define CHUNK_SIZE 16
+#define CHUNK_HEIGHT 128
 #define CHUNK_VIEW_DISTANCE 12
-#define CHUNK_AMOUNT CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE*CHUNK_VIEW_DISTANCE
+#define CHUNK_AMOUNT (CHUNK_VIEW_DISTANCE * CHUNK_VIEW_DISTANCE)
 _Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole number!");
 // it can render up to 1024 faces per draw call
 #define FACE_POOL_SIZE 4*32*1024
@@ -37,8 +38,8 @@ _Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole 
  * don't use unnecessary amounts of ram on this.
  */
 typedef struct {
-    s32 x, y, z;
-    cube_entity cubes[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE]; // XYZ
+    s32 x, z;
+    cube_entity cubes[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
 } chunk_data;
 
 /*
@@ -55,24 +56,23 @@ typedef struct {
  * We only need two corners with two dimensions, and we know the direction so that we can assume whether it's x and y or x and z etc.
  * List the same face_type grouped together instead of storing it with each face.
  */
-typedef u32 face_stored; // Use to store basic info of the face, so that you can recreate it into a full face.
-#define FACE_STORED_A0    0xF0000000
-#define FACE_STORED_A1    0x0F000000
-#define FACE_STORED_B0    0x00F00000
-#define FACE_STORED_B1    0x000F0000
-#define FACE_STORED_C     0x0000F000
-#define FACE_STORED_INFO  0x00000FFF 
-#define FACE_STORED_INFO_EXPANSION  0x00000800 
-#define FACE_STORED_INFO_TYPE       0x000007F8 // 256 types
-#define FACE_STORED_INFO_DIRECTION  0x00000007
-// Bitfield helpers (works for any mask width, not just 4-bit fields)
-#define SET_FACE_STORED(value, input, mask) do { \
-    const u32 _shift = (u32)__builtin_ctz((u32)(mask)); \
-    const u32 _field = ((u32)(mask)) >> _shift; \
-    (value) = ((u32)(value) & ~((u32)(mask))) | ((((u32)(input)) & _field) << _shift); \
-} while (0)
-
-#define GET_FACE_STORED(value, mask) (((u32)(value) & (u32)(mask)) >> (u32)__builtin_ctz((u32)(mask)))
+// Stored (greedy) face description.
+//
+// Coordinates are inclusive ranges in a 2D slice:
+//  - UP/DOWN:     A=x (0..15),             B=z (0..15),             C=y (0..CHUNK_HEIGHT-1)
+//  - NORTH/SOUTH: A=x (0..15),             B=y (0..CHUNK_HEIGHT-1), C=z (0..15)
+//  - EAST/WEST:   A=y (0..CHUNK_HEIGHT-1), B=z (0..15),             C=x (0..15)
+//
+// NOTE: uses u8, so CHUNK_HEIGHT must be <= 255.
+typedef struct {
+    u8 a0, a1;
+    u8 b0, b1;
+    u8 c;
+    u8 dir;
+    u8 type;
+    u8 _pad;
+} face_stored;
+_Static_assert(CHUNK_HEIGHT <= 255, "face_stored uses u8; CHUNK_HEIGHT must be <= 255");
 
 // Rendering batches (16-bit index limit)
 #define MAX_FACES_PER_BATCH (MAX_VERTICES / 4u)
@@ -107,5 +107,4 @@ extern u32 num_faces_pooled;
 
 void init_world(void);
 void destroy_world(void);
-void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z);
 void load_chunks(void);

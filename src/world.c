@@ -128,7 +128,8 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                const u8 nb = (y + 1 == CHUNK_SIZE) ? (u8)BLOCK_TYPE_AIR : cube_type_at(chunk, x, y + 1, z);
+                if (y + 1 == CHUNK_SIZE) continue;
+                const u8 nb = cube_type_at(chunk, x, y + 1, z);
                 if (is_air_type(nb)) {
                     mask[z * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_UP) + 1u;
                 }
@@ -144,7 +145,8 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                const u8 nb = (y == 0) ? (u8)BLOCK_TYPE_AIR : cube_type_at(chunk, x, y - 1, z);
+                if(y == 0) continue; 
+                const u8 nb = cube_type_at(chunk, x, y - 1, z);
                 if (is_air_type(nb)) {
                     mask[z * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_DOWN) + 1u;
                 }
@@ -161,7 +163,8 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                const u8 nb = (z + 1 == CHUNK_SIZE) ? (u8)BLOCK_TYPE_AIR : cube_type_at(chunk, x, y, z + 1);
+                if (z + 1 == CHUNK_SIZE) continue;
+                const u8 nb = cube_type_at(chunk, x, y, z + 1);
                 if (is_air_type(nb)) {
                     mask[y * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_NORTH) + 1u;
                 }
@@ -175,7 +178,8 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
             for (int x = 0; x < CHUNK_SIZE; x++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                const u8 nb = (z == 0) ? (u8)BLOCK_TYPE_AIR : cube_type_at(chunk, x, y, z - 1);
+                if (z == 0) continue;
+                const u8 nb = cube_type_at(chunk, x, y, z - 1);
                 if (is_air_type(nb)) {
                     mask[y * CHUNK_SIZE + x] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_SOUTH) + 1u;
                 }
@@ -192,7 +196,8 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                const u8 nb = (x + 1 == CHUNK_SIZE) ? (u8)BLOCK_TYPE_AIR : cube_type_at(chunk, x + 1, y, z);
+                if (x + 1 == CHUNK_SIZE) continue;
+                const u8 nb = cube_type_at(chunk, x + 1, y, z);
                 if (is_air_type(nb)) {
                     // NOTE: mask is indexed as B=z rows, A=y columns
                     mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_EAST) + 1u;
@@ -208,7 +213,8 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 const u8 bt = cube_type_at(chunk, x, y, z);
                 if (is_air_type(bt)) continue;
-                const u8 nb = (x == 0) ? (u8)BLOCK_TYPE_AIR : cube_type_at(chunk, x - 1, y, z);
+                if (x == 0) continue;
+                const u8 nb = cube_type_at(chunk, x - 1, y, z);
                 if (is_air_type(nb)) {
                     mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_WEST) + 1u;
                 }

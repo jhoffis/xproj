@@ -1,7 +1,3 @@
-// #ifndef DBG
-//     #define DBG 1
-// #endif
-
 #include "allocator.h"
 #define SDL_JOYSTICK_XINPUT
 #define SDL_JOYSTICK_DINPUT
@@ -32,6 +28,35 @@
 SDL_GameController *pad = NULL;
 bool pbk_init = false, sdl_init = false;
 static bool x_held = false;
+
+/* Watchdog: reboots the Xbox via controller combo (RB+Back) if the main loop hangs */
+static volatile LONG watchdog_heartbeat = 0;
+
+static DWORD __stdcall watchdog_reboot_thread(LPVOID parameter) {
+    (void)parameter;
+    LONG last_heartbeat = 0;
+
+    for (;;) {
+        Sleep(3000); /* Check every 3 seconds */
+        LONG current = watchdog_heartbeat;
+        if (current == last_heartbeat && sdl_init) {
+            /* Main loop appears stuck (heartbeat didn't advance).
+               Take over input polling and watch for the reboot combo. */
+            for (;;) {
+                Sleep(200);
+                SDL_GameControllerUpdate();
+                if (pad != NULL &&
+                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) &&
+                    SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK)) {
+                    HalReturnToFirmware(HalQuickRebootRoutine);
+                    /* HalReturnToFirmware is DECLSPEC_NORETURN, but just in case: */
+                    for (;;) {}
+                }
+            }
+        }
+        last_heartbeat = current;
+    }
+}
 
 #define MUSIC_AMOUNT 5
 static u8 *music_current;
@@ -187,6 +212,10 @@ int main(void)
         wait_then_cleanup();
         return 0;
     }
+// #ifdef DBG
+    CreateThread(NULL, 0, watchdog_reboot_thread, NULL, 0, NULL);
+// #endif
+
     music_current = xmalloc(sizeof(music_current));
     *music_current = 1;
     // audio_buffer_data = create_wav_entity(music_strs[*music_current]);
@@ -220,6 +249,7 @@ int main(void)
     bool polled = false;
     u32 last_poll_event = 0;
     for (;;) {
+        InterlockedIncrement(&watchdog_heartbeat);
 
         pb_wait_for_vbl();
         pb_target_back_buffer();

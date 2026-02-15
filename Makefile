@@ -23,7 +23,19 @@ else
 XBE_TITLE = xproj
 OUTPUT_DIR = out
 SRC_DIR = $(CURDIR)/src
+# Debug (default) vs Release build configuration
+ifeq ($(filter release,$(MAKECMDGOALS)),)
 SRC_OUT_DIR = $(CURDIR)/src_out
+DEBUG = y
+NXDK_CFLAGS += -O0
+NXDK_CFLAGS += -DDBG=1
+else
+SRC_OUT_DIR = $(CURDIR)/src_out_release
+DEBUG = n
+NXDK_CFLAGS += -O2
+NXDK_CFLAGS += -DDBG=0
+endif
+
 SRCS = $(sort $(shell find $(SRC_DIR) -type f \( -name '*.c' -o -name '*.cpp' -o -name '*.s' \)))
 SHADER_SRCS = $(sort $(shell find $(SRC_DIR) -type f \( -name '*.vs.cg' -o -name '*.ps.cg' \)))
 SHADER_OBJS = $(patsubst $(SRC_DIR)/%.vs.cg,$(SRC_OUT_DIR)/%.vs.inl,$(filter %.vs.cg,$(SHADER_SRCS)))
@@ -32,8 +44,6 @@ SHADER_DRIVER_OBJ = $(SRC_OUT_DIR)/shader.obj
 SHADER_DATA_GEN = $(SRC_OUT_DIR)/shader_data_gen.inc
 SHADER_STEMS = $(sort $(patsubst $(SRC_DIR)/%.vs.cg,%,$(filter %.vs.cg,$(SHADER_SRCS))))
 NXDK_SDL = y
-DEBUG = y
-NXDK_CFLAGS += -O0
 NXDK_CFLAGS += -I$(SRC_OUT_DIR)
 NXDK_CFLAGS += -I$(CURDIR)
 
@@ -71,6 +81,13 @@ $(SHADER_DATA_GEN): shader_data_gen ;
 
 $(SHADER_DRIVER_OBJ): $(SHADER_DATA_GEN)
 
+.PHONY: release
+release: all
+
+.PHONY: compdb
+compdb:
+	bear -- $(MAKE) ch all
+
 .PHONY: win ch run
 
 win:
@@ -78,11 +95,9 @@ win:
 	./tools/xemu.exe -dvd_path "xproj.iso" -s
 
 ch: # clean here
-	rm -rf $(SRC_OUT_DIR)
-	rm -f $(SRC_DIR)/*.obj
-	rm -f $(SRC_DIR)/*.c.d
-	rm -f $(SRC_DIR)/*.cpp.d
-	rm -f $(SRC_DIR)/*.inl
+	rm -rf $(CURDIR)/src_out
+	rm -rf $(CURDIR)/src_out_release
+
 
 run:
 	./tools/xdvdfs pack out/ xproj.iso

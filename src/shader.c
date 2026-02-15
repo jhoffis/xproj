@@ -127,136 +127,154 @@ void pack_u16_list(u32 * out, u16 *list, u32 size) {
     }
 }
 
-static inline void* align_and_zero(void* ptr) {
-    char* p = (char*)ptr;
-    
-    if (((uintptr_t)p) % 16 == 4) {
-        return p;  // Already aligned correctly
-    }
-
-    // For very small gaps (1-3 bytes), individual stores are fastest
-    if (((uintptr_t)p) % 16 >= 13 || ((uintptr_t)p) % 16 <= 3) {
-        do {
-            *p++ = 0;
-        } while (((uintptr_t)p) % 16 != 4);
-        return p;
-    }
-
-    // For larger gaps, use SSE
-    __m128 zero = _mm_setzero_ps();
-    
-    // Store 16 bytes of zeros
-    _mm_storeu_ps((float*)p, zero);
-    
-    // Advance to next aligned position
-    p += (16 - ((uintptr_t)p % 16 - 4) % 16);
-    return p;
+static inline u32 sse_lead_words_to_align(const u32 *dst)
+{
+    return ((u32)((16 - ((uintptr_t)dst & 15)) & 15)) >> 2;
 }
 
-static inline void copy_u32_sse_unrolled_120(u32 *dst, const u32 *src) {
-    __m128 v0, v1, v2, v3, v4, v5, v6, v7, v8, v9;
+static inline void copy_40_u32_store_ps_aligned(u32 *dst, const u32 *src)
+{
     const f32_may_alias *s = (const f32_may_alias *)src;
     f32_may_alias *d = (f32_may_alias *)dst;
+    __m128 v0 = _mm_loadu_ps((const float *)&s[0]);
+    __m128 v1 = _mm_loadu_ps((const float *)&s[4]);
+    __m128 v2 = _mm_loadu_ps((const float *)&s[8]);
+    __m128 v3 = _mm_loadu_ps((const float *)&s[12]);
+    __m128 v4 = _mm_loadu_ps((const float *)&s[16]);
+    __m128 v5 = _mm_loadu_ps((const float *)&s[20]);
+    __m128 v6 = _mm_loadu_ps((const float *)&s[24]);
+    __m128 v7 = _mm_loadu_ps((const float *)&s[28]);
+    __m128 v8 = _mm_loadu_ps((const float *)&s[32]);
+    __m128 v9 = _mm_loadu_ps((const float *)&s[36]);
+    _mm_store_ps((float *)&d[0], v0);
+    _mm_store_ps((float *)&d[4], v1);
+    _mm_store_ps((float *)&d[8], v2);
+    _mm_store_ps((float *)&d[12], v3);
+    _mm_store_ps((float *)&d[16], v4);
+    _mm_store_ps((float *)&d[20], v5);
+    _mm_store_ps((float *)&d[24], v6);
+    _mm_store_ps((float *)&d[28], v7);
+    _mm_store_ps((float *)&d[32], v8);
+    _mm_store_ps((float *)&d[36], v9);
+}
 
-    __builtin_prefetch(&src[40], 0, 1);
-    v0 = _mm_loadu_ps((const float *)&s[0]);
-    v1 = _mm_loadu_ps((const float *)&s[4]);
-    v2 = _mm_loadu_ps((const float *)&s[8]);
-    v3 = _mm_loadu_ps((const float *)&s[12]);
-    v4 = _mm_loadu_ps((const float *)&s[16]);
-    v5 = _mm_loadu_ps((const float *)&s[20]);
-    v6 = _mm_loadu_ps((const float *)&s[24]);
-    v7 = _mm_loadu_ps((const float *)&s[28]);
-    v8 = _mm_loadu_ps((const float *)&s[32]);
-    v9 = _mm_loadu_ps((const float *)&s[36]);
-    _mm_storeu_ps((float *)&d[0], v0);
-    _mm_storeu_ps((float *)&d[4], v1);
-    _mm_storeu_ps((float *)&d[8], v2);
-    _mm_storeu_ps((float *)&d[12], v3);
-    _mm_storeu_ps((float *)&d[16], v4);
-    _mm_storeu_ps((float *)&d[20], v5);
-    _mm_storeu_ps((float *)&d[24], v6);
-    _mm_storeu_ps((float *)&d[28], v7);
-    _mm_storeu_ps((float *)&d[32], v8);
-    _mm_storeu_ps((float *)&d[36], v9);
+static inline void copy_36_u32_store_ps_aligned(u32 *dst, const u32 *src)
+{
+    const f32_may_alias *s = (const f32_may_alias *)src;
+    f32_may_alias *d = (f32_may_alias *)dst;
+    __m128 v0 = _mm_loadu_ps((const float *)&s[0]);
+    __m128 v1 = _mm_loadu_ps((const float *)&s[4]);
+    __m128 v2 = _mm_loadu_ps((const float *)&s[8]);
+    __m128 v3 = _mm_loadu_ps((const float *)&s[12]);
+    __m128 v4 = _mm_loadu_ps((const float *)&s[16]);
+    __m128 v5 = _mm_loadu_ps((const float *)&s[20]);
+    __m128 v6 = _mm_loadu_ps((const float *)&s[24]);
+    __m128 v7 = _mm_loadu_ps((const float *)&s[28]);
+    __m128 v8 = _mm_loadu_ps((const float *)&s[32]);
+    _mm_store_ps((float *)&d[0], v0);
+    _mm_store_ps((float *)&d[4], v1);
+    _mm_store_ps((float *)&d[8], v2);
+    _mm_store_ps((float *)&d[12], v3);
+    _mm_store_ps((float *)&d[16], v4);
+    _mm_store_ps((float *)&d[20], v5);
+    _mm_store_ps((float *)&d[24], v6);
+    _mm_store_ps((float *)&d[28], v7);
+    _mm_store_ps((float *)&d[32], v8);
+}
 
-    __builtin_prefetch(&src[80], 0, 1);
-    v0 = _mm_loadu_ps((const float *)&s[40]);
-    v1 = _mm_loadu_ps((const float *)&s[44]);
-    v2 = _mm_loadu_ps((const float *)&s[48]);
-    v3 = _mm_loadu_ps((const float *)&s[52]);
-    v4 = _mm_loadu_ps((const float *)&s[56]);
-    v5 = _mm_loadu_ps((const float *)&s[60]);
-    v6 = _mm_loadu_ps((const float *)&s[64]);
-    v7 = _mm_loadu_ps((const float *)&s[68]);
-    v8 = _mm_loadu_ps((const float *)&s[72]);
-    v9 = _mm_loadu_ps((const float *)&s[76]);
-    _mm_storeu_ps((float *)&d[40], v0);
-    _mm_storeu_ps((float *)&d[44], v1);
-    _mm_storeu_ps((float *)&d[48], v2);
-    _mm_storeu_ps((float *)&d[52], v3);
-    _mm_storeu_ps((float *)&d[56], v4);
-    _mm_storeu_ps((float *)&d[60], v5);
-    _mm_storeu_ps((float *)&d[64], v6);
-    _mm_storeu_ps((float *)&d[68], v7);
-    _mm_storeu_ps((float *)&d[72], v8);
-    _mm_storeu_ps((float *)&d[76], v9);
-
-    __builtin_prefetch(&src[120], 0, 1);
-    v0 = _mm_loadu_ps((const float *)&s[80]);
-    v1 = _mm_loadu_ps((const float *)&s[84]);
-    v2 = _mm_loadu_ps((const float *)&s[88]);
-    v3 = _mm_loadu_ps((const float *)&s[92]);
-    v4 = _mm_loadu_ps((const float *)&s[96]);
-    v5 = _mm_loadu_ps((const float *)&s[100]);
-    v6 = _mm_loadu_ps((const float *)&s[104]);
-    v7 = _mm_loadu_ps((const float *)&s[108]);
-    v8 = _mm_loadu_ps((const float *)&s[112]);
-    v9 = _mm_loadu_ps((const float *)&s[116]);
-    _mm_storeu_ps((float *)&d[80], v0);
-    _mm_storeu_ps((float *)&d[84], v1);
-    _mm_storeu_ps((float *)&d[88], v2);
-    _mm_storeu_ps((float *)&d[92], v3);
-    _mm_storeu_ps((float *)&d[96], v4);
-    _mm_storeu_ps((float *)&d[100], v5);
-    _mm_storeu_ps((float *)&d[104], v6);
-    _mm_storeu_ps((float *)&d[108], v7);
-    _mm_storeu_ps((float *)&d[112], v8);
-    _mm_storeu_ps((float *)&d[116], v9);
+static inline void copy_u32_sse_unrolled_120(u32 *dst, const u32 *src)
+{
+    const u32 lead = sse_lead_words_to_align(dst);
+    switch (lead) {
+        case 0:
+            __builtin_prefetch(&src[40], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 0, src + 0);
+            __builtin_prefetch(&src[80], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 40, src + 40);
+            __builtin_prefetch(&src[120], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 80, src + 80);
+            break;
+        case 1:
+            dst[0] = src[0];
+            __builtin_prefetch(&src[41], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 1, src + 1);
+            __builtin_prefetch(&src[81], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 41, src + 41);
+            copy_36_u32_store_ps_aligned(dst + 81, src + 81);
+            dst[117] = src[117];
+            dst[118] = src[118];
+            dst[119] = src[119];
+            break;
+        case 2:
+            dst[0] = src[0];
+            dst[1] = src[1];
+            __builtin_prefetch(&src[42], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 2, src + 2);
+            __builtin_prefetch(&src[82], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 42, src + 42);
+            copy_36_u32_store_ps_aligned(dst + 82, src + 82);
+            dst[118] = src[118];
+            dst[119] = src[119];
+            break;
+        default:
+            dst[0] = src[0];
+            dst[1] = src[1];
+            dst[2] = src[2];
+            __builtin_prefetch(&src[43], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 3, src + 3);
+            __builtin_prefetch(&src[83], 0, 1);
+            copy_40_u32_store_ps_aligned(dst + 43, src + 43);
+            copy_36_u32_store_ps_aligned(dst + 83, src + 83);
+            dst[119] = src[119];
+            break;
+    }
     _mm_sfence();
 }
 
-static inline void copy_u32_sse(u32 *dst, const u32 *src, u32 count_words) {
+static inline void copy_u32_sse(u32 *dst, const u32 *src, u32 count_words)
+{
     u32 j = 0;
-    const f32_may_alias *s = (const f32_may_alias *)src;
-    f32_may_alias *d = (f32_may_alias *)dst;
-    for (; j + 40 <= count_words; j += 40) {
-        __m128 v0 = _mm_loadu_ps((const float *)&s[j + 0]);
-        __m128 v1 = _mm_loadu_ps((const float *)&s[j + 4]);
-        __m128 v2 = _mm_loadu_ps((const float *)&s[j + 8]);
-        __m128 v3 = _mm_loadu_ps((const float *)&s[j + 12]);
-        __m128 v4 = _mm_loadu_ps((const float *)&s[j + 16]);
-        __m128 v5 = _mm_loadu_ps((const float *)&s[j + 20]);
-        __m128 v6 = _mm_loadu_ps((const float *)&s[j + 24]);
-        __m128 v7 = _mm_loadu_ps((const float *)&s[j + 28]);
-        __m128 v8 = _mm_loadu_ps((const float *)&s[j + 32]);
-        __m128 v9 = _mm_loadu_ps((const float *)&s[j + 36]);
+    u32 lead = sse_lead_words_to_align(dst);
+    if (lead > count_words) lead = count_words;
 
-        _mm_storeu_ps((float *)&d[j + 0], v0);
-        _mm_storeu_ps((float *)&d[j + 4], v1);
-        _mm_storeu_ps((float *)&d[j + 8], v2);
-        _mm_storeu_ps((float *)&d[j + 12], v3);
-        _mm_storeu_ps((float *)&d[j + 16], v4);
-        _mm_storeu_ps((float *)&d[j + 20], v5);
-        _mm_storeu_ps((float *)&d[j + 24], v6);
-        _mm_storeu_ps((float *)&d[j + 28], v7);
-        _mm_storeu_ps((float *)&d[j + 32], v8);
-        _mm_storeu_ps((float *)&d[j + 36], v9);
+    for (; j < lead; ++j) {
+        dst[j] = src[j];
     }
-    for (; j + 4 <= count_words; j += 4) {
-        __m128 v = _mm_loadu_ps((const float *)&s[j]);
-        _mm_storeu_ps((float *)&d[j], v);
+
+    {
+        const f32_may_alias *s = (const f32_may_alias *)(src + j);
+        f32_may_alias *d = (f32_may_alias *)(dst + j);
+        u32 vec_words = ((count_words - j) >> 2) << 2;
+        u32 k = 0;
+        for (; k + 40 <= vec_words; k += 40) {
+            __m128 v0 = _mm_loadu_ps((const float *)&s[k + 0]);
+            __m128 v1 = _mm_loadu_ps((const float *)&s[k + 4]);
+            __m128 v2 = _mm_loadu_ps((const float *)&s[k + 8]);
+            __m128 v3 = _mm_loadu_ps((const float *)&s[k + 12]);
+            __m128 v4 = _mm_loadu_ps((const float *)&s[k + 16]);
+            __m128 v5 = _mm_loadu_ps((const float *)&s[k + 20]);
+            __m128 v6 = _mm_loadu_ps((const float *)&s[k + 24]);
+            __m128 v7 = _mm_loadu_ps((const float *)&s[k + 28]);
+            __m128 v8 = _mm_loadu_ps((const float *)&s[k + 32]);
+            __m128 v9 = _mm_loadu_ps((const float *)&s[k + 36]);
+            _mm_store_ps((float *)&d[k + 0], v0);
+            _mm_store_ps((float *)&d[k + 4], v1);
+            _mm_store_ps((float *)&d[k + 8], v2);
+            _mm_store_ps((float *)&d[k + 12], v3);
+            _mm_store_ps((float *)&d[k + 16], v4);
+            _mm_store_ps((float *)&d[k + 20], v5);
+            _mm_store_ps((float *)&d[k + 24], v6);
+            _mm_store_ps((float *)&d[k + 28], v7);
+            _mm_store_ps((float *)&d[k + 32], v8);
+            _mm_store_ps((float *)&d[k + 36], v9);
+        }
+        for (; k < vec_words; k += 4) {
+            __m128 v = _mm_loadu_ps((const float *)&s[k]);
+            _mm_store_ps((float *)&d[k], v);
+        }
+        j += vec_words;
     }
+
     for (; j < count_words; ++j) {
         dst[j] = src[j];
     }

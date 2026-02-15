@@ -88,5 +88,8 @@ run:
 	./tools/xdvdfs pack out/ xproj.iso
 	../xemu/dist/xemu -dvd_path "xproj.iso" -s
 
+ftp:
+	curl -T $(OUTPUT_DIR)/default.xbe ftp://192.168.0.207/F/xproj/ --user xbox:xbox
+
 endif
 

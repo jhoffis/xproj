@@ -1,0 +1,17 @@
+struct vIn {
+    float2 position : POSITION;
+    float2 tex      : TEXCOORD;
+};
+
+struct vOut {
+    float4 pos  : POSITION;
+    // float2 tex0 : TEXCOORD0;
+};
+
+vOut main(vIn I) {
+    vOut o;
+    float4 p = float4(I.position.x, I.position.y * 0.5f, 0.0f, 1.0f);
+    o.pos = p;
+    // o.tex0 = I.tex;
+    return o;
+}

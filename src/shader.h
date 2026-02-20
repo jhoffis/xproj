@@ -6,7 +6,8 @@ extern u8 g_render_method;
 
 #define SHADER_VARIANT_TABLE(X) \
     X(SHADER_BASIC, basic) \
-    X(SHADER_TERRAIN, terrain)
+    X(SHADER_TERRAIN, terrain) \
+    X(SHADER_UI, ui)
 
 typedef enum shader_variant {
 #define SHADER_VARIANT_ENUM_ITEM(enum_name, name) enum_name,

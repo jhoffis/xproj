@@ -12,6 +12,8 @@
  * Load the faces you need to the gpu.
  */
 
+// #define TEST_WORLD true
+
 face_stored faces_pool[FACE_POOL_SIZE];
 u32 num_faces_pooled = 0;
 
@@ -226,6 +228,56 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
     *out_faces_found = faces_found;
 }
 
+#include <stdint.h>
+
+static inline float lerp(float a, float b, float t) { return a + t*(b-a); }
+static inline float fade(float t) { return t*t*(3.0f - 2.0f*t); } // cheap smoothstep
+
+static inline uint32_t hash2(int x, int y, uint32_t seed) {
+    uint32_t h = (uint32_t)x * 374761393u + (uint32_t)y * 668265263u + seed * 1442695041u;
+    h ^= h >> 13; h *= 1274126177u; h ^= h >> 16;
+    return h;
+}
+
+static inline float rnd01(int x, int y, uint32_t seed) {
+    return (hash2(x,y,seed) >> 8) * (1.0f / 16777216.0f); // [0,1)
+}
+
+float noise2(float x, float y, uint32_t seed) {
+    int ix = (int)x; if (x < (float)ix) ix--;
+    int iy = (int)y; if (y < (float)iy) iy--;
+
+    float fx = x - (float)ix;   // 0..1
+    float fy = y - (float)iy;   // 0..1
+
+    float v00 = rnd01(ix,   iy,   seed);
+    float v10 = rnd01(ix+1, iy,   seed);
+    float v01 = rnd01(ix,   iy+1, seed);
+    float v11 = rnd01(ix+1, iy+1, seed);
+
+    float u = fade(fx), v = fade(fy);
+
+    float a = lerp(v00, v10, u);
+    float b = lerp(v01, v11, u);
+    return lerp(a, b, v) * 2.0f - 1.0f; // -> [-1,1]
+}
+
+float fbm2(float x, float y, uint32_t seed) {
+    float sum = 0, amp = 1, freq = 1, norm = 0;
+    for (int i=0;i<5;i++) {
+        sum  += amp * noise2(x*freq, y*freq, seed + (uint32_t)i*1013u);
+        norm += amp;
+        freq *= 2.0f;
+        amp  *= 0.5f;
+    }
+    return sum / norm; // ~[-1,1]
+}
+
+int height(int wx, int wz, uint32_t seed) {
+    float n = fbm2(wx*0.01f, wz*0.01f, seed); // scale controls hill size
+    return 62 + (int)(n * 18.0f);            // 62 sea level, 18 amplitude
+}
+
 /*
  * FIXME When you create a chunk, map all the tiles to be faced for each direction 
  * as long as that direction is open!
@@ -245,6 +297,8 @@ void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z) {
     chunk->z = chunk_z;
 
 
+#ifdef TEST_WORLD
+    // TEST VERSION:
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
@@ -275,6 +329,38 @@ void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z) {
             }
         }
     }
+#else 
+    const int base_x = chunk_x * CHUNK_SIZE;
+    const int base_y = chunk_y * CHUNK_SIZE;
+    const int base_z = chunk_z * CHUNK_SIZE;
+
+    for (int xi = 0; xi < CHUNK_SIZE; xi++) {
+        for (int zi = 0; zi < CHUNK_SIZE; zi++) {
+            const int x = base_x + xi;
+            const int z = base_z + zi;
+            const int h = height(x, z, 1234);
+            if (base_y >= h) {
+                for (int yi = 0; yi < CHUNK_SIZE; yi++) {
+                    chunk->cubes[xi][yi][zi].type = BLOCK_TYPE_AIR;
+                }
+                continue;
+            }
+
+            if (base_y + CHUNK_SIZE <= h) {
+                for (int yi = 0; yi < CHUNK_SIZE; yi++) {
+                    chunk->cubes[xi][yi][zi].type = BLOCK_TYPE_COBBLESTONE;
+                }
+                continue;
+            }
+
+            for (int yi = 0; yi < CHUNK_SIZE; yi++) {
+                const int wy = base_y + yi;
+                chunk->cubes[xi][yi][zi].type =
+                    (wy < h) ? BLOCK_TYPE_COBBLESTONE : BLOCK_TYPE_AIR;
+            }
+        }
+    }
+#endif
 
     u32 num_found;
     mesh_chunk_greedy(chunk, &num_found);

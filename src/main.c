@@ -1,4 +1,5 @@
 #include "allocator.h"
+#include "src/ui.h"
 #define SDL_JOYSTICK_XINPUT
 #define SDL_JOYSTICK_DINPUT
 // #define ENABLE_USBH_XID_DEBUG
@@ -70,7 +71,6 @@ static const char *music_strs[MUSIC_AMOUNT] = {
 static wav_entity *audio_buffer_data;
 
 void cleanup() {
-
     cleanup_terrain();
     destroy_cubes();
     destroy_world();
@@ -227,9 +227,11 @@ int main(void)
     short simd_test = simd_add_example();
     short simd_test2 = mmx_add_example();
 
-    init_cubes();
-    init_world();
-    load_chunks();
+    // init_cubes();
+    // init_world();
+    init_ui();
+    image_data ui_test_img = load_image("grass");
+    // load_chunks();
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)screen_width/(float)screen_height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 30000.0f);
@@ -248,7 +250,7 @@ int main(void)
     f32 cam_rotationX = 0;
     f32 cam_rotationY = 0;
     f32 cam_posX = 0;
-    f32 cam_posY = 0;
+    f32 cam_posY = 3400;
     f32 cam_posZ = 0;
     bool polled = false;
     u32 last_poll_event = 0;
@@ -459,7 +461,9 @@ int main(void)
         pb_print("faces: %d\n", num_faces_pooled);
         print_num_mem_allocated();
 
-        render_terrain();
+        // render_terrain();
+		// pb_fill(0,0,640,480,0xff0000); //clear frame (optional)
+        ui_sprite(&ui_test_img, 0, 0, 0.5, 1);
 
         QueryPerformanceCounter(&win_clock_end); // Record end time
         double elapsed = (double)(win_clock_end.QuadPart - win_clock_start.QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds

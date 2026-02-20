@@ -101,7 +101,9 @@ extern u32 num_faces_type[FACE_TYPE_AMOUNT];
 extern face_batch face_batches[FACE_TYPE_AMOUNT][MAX_BATCHES_PER_TYPE];
 extern u8 num_face_batches[FACE_TYPE_AMOUNT];
 
-extern face_stored faces_pool[FACE_POOL_SIZE];
+extern face_stored faces_pool[FACE_POOL_SIZE]; // TODO: Think of faces as the actual LEARNED world - 
+                                               // in that whenever we generate new chunks we update relevant faces and then forget this
+                                               // and put it on the disk.
 extern u32 num_faces_pooled;
 
 

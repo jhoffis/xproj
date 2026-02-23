@@ -9,17 +9,18 @@ ZLIB_SRCS = $(ZLIB_DIR)/adler32.c \
             $(ZLIB_DIR)/trees.c \
             $(ZLIB_DIR)/zutil.c
 
-ZLIB_OBJS = $(addsuffix .obj, $(basename $(ZLIB_SRCS)))
+ZLIB_OBJS = $(call to_lib_obj_path,$(ZLIB_SRCS))
+LIBZLIB = $(call to_lib_out_path,$(NXDK_DIR)/lib/libzlib.lib)
 
 NXDK_CFLAGS += -I $(ZLIB_DIR) -DZ_SOLO
 NXDK_CXXFLAGS += -I $(ZLIB_DIR) -DZ_SOLO
 
-$(NXDK_DIR)/lib/libzlib.lib: $(ZLIB_OBJS)
+$(LIBZLIB): $(ZLIB_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libzlib.lib
+main.exe: $(LIBZLIB)
 
 CLEANRULES += clean-zlib
 
 .PHONY: clean-zlib
 clean-zlib:
-	$(VE)rm -f $(ZLIB_OBJS) $(NXDK_DIR)/lib/libzlib.lib
+	$(VE)rm -f $(ZLIB_OBJS) $(LIBZLIB)

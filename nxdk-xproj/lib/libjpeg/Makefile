@@ -55,17 +55,18 @@ LIBJPEG_TURBO_SRCS = $(LIBJPEG_TURBO_DIR)/jcapimin.c \
 # FIXME: MMX/SSE is currently disabled due to requiring nasm
 LIBJPEG_TURBO_SRCS += $(LIBJPEG_TURBO_DIR)/jsimd_none.c
 
-LIBJPEG_TURBO_OBJS = $(addsuffix .obj, $(basename $(LIBJPEG_TURBO_SRCS)))
+LIBJPEG_TURBO_OBJS = $(call to_lib_obj_path,$(LIBJPEG_TURBO_SRCS))
+LIBJPEG_LIB = $(call to_lib_out_path,$(NXDK_DIR)/lib/libjpeg.lib)
 
 NXDK_CFLAGS += -isystem $(LIBJPEG_TURBO_DIR) -I$(NXDK_DIR)/lib/libjpeg
 NXDK_CXXFLAGS += -isystem $(LIBJPEG_TURBO_DIR) -I$(NXDK_DIR)/lib/libjpeg
 
-$(NXDK_DIR)/lib/libjpeg.lib: $(LIBJPEG_TURBO_OBJS)
+$(LIBJPEG_LIB): $(LIBJPEG_TURBO_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libjpeg.lib
+main.exe: $(LIBJPEG_LIB)
 
 CLEANRULES += clean-libjpeg
 
 .PHONY: clean-libjpeg
 clean-libjpeg:
-	$(VE)rm -f $(LIBJPEG_OBJS) $(NXDK_DIR)/lib/libjpeg.lib
+	$(VE)rm -f $(LIBJPEG_TURBO_OBJS) $(LIBJPEG_LIB)

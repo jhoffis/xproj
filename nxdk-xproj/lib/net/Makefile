@@ -17,7 +17,8 @@ NET_SRCS := \
 	$(LWIPSRCS) \
 	$(DRIVERSRCS)
 
-NET_OBJS = $(addsuffix .obj, $(basename $(NET_SRCS)))
+NET_OBJS = $(call to_lib_obj_path,$(NET_SRCS))
+LIBNXDK_NET = $(call to_lib_out_path,$(NXDK_DIR)/lib/libnxdk_net.lib)
 
 NXDK_CFLAGS += -I$(LWIPDIR)/include
 NXDK_CFLAGS += -I$(NXDK_DIR)/lib/net/nforceif/include
@@ -26,12 +27,12 @@ NXDK_CXXFLAGS += -I$(LWIPDIR)/include
 NXDK_CXXFLAGS += -I$(NXDK_DIR)/lib/net/nforceif/include
 NXDK_CXXFLAGS += -I$(NXDK_DIR)/lib/net/nvnetdrv
 
-$(NXDK_DIR)/lib/libnxdk_net.lib: $(NET_OBJS)
+$(LIBNXDK_NET): $(NET_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libnxdk_net.lib
+main.exe: $(LIBNXDK_NET)
 
 CLEANRULES += clean-net
 
 .PHONY: clean-net
 clean-net:
-	$(VE)rm -f $(NET_OBJS) $(NXDK_DIR)/lib/libnxdk_net.lib
+	$(VE)rm -f $(NET_OBJS) $(LIBNXDK_NET)

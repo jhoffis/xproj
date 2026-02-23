@@ -35,15 +35,16 @@ LIBCXX_SRCS += $(LIBCXX_DIR)/src/variant.cpp
 LIBCXX_SRCS += $(LIBCXX_DIR)/src/vector.cpp
 LIBCXX_SRCS += $(LIBCXX_DIR)/src/support/win32/support.cpp
 LIBCXX_SRCS += $(LIBCXX_DIR)/src/support/win32/thread_win32.cpp
-LIBCXX_OBJS = $(addsuffix .obj, $(basename $(LIBCXX_SRCS)))
+LIBCXX_OBJS = $(call to_lib_obj_path,$(LIBCXX_SRCS))
+LIBCXX_LIB = $(call to_lib_out_path,$(NXDK_DIR)/lib/libc++.lib)
 
-$(NXDK_DIR)/lib/libc++.lib: $(LIBCXX_OBJS)
+$(LIBCXX_LIB): $(LIBCXX_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libc++.lib
+main.exe: $(LIBCXX_LIB)
 
 CLEANRULES += clean-libcxx
 
 .PHONY: clean-libcxx
 clean-libcxx:
 	$(VE)rm -f $(LIBCXX_OBJS) \
-	           $(NXDK_DIR)/lib/libc++.lib
+	           $(LIBCXX_LIB)

@@ -27,14 +27,15 @@ SRC_DIR = $(CURDIR)/src
 # Debug (default) vs Release build configuration
 ifeq ($(filter release,$(MAKECMDGOALS)),)
 SRC_OUT_DIR = $(CURDIR)/src_out
+NXDK_LIB_OUT_DIR = $(CURDIR)/nxdk_out
 DEBUG = y
 NXDK_CFLAGS += -O0
 NXDK_CFLAGS += -DDBG=1
 else
 SRC_OUT_DIR = $(CURDIR)/src_out_release
+NXDK_LIB_OUT_DIR = $(CURDIR)/nxdk_out_release
 DEBUG = n
-NXDK_CFLAGS += -O2
-NXDK_CFLAGS += -DDBG=0
+NXDK_CFLAGS += -Oz
 NXDK_CFLAGS += -fno-strict-aliasing
 endif
 
@@ -105,7 +106,24 @@ release: all
 compdb:
 	bear -- $(MAKE) ch all
 
-.PHONY: win ch run
+.PHONY: win ch run kd-serve run-kd
+
+# ---------------------------------------------------------------------------
+# Xemu kernel debugging (KD) over serial TCP
+#
+# Usage (two terminals is recommended):
+#   1) make kd-serve
+#   2) make run-kd
+#
+# Notes:
+# - `pykdclient` is installable via PyPI: pip install pykdclient
+# - Xemu is started with the LPC47M157 device and its serial port redirected
+#   to the KD server.
+# ---------------------------------------------------------------------------
+KD_HOST ?= 127.0.0.1
+KD_PORT ?= 9091
+KDCLIENT ?= pykdclient
+XEMU_BIN ?= ../xemu/dist/xemu
 
 win:
 	./tools/xdvdfs.exe pack out/ xproj.iso
@@ -114,10 +132,19 @@ win:
 ch: # clean here
 	rm -rf $(CURDIR)/src_out
 	rm -rf $(CURDIR)/src_out_release
+	rm -rf $(CURDIR)/nxdk_out
+	rm -rf $(CURDIR)/nxdk_out_release
 
 run:
 	./tools/xdvdfs pack out/ xproj.iso
 	../xemu/dist/xemu -dvd_path "xproj.iso" -s
+
+kd-serve:
+	$(KDCLIENT) --serve --port $(KD_PORT) --host $(KD_HOST)
+
+run-kd:
+	./tools/xdvdfs pack out/ xproj.iso
+	$(XEMU_BIN) -device lpc47m157 -serial tcp:$(KD_HOST):$(KD_PORT) -dvd_path "xproj.iso"
 
 ftp:
 	curl -T $(OUTPUT_DIR)/default.xbe ftp://192.168.0.207/F/xproj/ --user xbox:xbox

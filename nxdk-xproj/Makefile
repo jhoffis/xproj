@@ -68,12 +68,18 @@ endif
 
 all: $(TARGET)
 
-include $(NXDK_DIR)/lib/Makefile
-
 NXDK_OUT_OF_TREE := $(if $(and $(SRC_DIR),$(SRC_OUT_DIR)),y,)
 SRC_DIR_CANONICAL := $(patsubst %/,%,$(SRC_DIR))
 SRC_OUT_DIR_CANONICAL := $(patsubst %/,%,$(SRC_OUT_DIR))
 to_out_path = $(if $(NXDK_OUT_OF_TREE),$(patsubst $(SRC_DIR_CANONICAL)/%,$(SRC_OUT_DIR_CANONICAL)/%,$(1)),$(1))
+
+NXDK_LIB_OUT_OF_TREE := $(if $(NXDK_LIB_OUT_DIR),y,)
+NXDK_DIR_CANONICAL := $(patsubst %/,%,$(NXDK_DIR))
+NXDK_LIB_OUT_DIR_CANONICAL := $(patsubst %/,%,$(NXDK_LIB_OUT_DIR))
+to_lib_out_path = $(if $(NXDK_LIB_OUT_OF_TREE),$(patsubst $(NXDK_DIR_CANONICAL)/%,$(NXDK_LIB_OUT_DIR_CANONICAL)/%,$(1)),$(1))
+to_lib_obj_path = $(addsuffix .obj,$(basename $(call to_lib_out_path,$(1))))
+
+include $(NXDK_DIR)/lib/Makefile
 
 C_SRCS := $(filter %.c, $(SRCS))
 CPP_SRCS := $(filter %.cpp, $(SRCS))
@@ -165,6 +171,23 @@ $(SRC_OUT_DIR_CANONICAL)/%.obj: $(SRC_DIR_CANONICAL)/%.c
 	$(VE) $(CC) $(NXDK_CFLAGS) $(CFLAGS) -MD -MP -MT '$@' -MF '$(patsubst %.obj,%.c.d,$@)' -c -o '$@' '$<'
 
 $(SRC_OUT_DIR_CANONICAL)/%.obj: $(SRC_DIR_CANONICAL)/%.s
+	@echo "[ AS       ] $@"
+	$(VE)mkdir -p '$(dir $@)'
+	$(VE) $(AS) $(NXDK_ASFLAGS) $(ASFLAGS) -c -o '$@' '$<'
+endif
+
+ifeq ($(NXDK_LIB_OUT_OF_TREE),y)
+$(NXDK_LIB_OUT_DIR_CANONICAL)/%.obj: $(NXDK_DIR_CANONICAL)/%.cpp
+	@echo "[ CXX      ] $@"
+	$(VE)mkdir -p '$(dir $@)'
+	$(VE) $(CXX) $(NXDK_CXXFLAGS) $(CXXFLAGS) -MD -MP -MT '$@' -MF '$(patsubst %.obj,%.cpp.d,$@)' -c -o '$@' '$<'
+
+$(NXDK_LIB_OUT_DIR_CANONICAL)/%.obj: $(NXDK_DIR_CANONICAL)/%.c
+	@echo "[ CC       ] $@"
+	$(VE)mkdir -p '$(dir $@)'
+	$(VE) $(CC) $(NXDK_CFLAGS) $(CFLAGS) -MD -MP -MT '$@' -MF '$(patsubst %.obj,%.c.d,$@)' -c -o '$@' '$<'
+
+$(NXDK_LIB_OUT_DIR_CANONICAL)/%.obj: $(NXDK_DIR_CANONICAL)/%.s
 	@echo "[ AS       ] $@"
 	$(VE)mkdir -p '$(dir $@)'
 	$(VE) $(AS) $(NXDK_ASFLAGS) $(ASFLAGS) -c -o '$@' '$<'

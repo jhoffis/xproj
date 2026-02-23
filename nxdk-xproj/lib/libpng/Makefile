@@ -16,16 +16,17 @@ LIBPNG_SRCS = $(LIBPNG_DIR)/png.c \
               $(LIBPNG_DIR)/pngwtran.c \
               $(LIBPNG_DIR)/pngwutil.c
 
-LIBPNG_OBJS = $(addsuffix .obj, $(basename $(LIBPNG_SRCS)))
+LIBPNG_OBJS = $(call to_lib_obj_path,$(LIBPNG_SRCS))
+LIBPNG_LIB = $(call to_lib_out_path,$(NXDK_DIR)/lib/libpng.lib)
 
 NXDK_CFLAGS += -I$(LIBPNG_DIR) -I$(NXDK_DIR)/lib/libpng
 
-$(NXDK_DIR)/lib/libpng.lib: $(LIBPNG_OBJS)
+$(LIBPNG_LIB): $(LIBPNG_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libpng.lib
+main.exe: $(LIBPNG_LIB)
 
 CLEANRULES += clean-libpng
 
 .PHONY: clean-libpng
 clean-libpng:
-	$(VE)rm -f $(LIBPNG_OBJS) $(NXDK_DIR)/lib/libpng.lib
+	$(VE)rm -f $(LIBPNG_OBJS) $(LIBPNG_LIB)

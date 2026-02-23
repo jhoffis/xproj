@@ -22,14 +22,15 @@ WINAPI_SRCS := \
 	$(NXDK_DIR)/lib/winapi/tls.c \
 	$(NXDK_DIR)/lib/winapi/winnt.c
 
-WINAPI_OBJS = $(addsuffix .obj, $(basename $(WINAPI_SRCS)))
+WINAPI_OBJS = $(call to_lib_obj_path,$(WINAPI_SRCS))
+WINAPI_LIB = $(call to_lib_out_path,$(NXDK_DIR)/lib/libwinapi.lib)
 
-$(NXDK_DIR)/lib/libwinapi.lib: $(WINAPI_OBJS)
+$(WINAPI_LIB): $(WINAPI_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libwinapi.lib
+main.exe: $(WINAPI_LIB)
 
 CLEANRULES += clean-winapi
 
 .PHONY: clean-winapi
 clean-winapi:
-	$(VE)rm -f $(WINAPI_OBJS) $(NXDK_DIR)/lib/libwinapi.lib
+	$(VE)rm -f $(WINAPI_OBJS) $(WINAPI_LIB)

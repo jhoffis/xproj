@@ -26,19 +26,20 @@ XBOXRT_SRCS := \
 	$(NXDK_DIR)/lib/xboxrt/vcruntime/eh.cpp \
 	$(NXDK_DIR)/lib/xboxrt/vcruntime/excpt.cpp
 
-XBOXRT_OBJS = $(addsuffix .obj, $(basename $(XBOXRT_SRCS)))
+XBOXRT_OBJS = $(call to_lib_obj_path,$(XBOXRT_SRCS))
+LIBXBOXRT = $(call to_lib_out_path,$(NXDK_DIR)/lib/libxboxrt.lib)
 
 # This file needs to be always built with -fno-rtti because it contains the
 # type_info class. If the parameter is missing, clang will generate an invalid
 # reference from type_info to its own vftable.
-$(NXDK_DIR)/lib/xboxrt/vcruntime/vcruntime_typeinfo.obj: NXDK_CXXFLAGS += -fno-rtti
+$(call to_lib_obj_path,$(NXDK_DIR)/lib/xboxrt/vcruntime/vcruntime_typeinfo.cpp): NXDK_CXXFLAGS += -fno-rtti
 
-$(NXDK_DIR)/lib/libxboxrt.lib: $(XBOXRT_OBJS)
+$(LIBXBOXRT): $(XBOXRT_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libxboxrt.lib
+main.exe: $(LIBXBOXRT)
 
 CLEANRULES += clean-xboxrt
 
 .PHONY: clean-xboxrt
 clean-xboxrt:
-	$(VE)rm -f $(XBOXRT_OBJS) $(NXDK_DIR)/lib/libxboxrt.lib
+	$(VE)rm -f $(XBOXRT_OBJS) $(LIBXBOXRT)

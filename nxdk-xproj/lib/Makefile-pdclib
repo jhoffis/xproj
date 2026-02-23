@@ -3,14 +3,15 @@ PDCLIB_SRCS := \
 	$(shell find $(NXDK_DIR)/lib/pdclib/platform/xbox/ -name "*.c") \
 	$(shell find $(NXDK_DIR)/lib/pdclib/platform/xbox/ -name "*.s")
 
-PDCLIB_OBJS = $(addsuffix .obj, $(basename $(PDCLIB_SRCS)))
+PDCLIB_OBJS = $(call to_lib_obj_path,$(PDCLIB_SRCS))
+LIBPDCLIB = $(call to_lib_out_path,$(NXDK_DIR)/lib/libpdclib.lib)
 
-$(NXDK_DIR)/lib/libpdclib.lib: $(PDCLIB_OBJS)
+$(LIBPDCLIB): $(PDCLIB_OBJS)
 
-main.exe: $(NXDK_DIR)/lib/libpdclib.lib
+main.exe: $(LIBPDCLIB)
 
 CLEANRULES += clean-pdclib
 
 .PHONY: clean-pdclib
 clean-pdclib:
-	$(VE)rm -f $(PDCLIB_OBJS) $(NXDK_DIR)/lib/libpdclib.lib
+	$(VE)rm -f $(PDCLIB_OBJS) $(LIBPDCLIB)

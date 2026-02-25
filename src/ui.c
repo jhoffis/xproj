@@ -112,14 +112,11 @@ void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
     p = pb_push1(p, NV097_SET_COLOR_MASK, 0x01010101);
     pb_end(p);
     p = pb_begin();
-    p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
-    //
-    f32 constants_0[1] = {0};
-    pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 1);
-    memcpy(p, constants_0, 1*sizeof(f32)); p+=1;
-    //
-    // pb_end(p);
-    // p = pb_begin();
+    // p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 0);
+    // f32 constants_0[4] = {0, 0, 0, 1};
+    // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 4);
+    // memcpy(p, constants_0, 4*sizeof(f32)); p+=4;
+
     pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT, 16);
     for (int i = 0; i < 16; i++) {
         *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
@@ -128,51 +125,59 @@ void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
 
     ui_bind_texture0(img);
 
-    set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                       2, sizeof(f32_v2), ui_pos);
+    float fLeft   = (float)(0*2);
+    float fTop    = (float)(0*2);
+    float fRight  = (float)((0+50)*2);
+    float fBottom = (float)((0+50)*2);
 
-    set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                       2, sizeof(f32_v2), ui_uv);
+    p = pb_begin();
+    pb_push1(p, NV20_TCL_PRIMITIVE_3D_BEGIN_END, QUADS); p += 2;
 
-    // draw_indexed(3, ui_indices);
-	float xScale  = 2.0f;
-	float yScale  = 2.0f;
-	float fLeft   = (float)(0*2);
-	float fTop    = (float)(0*2);
-	float fRight  = (float)((0+50)*2);
-	float fBottom = (float)((0+50)*2);
-	float uAdjust = (float)(50*2);
-	float vAdjust = (float)(50*2);
-	p=pb_begin();
+#define UI_TEX0_2F (NV097_SET_VERTEX_DATA2F_M + UI_ATTR_TEXCOORD * 2 * sizeof(f32))
+    // Vertex 0
+    pb_push(p++, UI_TEX0_2F, 2);
+    *((float *)(p++)) = ui_uv[0].x;
+    *((float *)(p++)) = ui_uv[0].y;
+    pb_push(p++, NV097_SET_VERTEX4F, 4);
+    *((float *)(p++)) = fLeft;
+    *((float *)(p++)) = fTop;
+    *((float *)(p++)) = 0.0f;
+    *((float *)(p++)) = 1.0f;
 
-	pb_push1(p,NV20_TCL_PRIMITIVE_3D_BEGIN_END,QUADS); p+=2; //(beginning of list) quad used here, but 2 triangles work too
+    // Vertex 1
+    pb_push(p++, UI_TEX0_2F, 2);
+    *((float *)(p++)) = ui_uv[1].x;
+    *((float *)(p++)) = ui_uv[1].y;
+    pb_push(p++, NV097_SET_VERTEX4F, 4);
+    *((float *)(p++)) = fRight;
+    *((float *)(p++)) = fTop;
+    *((float *)(p++)) = 0.0f;
+    *((float *)(p++)) = 1.0f;
 
-	pb_push(p++,0x40000000|NV20_TCL_PRIMITIVE_3D_VERTEX_DATA,8); //bit 30 means all params go to same register 0x1818
+    // Vertex 2
+    pb_push(p++, UI_TEX0_2F, 2);
+    *((float *)(p++)) = ui_uv[2].x;
+    *((float *)(p++)) = ui_uv[2].y;
+    pb_push(p++, NV097_SET_VERTEX4F, 4);
+    *((float *)(p++)) = fRight;
+    *((float *)(p++)) = fBottom;
+    *((float *)(p++)) = 0.0f;
+    *((float *)(p++)) = 1.0f;
 
-	// Vertex 0
-	*((float *)(p++))=fLeft;
-	*((float *)(p++))=fTop;
-	// *((float *)(p++))=uAdjust;
-	// *((float *)(p++))=vAdjust;
-	// Vertex 50
-	*((float *)(p++))=fRight;
-	*((float *)(p++))=fTop;
-	// *((float *)(p++))=uAdjust + 50*xScale;
-	// *((float *)(p++))=vAdjust;
-	// Vertex 2
-	*((float *)(p++))=fRight;
-	*((float *)(p++))=fBottom;
-	// *((float *)(p++))=uAdjust + 50*xScale;
-	// *((float *)(p++))=vAdjust + 50*yScale;
-	// Vertex 3
-	*((float *)(p++))=fLeft;
-	*((float *)(p++))=fBottom;
-	// *((float *)(p++))=uAdjust;
-	// *((float *)(p++))=vAdjust + 50*yScale;
+    // Vertex 3
+    pb_push(p++, UI_TEX0_2F, 2);
+    *((float *)(p++)) = ui_uv[3].x;
+    *((float *)(p++)) = ui_uv[3].y;
+    pb_push(p++, NV097_SET_VERTEX4F, 4);
+    *((float *)(p++)) = fLeft;
+    *((float *)(p++)) = fBottom;
+    *((float *)(p++)) = 0.0f;
+    *((float *)(p++)) = 1.0f;
+#undef UI_TEX0_2F
 
-	pb_push(p++,NV20_TCL_PRIMITIVE_3D_BEGIN_END,1);
-	*(p++)=STOP; //triggers the drawing (end of list)
+    pb_push(p++, NV20_TCL_PRIMITIVE_3D_BEGIN_END, 1);
+    *(p++) = STOP;
 
-	pb_end(p);
+    pb_end(p);
 }
 

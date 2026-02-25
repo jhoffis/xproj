@@ -3,6 +3,6 @@ struct vOut {
     float2 tex0 : TEXCOORD0;
 };
 
-float4 main(vOut I) : COLOR { // , uniform sampler2D colorMap) : COLOR {
+float4 main(vOut I, uniform sampler2D colorMap) : COLOR {
     return tex2D(colorMap, I.tex0);
 }

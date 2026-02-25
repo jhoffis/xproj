@@ -13,17 +13,11 @@ static f32_v2 pos[4];
 
 static inline u32 pack_u16(u16 a, u16 b) { return ((u32)a << 16) | (u32)b; }
 
-static inline u8 ui_fast_log2(u32 v) {
-    u8 r = 0;
-    while (v > 1) { v >>= 1; r++; }
-    return r;
-}
-
 // Bind stage0 texture exactly like terrain.h does.
 // This keeps your “how we deal with textures” consistent.
 static void ui_bind_texture0(const image_data *img) {
-    u8 u = ui_fast_log2((u32)img->w);
-    u8 v = ui_fast_log2((u32)img->h);
+    u8 u = fast_log2((u32)img->w);
+    u8 v = fast_log2((u32)img->h);
 
     int channels = 2;
     DWORD format =

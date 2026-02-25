@@ -227,7 +227,7 @@ int main(void)
     short simd_test = simd_add_example();
     short simd_test2 = mmx_add_example();
 
-    // init_cubes();
+    init_cubes();
     // init_world();
     init_ui();
     image_data ui_test_img = load_image("grass");

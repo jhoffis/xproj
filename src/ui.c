@@ -57,7 +57,7 @@ static void ui_bind_texture0(const image_data *img) {
 }
 
 void init_ui(void) {
-    ui_uv = xMmAllocateContiguousMemoryEx(4 * sizeof(f32_v2), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    ui_uv = xMmAllocateContiguousMemoryEx(8 * sizeof(f32_v2), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     ui_pos = xMmAllocateContiguousMemoryEx(4 * sizeof(f32_v3), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
     ui_indices = x_aligned_malloc(6 * sizeof(u16), 16);
 
@@ -65,10 +65,10 @@ void init_ui(void) {
     ui_indices[1] = pack_u16(2, 2);
     ui_indices[2] = pack_u16(3, 0);
 
-    ui_uv[0] = (f32_v2){0.f, 0.f};
-    ui_uv[1] = (f32_v2){1.f, 0.f};
-    ui_uv[2] = (f32_v2){1.f, 1.f};
-    ui_uv[3] = (f32_v2){0.f, 1.f};
+    ui_uv[0] = (f32_v2){0.f, 1.f};
+    ui_uv[1] = (f32_v2){1.f, 1.f};
+    ui_uv[2] = (f32_v2){1.f, 0.f};
+    ui_uv[3] = (f32_v2){0.f, 0.f};
 
     ui_pos[0] = (f32_v2){.9f,  .5f};
     ui_pos[1] = (f32_v2){-.9f, .5f};
@@ -126,15 +126,13 @@ void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
     }
     pb_end(p);
 
-    // Bind the texture like terrain does
-    // ui_bind_texture0(img);
+    ui_bind_texture0(img);
 
-    // Bind streams: position + texcoord
-    set_attrib_pointer(UI_ATTR_POSITION, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+    set_attrib_pointer(0, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
                        2, sizeof(f32_v2), ui_pos);
 
-    // set_attrib_pointer(UI_ATTR_TEXCOORD, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-    //                    2, sizeof(f32_v2), ui_uv);
+    set_attrib_pointer(9, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                       2, sizeof(f32_v2), ui_uv);
 
     // draw_indexed(3, ui_indices);
 	float xScale  = 2.0f;
@@ -149,28 +147,28 @@ void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
 
 	pb_push1(p,NV20_TCL_PRIMITIVE_3D_BEGIN_END,QUADS); p+=2; //(beginning of list) quad used here, but 2 triangles work too
 
-	pb_push(p++,0x40000000|NV20_TCL_PRIMITIVE_3D_VERTEX_DATA,16); //bit 30 means all params go to same register 0x1818
+	pb_push(p++,0x40000000|NV20_TCL_PRIMITIVE_3D_VERTEX_DATA,8); //bit 30 means all params go to same register 0x1818
 
 	// Vertex 0
 	*((float *)(p++))=fLeft;
 	*((float *)(p++))=fTop;
-	*((float *)(p++))=uAdjust;
-	*((float *)(p++))=vAdjust;
+	// *((float *)(p++))=uAdjust;
+	// *((float *)(p++))=vAdjust;
 	// Vertex 50
 	*((float *)(p++))=fRight;
 	*((float *)(p++))=fTop;
-	*((float *)(p++))=uAdjust + 50*xScale;
-	*((float *)(p++))=vAdjust;
+	// *((float *)(p++))=uAdjust + 50*xScale;
+	// *((float *)(p++))=vAdjust;
 	// Vertex 2
 	*((float *)(p++))=fRight;
 	*((float *)(p++))=fBottom;
-	*((float *)(p++))=uAdjust + 50*xScale;
-	*((float *)(p++))=vAdjust + 50*yScale;
+	// *((float *)(p++))=uAdjust + 50*xScale;
+	// *((float *)(p++))=vAdjust + 50*yScale;
 	// Vertex 3
 	*((float *)(p++))=fLeft;
 	*((float *)(p++))=fBottom;
-	*((float *)(p++))=uAdjust;
-	*((float *)(p++))=vAdjust + 50*yScale;
+	// *((float *)(p++))=uAdjust;
+	// *((float *)(p++))=vAdjust + 50*yScale;
 
 	pb_push(p++,NV20_TCL_PRIMITIVE_3D_BEGIN_END,1);
 	*(p++)=STOP; //triggers the drawing (end of list)

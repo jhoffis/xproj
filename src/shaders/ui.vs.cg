@@ -1,11 +1,11 @@
 struct vIn {
     float2 position : POSITION;
-    float2 tex      : TEXCOORD;
+//    float2 tex      : TEXCOORD;
 };
 
 struct vOut {
-    float4 pos  : POSITION;
-    float2 tex0 : TEXCOORD0;
+    float3 pos  : POSITION;
+//    float2 tex0 : TEXCOORD0;
 };
 
 vOut main(vIn I
@@ -21,8 +21,7 @@ vOut main(vIn I
 //	pos = mul(pos, m_proj);
 //	pos.xyz = pos.xyz / pos.w;
 //    o.pos = pos;
-    float4 p = float4(I.position.x, I.position.y, 1.f, 1.0f);
-    o.pos = p;
-    o.tex0 = I.tex;
+    o.pos = float3(I.position.x, I.position.y, 0.0f);
+ //   o.tex0 = I.tex;
     return o;
 }

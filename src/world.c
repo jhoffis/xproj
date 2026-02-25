@@ -348,7 +348,7 @@ void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z) {
 
             if (base_y + CHUNK_SIZE <= h) {
                 for (int yi = 0; yi < CHUNK_SIZE; yi++) {
-                    chunk->cubes[xi][yi][zi].type = BLOCK_TYPE_COBBLESTONE;
+                    chunk->cubes[xi][yi][zi].type = BLOCK_TYPE_GRASS;
                 }
                 continue;
             }
@@ -356,7 +356,7 @@ void generate_chunk(s32 chunk_x, s32 chunk_y, s32 chunk_z) {
             for (int yi = 0; yi < CHUNK_SIZE; yi++) {
                 const int wy = base_y + yi;
                 chunk->cubes[xi][yi][zi].type =
-                    (wy < h) ? BLOCK_TYPE_COBBLESTONE : BLOCK_TYPE_AIR;
+                    (wy < h) ? BLOCK_TYPE_GRASS : BLOCK_TYPE_AIR;
             }
         }
     }

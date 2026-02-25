@@ -2,16 +2,17 @@
 
 #include "pbkit/pbkit.h"
 #include "shader.h"
+#include "src/allocator.h"
 #include "src/mvp.h"
 
 #define UI_ATTR_POSITION 0
 #define UI_ATTR_TEXCOORD 9
 
-static u32 ui_indices[3];
-static f32 uv[8];
-static f32_v2 pos[4];
+static u32    *ui_indices;
+static f32_v2 *ui_uv;
+static f32_v2 *ui_pos;
 
-static inline u32 pack_u16(u16 a, u16 b) { return ((u32)a << 16) | (u32)b; }
+static inline u32 pack_u16(u16 a, u16 b) { return (u32)a | ((u32)b << 16); }
 
 // Bind stage0 texture exactly like terrain.h does.
 // This keeps your “how we deal with textures” consistent.
@@ -56,13 +57,27 @@ static void ui_bind_texture0(const image_data *img) {
 }
 
 void init_ui(void) {
-    ui_indices[0] = pack_u16((u16)(0), (u16)(1));
-    ui_indices[1] = pack_u16((u16)(2), (u16)(2));
-    ui_indices[2] = pack_u16((u16)(3), (u16)(0));
-    uv[0] = 0.; uv[1] = 0.;
-    uv[2] = 1.; uv[3] = 0.;
-    uv[4] = 1.; uv[5] = 1.;
-    uv[6] = 0.; uv[7] = 1.;
+    ui_uv = xMmAllocateContiguousMemoryEx(4 * sizeof(f32_v2), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    ui_pos = xMmAllocateContiguousMemoryEx(4 * sizeof(f32_v3), 0, PAGE_READWRITE | PAGE_WRITECOMBINE);
+    ui_indices = x_aligned_malloc(6 * sizeof(u16), 16);
+
+    ui_indices[0] = pack_u16(0, 1);
+    ui_indices[1] = pack_u16(2, 2);
+    ui_indices[2] = pack_u16(3, 0);
+
+    ui_uv[0] = (f32_v2){0.f, 0.f};
+    ui_uv[1] = (f32_v2){1.f, 0.f};
+    ui_uv[2] = (f32_v2){1.f, 1.f};
+    ui_uv[3] = (f32_v2){0.f, 1.f};
+
+    ui_pos[0] = (f32_v2){.9f,  .5f};
+    ui_pos[1] = (f32_v2){-.9f, .5f};
+    ui_pos[2] = (f32_v2){-.9f, -.5f};
+    ui_pos[3] = (f32_v2){.9f,  -.5f};
+    // ui_pos[0] = (f32_v2){-.9f, -.9f};
+    // ui_pos[1] = (f32_v2){.9f,  -.9f};
+    // ui_pos[2] = (f32_v2){.9f,  .9f};
+    // ui_pos[3] = (f32_v2){-.9f, .9f};
 }
 
 static inline float ui_px_to_ndc_x(float x_px, float fb_w) {
@@ -83,50 +98,83 @@ void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
     // pos[1].x = 0;     pos[1].y = 0+1;  
     // pos[2].x = 0;     pos[2].y = 0;
     // pos[3].x = 0+1;   pos[3].y = 0;
-    pos[0].x = x0;   pos[0].y = y0;
-    pos[1].x = x1;   pos[1].y = y0;  
-    pos[2].x = x1;   pos[2].y = y1;
-    pos[3].x = x0;   pos[3].y = y1;
+
 
     init_shader(SHADER_UI);
     
     u32 *p;
     p = pb_begin();
-    p = pb_push1(p, NV097_SET_CULL_FACE_ENABLE, 0);
     p = pb_push1(p, NV097_SET_DEPTH_TEST_ENABLE, 0);
-    p = pb_push1(p, NV097_SET_STENCIL_TEST_ENABLE, 0);
-    p = pb_push1(p, NV097_SET_COLOR_MASK,
-            NV097_SET_COLOR_MASK_BLUE_WRITE_ENABLE |
-            NV097_SET_COLOR_MASK_GREEN_WRITE_ENABLE |
-            NV097_SET_COLOR_MASK_RED_WRITE_ENABLE |
-            NV097_SET_COLOR_MASK_ALPHA_WRITE_ENABLE);
+    p = pb_push1(p, NV097_SET_DEPTH_MASK, 0);
+    p = pb_push1(p, NV097_SET_CULL_FACE_ENABLE, 0);
+    p = pb_push1(p, NV097_SET_ALPHA_TEST_ENABLE, 0);
+    p = pb_push1(p, NV097_SET_BLEND_ENABLE, 0);
+    p = pb_push1(p, NV097_SET_COLOR_MASK, 0x01010101);
     pb_end(p);
     p = pb_begin();
     p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
-
-    f32 constants_0[1] = {1, };
+    //
+    f32 constants_0[1] = {0};
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 1);
     memcpy(p, constants_0, 1*sizeof(f32)); p+=1;
-
+    //
     // pb_end(p);
     // p = pb_begin();
-    pb_push(p++,NV097_SET_VERTEX_DATA_ARRAY_FORMAT,3);
-    for(size_t i = 0; i < 3; i++) {
+    pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT, 16);
+    for (int i = 0; i < 16; i++) {
         *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
     }
     pb_end(p);
 
-
     // Bind the texture like terrain does
-    ui_bind_texture0(img);
+    // ui_bind_texture0(img);
 
     // Bind streams: position + texcoord
     set_attrib_pointer(UI_ATTR_POSITION, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                       2, sizeof(f32_v2), pos);
+                       2, sizeof(f32_v2), ui_pos);
 
-    set_attrib_pointer(UI_ATTR_TEXCOORD, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-                       2, sizeof(f32_v2), uv);
+    // set_attrib_pointer(UI_ATTR_TEXCOORD, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+    //                    2, sizeof(f32_v2), ui_uv);
 
-    draw_indexed(3, ui_indices);
+    // draw_indexed(3, ui_indices);
+	float xScale  = 2.0f;
+	float yScale  = 2.0f;
+	float fLeft   = (float)(0*2);
+	float fTop    = (float)(0*2);
+	float fRight  = (float)((0+50)*2);
+	float fBottom = (float)((0+50)*2);
+	float uAdjust = (float)(50*2);
+	float vAdjust = (float)(50*2);
+	p=pb_begin();
+
+	pb_push1(p,NV20_TCL_PRIMITIVE_3D_BEGIN_END,QUADS); p+=2; //(beginning of list) quad used here, but 2 triangles work too
+
+	pb_push(p++,0x40000000|NV20_TCL_PRIMITIVE_3D_VERTEX_DATA,16); //bit 30 means all params go to same register 0x1818
+
+	// Vertex 0
+	*((float *)(p++))=fLeft;
+	*((float *)(p++))=fTop;
+	*((float *)(p++))=uAdjust;
+	*((float *)(p++))=vAdjust;
+	// Vertex 50
+	*((float *)(p++))=fRight;
+	*((float *)(p++))=fTop;
+	*((float *)(p++))=uAdjust + 50*xScale;
+	*((float *)(p++))=vAdjust;
+	// Vertex 2
+	*((float *)(p++))=fRight;
+	*((float *)(p++))=fBottom;
+	*((float *)(p++))=uAdjust + 50*xScale;
+	*((float *)(p++))=vAdjust + 50*yScale;
+	// Vertex 3
+	*((float *)(p++))=fLeft;
+	*((float *)(p++))=fBottom;
+	*((float *)(p++))=uAdjust;
+	*((float *)(p++))=vAdjust + 50*yScale;
+
+	pb_push(p++,NV20_TCL_PRIMITIVE_3D_BEGIN_END,1);
+	*(p++)=STOP; //triggers the drawing (end of list)
+
+	pb_end(p);
 }
 

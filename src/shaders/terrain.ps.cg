@@ -1,8 +1,8 @@
 
 struct vOut {
     float2 tex0 : TEXCOORD0; // UV coordinates
-    float2 subTextureBounds : TEXCOORD1; // Bounds of the sub-texture (u_min, v_min, u_max, v_max)
-    float2 subTextureBounds2 : TEXCOORD2; // Bounds of the sub-texture (u_min, v_min, u_max, v_max)
+//    float2 subTextureBounds : TEXCOORD1; // Bounds of the sub-texture (u_min, v_min, u_max, v_max)
+//    float2 subTextureBounds2 : TEXCOORD2; // Bounds of the sub-texture (u_min, v_min, u_max, v_max)
 };
 
 // Custom fractional and floor functions

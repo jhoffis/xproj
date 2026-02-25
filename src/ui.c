@@ -2,6 +2,7 @@
 
 #include "pbkit/pbkit.h"
 #include "shader.h"
+#include "src/mvp.h"
 
 #define UI_ATTR_POSITION 0
 #define UI_ATTR_TEXCOORD 9
@@ -70,41 +71,67 @@ void init_ui(void) {
     uv[6] = 0.; uv[7] = 1.;
 }
 
+static inline float ui_px_to_ndc_x(float x_px, float fb_w) {
+    return (x_px / fb_w) * 2.0f - 1.0f;
+}
+static inline float ui_px_to_ndc_y(float y_px, float fb_h) {
+    // y-down pixels → y-up clip
+    return 1.0f - (y_px / fb_h) * 2.0f;
+}
+
 void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
+    float x0 = ui_px_to_ndc_x(x, screen_width);
+    float x1 = ui_px_to_ndc_x(x + w, screen_width);
+    float y0 = ui_px_to_ndc_y(y, screen_height);
+    float y1 = ui_px_to_ndc_y(y + h, screen_height);
     // TL, TR, BR, BL
-    pos[0].x = x;   pos[0].y = y;
-    pos[1].x = x; pos[1].y = y;  
-    pos[2].x = x+w; pos[2].y = y+h;
-    pos[3].x = x;   pos[3].y = y+h;
+    // pos[0].x = 0+1;   pos[0].y = 0+1;
+    // pos[1].x = 0;     pos[1].y = 0+1;  
+    // pos[2].x = 0;     pos[2].y = 0;
+    // pos[3].x = 0+1;   pos[3].y = 0;
+    pos[0].x = x0;   pos[0].y = y0;
+    pos[1].x = x1;   pos[1].y = y0;  
+    pos[2].x = x1;   pos[2].y = y1;
+    pos[3].x = x0;   pos[3].y = y1;
 
     init_shader(SHADER_UI);
     
     u32 *p;
-    // p = pb_begin();
-    // p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
+    p = pb_begin();
+    p = pb_push1(p, NV097_SET_CULL_FACE_ENABLE, 0);
+    p = pb_push1(p, NV097_SET_DEPTH_TEST_ENABLE, 0);
+    p = pb_push1(p, NV097_SET_STENCIL_TEST_ENABLE, 0);
+    p = pb_push1(p, NV097_SET_COLOR_MASK,
+            NV097_SET_COLOR_MASK_BLUE_WRITE_ENABLE |
+            NV097_SET_COLOR_MASK_GREEN_WRITE_ENABLE |
+            NV097_SET_COLOR_MASK_RED_WRITE_ENABLE |
+            NV097_SET_COLOR_MASK_ALPHA_WRITE_ENABLE);
+    pb_end(p);
+    p = pb_begin();
+    p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_ID, 96);
 
-    // f32 constants_0[2] = {0, 1};
-    // pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 2);
-    // memcpy(p, constants_0, 2*sizeof(f32)); p+=2;
+    f32 constants_0[1] = {1, };
+    pb_push(p++, NV20_TCL_PRIMITIVE_3D_VP_UPLOAD_CONST_X, 1);
+    memcpy(p, constants_0, 1*sizeof(f32)); p+=1;
 
     // pb_end(p);
-    p = pb_begin();
-    pb_push(p++,NV097_SET_VERTEX_DATA_ARRAY_FORMAT,16);
-    for(size_t i = 0; i < 16; i++) {
+    // p = pb_begin();
+    pb_push(p++,NV097_SET_VERTEX_DATA_ARRAY_FORMAT,3);
+    for(size_t i = 0; i < 3; i++) {
         *(p++) = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;
     }
     pb_end(p);
 
 
     // Bind the texture like terrain does
-    // ui_bind_texture0(img);
+    ui_bind_texture0(img);
 
     // Bind streams: position + texcoord
     set_attrib_pointer(UI_ATTR_POSITION, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
                        2, sizeof(f32_v2), pos);
 
-    // set_attrib_pointer(UI_ATTR_TEXCOORD, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
-    //                    4, sizeof(f32_v2), uv);
+    set_attrib_pointer(UI_ATTR_TEXCOORD, NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F,
+                       2, sizeof(f32_v2), uv);
 
     draw_indexed(3, ui_indices);
 }

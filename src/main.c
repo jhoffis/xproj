@@ -463,7 +463,7 @@ int main(void)
 
         // render_terrain();
 		// pb_fill(0,0,640,480,0xff0000); //clear frame (optional)
-        ui_sprite(&ui_test_img, 0, 0, 0.5, 1);
+        ui_sprite(&ui_test_img, 0, 0, 200, 200);
 
         QueryPerformanceCounter(&win_clock_end); // Record end time
         double elapsed = (double)(win_clock_end.QuadPart - win_clock_start.QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds

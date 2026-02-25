@@ -5,13 +5,24 @@ struct vIn {
 
 struct vOut {
     float4 pos  : POSITION;
-    // float2 tex0 : TEXCOORD0;
+    float2 tex0 : TEXCOORD0;
 };
 
-vOut main(vIn I) {
+vOut main(vIn I
+//,	uniform float4x4 m_model,
+//  uniform float4x4 m_view,
+//  uniform float4x4 m_proj
+) {
     vOut o;
-    float4 p = float4(I.position.x, I.position.y * 0.5f, 0.0f, 1.0f);
+//	float4 pos;
+//	pos = mul(float4(I.pos.xyz, 1.0), m_model);
+//
+//	pos = mul(pos, m_view);
+//	pos = mul(pos, m_proj);
+//	pos.xyz = pos.xyz / pos.w;
+//    o.pos = pos;
+    float4 p = float4(I.position.x, I.position.y, 1.f, 1.0f);
     o.pos = p;
-    // o.tex0 = I.tex;
+    o.tex0 = I.tex;
     return o;
 }

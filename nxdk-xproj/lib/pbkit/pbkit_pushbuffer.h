@@ -45,7 +45,7 @@ extern "C" {
 #define NEXT_SUBCH 5
 
 // push buffer size, must be >64Kb and a power of 2
-#define PBKIT_PUSHBUFFER_SIZE 4 * 512 * 1024
+#define PBKIT_PUSHBUFFER_SIZE 4 * 1024 * 1024
 
 // Start a block of pushbuffer commands.
 // There is a hard limit of PBKIT_PUSHBUFFER_SIZE between flushes, so avoid pushing more than PBKIT_PUSHBUFFER_SIZE /

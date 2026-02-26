@@ -149,4 +149,7 @@ run-kd:
 ftp:
 	curl -T $(OUTPUT_DIR)/default.xbe ftp://192.168.0.207/F/xproj/ --user xbox:xbox
 
+ftp-all:
+	find $(OUTPUT_DIR) -type f -exec curl -T {} ftp://192.168.0.207/F/xproj/ --user xbox:xbox \;
+
 endif

@@ -1,13 +1,5 @@
 #pragma once
+#include <stdbool.h>
 
-// #include "hal/debug.h"
-// #include "pbkit/pbkit.h"
-// #include <stdlib.h>
-//
-// static void show_error(char *err) {
-//     pb_show_debug_screen();
-//
-//     debugPrint("%s", err);
-//
-//     free(err);
-// }
+extern bool errored;
+extern void(*show_error)(void);

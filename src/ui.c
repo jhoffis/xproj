@@ -123,10 +123,22 @@ void ui_sprite(const image_data *img,
             x0 = x;
             x1 = x+(w * (f32)img->w * scale);
             y0 = screen_height - y;
-            y1 = screen_height - y - (h * (f32)img->h * scale);
+            y1 = y0 - (h * (f32)img->h * scale);
             break;
-    }
-    
+        case anchor_bm:
+            uvx0 = w;
+            uvy0 = h;
+            uvx1 = 0;
+            uvy1 = 0;
+            f32 wa = (w * (f32)img->w * scale) / 2;
+            f32 xa = (f32)screen_width / 2 + x;
+            x0 = xa - wa;
+            x1 = xa + wa;
+            y0 = screen_height - y;
+            y1 = y0 - (h * (f32)img->h * scale);
+            break;
+        }
+
     init_shader(SHADER_UI);
     
     u32 *p;

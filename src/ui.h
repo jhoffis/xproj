@@ -6,6 +6,7 @@
 typedef enum {
     anchor_tl,
     anchor_bl,
+    anchor_bm,
 } anchor_e;
 
 void init_ui(void);

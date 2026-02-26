@@ -1,4 +1,5 @@
 #include "allocator.h"
+#include "src/errors.h"
 #include "src/ui.h"
 #define SDL_JOYSTICK_XINPUT
 #define SDL_JOYSTICK_DINPUT
@@ -133,7 +134,7 @@ void testSound(s16* sound_buffer, size_t sample_count) {
 #include <xmmintrin.h>
 static short simd_add_example() {
     // Example arrays (must be 16-byte aligned for optimal performance)
-    alignas(16) float a[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+    alignas(16) float a[4] = {2.0f, 2.0f, 3.0f, 4.0f};
     alignas(16) float b[4] = {5.0f, 6.0f, 7.0f, 8.0f};
     alignas(16) float result[4]; // Output array
 
@@ -174,6 +175,13 @@ static short mmx_add_example() {
     return result[1];
 }
 
+
+static void exit_error(void) {
+    pb_show_debug_screen();
+    wait_then_cleanup();
+    errored = true;
+}
+
 int main(void)
 {
     SDL_Event e;
@@ -194,11 +202,11 @@ int main(void)
         screen_height = 480;
         XVideoSetMode(screen_width, screen_height, 32, REFRESH_DEFAULT);
     }
-    debugPrint("test\n");
+    show_error = exit_error;
     // The unrolled SSE index upload path can outpace the default 512 KiB
     // push buffer at high scene complexity (e.g. larger CHUNK_VIEW_DISTANCE).
     // Increase headroom to avoid PFIFO command stream overruns.
-    pb_size(4 * 1024 * 1024);
+    pb_size(PBKIT_PUSHBUFFER_SIZE);
     pbk_init = pb_init() == 0;
     if (!pbk_init) {
         pb_show_debug_screen();
@@ -228,10 +236,12 @@ int main(void)
     short simd_test2 = mmx_add_example();
 
     init_cubes();
-    init_world();
+    // init_world();
     init_ui();
     image_data ui_test_img = load_image("test");
-    load_chunks();
+    image_data ui_grid = load_image("hotkeygrid");
+    // load_chunks();
+    if (errored) return 0;
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)screen_width/(float)screen_height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 30000.0f);
@@ -465,10 +475,10 @@ int main(void)
         pb_print("faces: %d\n", num_faces_pooled);
         print_num_mem_allocated();
 
-        render_terrain();
+        // render_terrain();
 		// pb_fill(0,0,640,480,0xff0000); //clear frame (optional)
-        ui_sprite(&ui_test_img, 100, 20, 8, 1, 5, anchor_tl);
-        ui_sprite(&ui_test_img, 100, 20, 3, 1, 3, anchor_bl);
+        // ui_sprite(&ui_test_img, 100, 20, 8, 1, 5, anchor_tl);
+        ui_sprite(&ui_grid, 0, 20, 8, 1, 1, anchor_bm);
 
         QueryPerformanceCounter(&win_clock_end); // Record end time
         double elapsed = (double)(win_clock_end.QuadPart - win_clock_start.QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds

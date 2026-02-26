@@ -1,6 +1,8 @@
 #include "png_loader.h"
 #include "allocator.h"
 #include "file_util.h"
+#include "hal/debug.h"
+#include "src/errors.h"
 #include "xboxkrnl/xboxkrnl.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -1616,21 +1618,23 @@ void swizzle_rect(
 image_data load_image(const char *name) {
     image_data img = {0};
     char *fixed_name = path_name(name, ".png");
-    FILE* file = fopen(fixed_name, "rb"); // requires a persistent char* appearently
-    xfree(fixed_name);
+    FILE* file = fopen(fixed_name, "rb");
     if (!file) {
-        // FIXME! debugPrint("failed at finding image!\n");
-        // wait_then_cleanup();
+        debugPrint("load_image: file not found: %s\n", fixed_name);
+        xfree(fixed_name);
+        show_error();
         return img;
     }
-    load_from_file(&img, file, (int*) &img.w, (int*) &img.h, &img.comp); // , STBI_rgb_alpha);
+    xfree(fixed_name);
+    load_from_file(&img, file, (int*) &img.w, (int*) &img.h, &img.comp);
     fclose(file);
-    if (!img.image) {
-        // TODO add exception failure thing to the xbox UI
-        //   throw std::runtime_error(
-        //       std::string("Failed to load texture at ").append(realPath));
+    if (!img.image || img.w == 0 || img.h == 0) {
+        debugPrint("load_image: failed to decode: %s\n", name);
+        img = (image_data){0};
+        show_error();
+        return img;
     }
-    img.pitch = 4*img.w; // 4 bytes
+    img.pitch = 4*img.w;
     for (int i = 0; i < img.pitch * img.h; i += 4) {
         // Small endian flip from RGBA to ARGB (but backwards so memory-wise ABGR)
         u8 r = img.image[i];

@@ -38,7 +38,8 @@ static void ui_bind_texture0(const image_data *img) {
     p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_TX_NPOT_PITCH(0), img->pitch << 16);
     p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_TX_NPOT_SIZE(0), (img->w << 16) | img->h);
     p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_TX_WRAP(0), 0x00010101);
-    p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0), control_enable);
+    // p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0), control_enable);
+	p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_TX_ENABLE(0), 0x4003ffc4);
     p = pb_push1(p, NV20_TCL_PRIMITIVE_3D_TX_FILTER(0), filter);
     pb_end(p);
 
@@ -65,10 +66,10 @@ void init_ui(void) {
     ui_indices[1] = pack_u16(2, 2);
     ui_indices[2] = pack_u16(3, 0);
 
-    ui_uv[0] = (f32_v2){0.f, 1.f};
-    ui_uv[1] = (f32_v2){1.f, 1.f};
-    ui_uv[2] = (f32_v2){1.f, 0.f};
-    ui_uv[3] = (f32_v2){0.f, 0.f};
+    ui_uv[0] = (f32_v2){1.f, 0.f};
+    ui_uv[1] = (f32_v2){0.f, 0.f};
+    ui_uv[2] = (f32_v2){0.f, 1.f};
+    ui_uv[3] = (f32_v2){1.f, 1.f};
 
     ui_pos[0] = (f32_v2){.9f,  .5f};
     ui_pos[1] = (f32_v2){-.9f, .5f};
@@ -88,18 +89,44 @@ static inline float ui_px_to_ndc_y(float y_px, float fb_h) {
     return 1.0f - (y_px / fb_h) * 2.0f;
 }
 
-void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
-    float x0 = ui_px_to_ndc_x(x, screen_width);
-    float x1 = ui_px_to_ndc_x(x + w, screen_width);
-    float y0 = ui_px_to_ndc_y(y, screen_height);
-    float y1 = ui_px_to_ndc_y(y + h, screen_height);
-    // TL, TR, BR, BL
-    // pos[0].x = 0+1;   pos[0].y = 0+1;
-    // pos[1].x = 0;     pos[1].y = 0+1;  
-    // pos[2].x = 0;     pos[2].y = 0;
-    // pos[3].x = 0+1;   pos[3].y = 0;
-
-
+void ui_sprite(const image_data *img,
+               const f32 x,
+               const f32 y,
+               const f32 w,
+               const f32 h,
+               const f32 scale,
+               const anchor_e anchor) {
+    f32 uvx0;
+    f32 uvy0;
+    f32 uvx1;
+    f32 uvy1;
+    f32 x0;
+    f32 x1;
+    f32 y0;
+    f32 y1;
+    switch (anchor) {
+        case anchor_tl:
+            uvx0 = w;
+            uvy0 = 0;
+            uvx1 = 0;
+            uvy1 = h;
+            x0 = x;
+            x1 = x+(w * (f32)img->w * scale);
+            y0 = y;
+            y1 = y+(h * (f32)img->h * scale);
+            break;
+        case anchor_bl:
+            uvx0 = w;
+            uvy0 = h;
+            uvx1 = 0;
+            uvy1 = 0;
+            x0 = x;
+            x1 = x+(w * (f32)img->w * scale);
+            y0 = screen_height - y;
+            y1 = screen_height - y - (h * (f32)img->h * scale);
+            break;
+    }
+    
     init_shader(SHADER_UI);
     
     u32 *p;
@@ -107,8 +134,8 @@ void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
     p = pb_push1(p, NV097_SET_DEPTH_TEST_ENABLE, 0);
     p = pb_push1(p, NV097_SET_DEPTH_MASK, 0);
     p = pb_push1(p, NV097_SET_CULL_FACE_ENABLE, 0);
-    p = pb_push1(p, NV097_SET_ALPHA_TEST_ENABLE, 0);
-    p = pb_push1(p, NV097_SET_BLEND_ENABLE, 0);
+    p = pb_push1(p, NV097_SET_ALPHA_TEST_ENABLE, 1);
+    p = pb_push1(p, NV097_SET_BLEND_ENABLE, 1);
     p = pb_push1(p, NV097_SET_COLOR_MASK, 0x01010101);
     pb_end(p);
     p = pb_begin();
@@ -125,54 +152,49 @@ void ui_sprite(const image_data *img, f32 x, f32 y, f32 w, f32 h) {
 
     ui_bind_texture0(img);
 
-    float fLeft   = (float)(0*2);
-    float fTop    = (float)(0*2);
-    float fRight  = (float)((0+50)*2);
-    float fBottom = (float)((0+50)*2);
-
     p = pb_begin();
     pb_push1(p, NV20_TCL_PRIMITIVE_3D_BEGIN_END, QUADS); p += 2;
 
 #define UI_TEX0_2F (NV097_SET_VERTEX_DATA2F_M + UI_ATTR_TEXCOORD * 2 * sizeof(f32))
     // Vertex 0
     pb_push(p++, UI_TEX0_2F, 2);
-    *((float *)(p++)) = ui_uv[0].x;
-    *((float *)(p++)) = ui_uv[0].y;
+    *((f32 *)(p++)) = uvx1;
+    *((f32 *)(p++)) = uvy0;
     pb_push(p++, NV097_SET_VERTEX4F, 4);
-    *((float *)(p++)) = fLeft;
-    *((float *)(p++)) = fTop;
-    *((float *)(p++)) = 0.0f;
-    *((float *)(p++)) = 1.0f;
+    *((f32 *)(p++)) = x0;
+    *((f32 *)(p++)) = y0;
+    *((f32 *)(p++)) = 0.0f;
+    *((f32 *)(p++)) = 1.0f;
 
     // Vertex 1
     pb_push(p++, UI_TEX0_2F, 2);
-    *((float *)(p++)) = ui_uv[1].x;
-    *((float *)(p++)) = ui_uv[1].y;
+    *((f32 *)(p++)) = uvx0;
+    *((f32 *)(p++)) = uvy0;
     pb_push(p++, NV097_SET_VERTEX4F, 4);
-    *((float *)(p++)) = fRight;
-    *((float *)(p++)) = fTop;
-    *((float *)(p++)) = 0.0f;
-    *((float *)(p++)) = 1.0f;
+    *((f32 *)(p++)) = x1;
+    *((f32 *)(p++)) = y0;
+    *((f32 *)(p++)) = 0.0f;
+    *((f32 *)(p++)) = 1.0f;
 
     // Vertex 2
     pb_push(p++, UI_TEX0_2F, 2);
-    *((float *)(p++)) = ui_uv[2].x;
-    *((float *)(p++)) = ui_uv[2].y;
+    *((f32 *)(p++)) = uvx0;
+    *((f32 *)(p++)) = uvy1;
     pb_push(p++, NV097_SET_VERTEX4F, 4);
-    *((float *)(p++)) = fRight;
-    *((float *)(p++)) = fBottom;
-    *((float *)(p++)) = 0.0f;
-    *((float *)(p++)) = 1.0f;
+    *((f32 *)(p++)) = x1;
+    *((f32 *)(p++)) = y1;
+    *((f32 *)(p++)) = 0.0f;
+    *((f32 *)(p++)) = 1.0f;
 
     // Vertex 3
     pb_push(p++, UI_TEX0_2F, 2);
-    *((float *)(p++)) = ui_uv[3].x;
-    *((float *)(p++)) = ui_uv[3].y;
+    *((f32 *)(p++)) = uvx1;
+    *((f32 *)(p++)) = uvy1;
     pb_push(p++, NV097_SET_VERTEX4F, 4);
-    *((float *)(p++)) = fLeft;
-    *((float *)(p++)) = fBottom;
-    *((float *)(p++)) = 0.0f;
-    *((float *)(p++)) = 1.0f;
+    *((f32 *)(p++)) = x0;
+    *((f32 *)(p++)) = y1;
+    *((f32 *)(p++)) = 0.0f;
+    *((f32 *)(p++)) = 1.0f;
 #undef UI_TEX0_2F
 
     pb_push(p++, NV20_TCL_PRIMITIVE_3D_BEGIN_END, 1);

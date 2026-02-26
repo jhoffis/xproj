@@ -192,7 +192,6 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
 
     // X planes: EAST/WEST (A=y, B=z, C=x)
     for (int x = 0; x < CHUNK_SIZE; x++) {
-        // EAST (+x)
         memset(mask, 0, sizeof(mask));
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
@@ -202,14 +201,13 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
                 const u8 nb = cube_type_at(chunk, x + 1, y, z);
                 if (is_air_type(nb)) {
                     // NOTE: mask is indexed as B=z rows, A=y columns
-                    mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_EAST) + 1u;
+                    mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_WEST) + 1u;
                 }
             }
         }
         // greedy emits (A=a, B=b). For X planes we want A=y, B=z.
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_EAST, (u8)x, 0, &faces_found);
+        greedy_from_mask(mask, (u8)FACE_DIRECTION_WEST, (u8)x, 0, &faces_found);
 
-        // WEST (-x)
         memset(mask, 0, sizeof(mask));
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
@@ -218,11 +216,11 @@ static void mesh_chunk_greedy(chunk_data *chunk, u32 *out_faces_found) {
                 if (x == 0) continue;
                 const u8 nb = cube_type_at(chunk, x - 1, y, z);
                 if (is_air_type(nb)) {
-                    mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_WEST) + 1u;
+                    mask[z * CHUNK_SIZE + y] = (u8)convert_block_to_face_type(bt, (u8)FACE_DIRECTION_EAST) + 1u;
                 }
             }
         }
-        greedy_from_mask(mask, (u8)FACE_DIRECTION_WEST, (u8)x, 0, &faces_found);
+        greedy_from_mask(mask, (u8)FACE_DIRECTION_EAST, (u8)x, 0, &faces_found);
     }
 
     *out_faces_found = faces_found;
@@ -442,25 +440,39 @@ static inline void write_face_to_buffers(
         chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + a0, chunk_offset[1] + b1, chunk_offset[2] + c };
         chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + a0, chunk_offset[1] + b0, chunk_offset[2] + c };
 
-        chunk_tex_coords[dst_v + 0] = (f32_v2){ tex_a, tex_b };
-        chunk_tex_coords[dst_v + 1] = (f32_v2){ tex_a, 0.0f };
-        chunk_tex_coords[dst_v + 2] = (f32_v2){ 0.0f,  0.0f };
-        chunk_tex_coords[dst_v + 3] = (f32_v2){ 0.0f,  tex_b };
+        if (dir == FACE_DIRECTION_SOUTH) {
+            chunk_tex_coords[dst_v + 0] = (f32_v2){ 0, tex_b };
+            chunk_tex_coords[dst_v + 1] = (f32_v2){ 0, 0 };
+            chunk_tex_coords[dst_v + 2] = (f32_v2){ tex_a,  0 };
+            chunk_tex_coords[dst_v + 3] = (f32_v2){ tex_a,  tex_b };
+        } else {
+            chunk_tex_coords[dst_v + 0] = (f32_v2){ tex_a, tex_b };
+            chunk_tex_coords[dst_v + 1] = (f32_v2){ tex_a, 0 };
+            chunk_tex_coords[dst_v + 2] = (f32_v2){ 0,  0 };
+            chunk_tex_coords[dst_v + 3] = (f32_v2){ 0,  tex_b };
+        }
         return;
     }
 
     // WEST/EAST: A=y, B=z, C=x
-    if (dir == FACE_DIRECTION_EAST) c += bs;
+    if (dir == FACE_DIRECTION_WEST) c += bs;
 
-    chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a0, chunk_offset[2] + b1 };
-    chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a1, chunk_offset[2] + b1 };
-    chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a1, chunk_offset[2] + b0 };
-    chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a0, chunk_offset[2] + b0 };
+    chunk_vertices[dst_v + 0] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a0, chunk_offset[2] + b0 };
+    chunk_vertices[dst_v + 1] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a1, chunk_offset[2] + b0 };
+    chunk_vertices[dst_v + 2] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a1, chunk_offset[2] + b1 };
+    chunk_vertices[dst_v + 3] = (f32_v3){ chunk_offset[0] + c, chunk_offset[1] + a0, chunk_offset[2] + b1 };
 
-    chunk_tex_coords[dst_v + 0] = (f32_v2){ 0.0f,  tex_a };
-    chunk_tex_coords[dst_v + 1] = (f32_v2){ 0.0f,  0.0f };
-    chunk_tex_coords[dst_v + 2] = (f32_v2){ tex_b, 0.0f };
-    chunk_tex_coords[dst_v + 3] = (f32_v2){ tex_b, tex_a };
+    if (dir == FACE_DIRECTION_WEST) {
+        chunk_tex_coords[dst_v + 0] = (f32_v2){ tex_b,  tex_a };
+        chunk_tex_coords[dst_v + 1] = (f32_v2){ tex_b,  0 };
+        chunk_tex_coords[dst_v + 2] = (f32_v2){ 0, 0 };
+        chunk_tex_coords[dst_v + 3] = (f32_v2){ 0, tex_a };
+    } else {
+        chunk_tex_coords[dst_v + 0] = (f32_v2){ 0,  tex_a };
+        chunk_tex_coords[dst_v + 1] = (f32_v2){ 0,  0 };
+        chunk_tex_coords[dst_v + 2] = (f32_v2){ tex_b, 0 };
+        chunk_tex_coords[dst_v + 3] = (f32_v2){ tex_b, tex_a };
+    }
 }
 
 /*

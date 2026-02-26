@@ -228,10 +228,10 @@ int main(void)
     short simd_test2 = mmx_add_example();
 
     init_cubes();
-    // init_world();
+    init_world();
     init_ui();
-    image_data ui_test_img = load_image("grass");
-    // load_chunks();
+    image_data ui_test_img = load_image("test");
+    load_chunks();
 
     /* Create projection matrix */
     create_view_screen(m_proj, (float)screen_width/(float)screen_height, -1.0f, 1.0f, -1.0f, 1.0f, 1.f, 30000.0f);
@@ -395,7 +395,7 @@ int main(void)
                     "- Rstick: x=%d, y=%d\n"
                     "- Ltrig: %d\n"
                     "- Rtrig: %d\n"
-                    "- rot: x=%d, y=%d\n"
+                    "- rot: x=%d, y=%d %s\n"
                     // "- snaprot: x=%d, y=%d\n"
                     "- pos: x=%d, y=%d, z=%d\n"
                     "- chunk: x=%d, z=%d\n"
@@ -417,6 +417,10 @@ int main(void)
                     SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT),
                     (s16)(100 * cam_rotationX),
                     (s16)(100 * cam_rotationY),
+                    cam_rotationY > 1.75*M_PI || cam_rotationY < 0.25*M_PI ? "north" :
+                        cam_rotationY > 1.25*M_PI ? "east" :
+                        cam_rotationY > .75*M_PI ? "south" :
+                        "west",
                     // (i16)(100 * snap.x),
                     // (i16)(100 * snap.y),
                     (s16)v_cam_loc.x,
@@ -461,9 +465,10 @@ int main(void)
         pb_print("faces: %d\n", num_faces_pooled);
         print_num_mem_allocated();
 
-        // render_terrain();
+        render_terrain();
 		// pb_fill(0,0,640,480,0xff0000); //clear frame (optional)
-        ui_sprite(&ui_test_img, 0, 0, 200, 200);
+        ui_sprite(&ui_test_img, 100, 20, 8, 1, 5, anchor_tl);
+        ui_sprite(&ui_test_img, 100, 20, 3, 1, 3, anchor_bl);
 
         QueryPerformanceCounter(&win_clock_end); // Record end time
         double elapsed = (double)(win_clock_end.QuadPart - win_clock_start.QuadPart) / win_clock_frequency.QuadPart * 1e9; // Convert to nanoseconds

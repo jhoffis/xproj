@@ -27,8 +27,8 @@ _Static_assert(CHUNK_VIEW_DISTANCE % 2 == 0, "View distance needs to be a whole 
 #define FACE_DIRECTION_UP 1    // +y
 #define FACE_DIRECTION_SOUTH 2 // -z
 #define FACE_DIRECTION_NORTH 3 // +z
-#define FACE_DIRECTION_WEST 4  // -x
-#define FACE_DIRECTION_EAST 5  // +x
+#define FACE_DIRECTION_EAST 4  // +x
+#define FACE_DIRECTION_WEST 5  // -x
 #define FACE_DIRECTION_TOTAL 6
 
 /*
